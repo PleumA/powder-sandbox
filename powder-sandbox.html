@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Powder Sandbox</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Crect%20width='16'%20height='16'%20fill='%2307080c'/%3E%3Ccircle%20cx='6'%20cy='6'%20r='2'%20fill='%23d4b478'/%3E%3Ccircle%20cx='11'%20cy='9'%20r='2'%20fill='%233a84d6'/%3E%3Ccircle%20cx='5'%20cy='12'%20r='2'%20fill='%23ff2e88'/%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#07080c; --panel:#0e1018ee; --line:#1e2433;
-    --txt:#dfe6f5; --dim:#7c869c; --accent:#4cc9f0;
+    --txt:#dfe6f5; --dim:#7c869c; --accent:#e6b36a; --ember:#e0805a;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
@@ -16,17 +16,18 @@
     overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
   #stage{position:fixed;inset:0}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair}
-  #hud{position:fixed;left:14px;top:14px;z-index:5;padding:10px 12px;border-radius:10px;
-    background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);
-    box-shadow:0 8px 30px #0008;pointer-events:none}
-  #hud h1{margin:0 0 2px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  #hud{position:fixed;left:14px;top:14px;z-index:5;padding:11px 13px;border-radius:10px;
+    background:#0e1018f5;border:1px solid #2a3348;border-left:2px solid var(--accent);
+    backdrop-filter:blur(8px);box-shadow:0 10px 36px #000b;pointer-events:none}
+  #hud h1{margin:0 0 3px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--accent);font-weight:600}
-  #stats{color:var(--dim);font-variant-numeric:tabular-nums;font-size:11px}
+  #stats{color:var(--dim);font:11.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
   #stats b{color:var(--txt);font-weight:600}
-  #sel{margin-top:6px;max-width:250px;color:var(--dim);font-size:11px;line-height:1.45}
+  #sel{margin-top:6px;max-width:300px;color:var(--dim);font-size:12px;line-height:1.45}
   #sel b{color:var(--accent);font-weight:600;letter-spacing:.04em}
-  #spark{display:block;margin-top:7px;width:150px;height:34px;image-rendering:pixelated;opacity:.9}
-  #hover{margin-top:3px;color:#5f6b82;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  #sparklabel{margin-top:7px;color:var(--dim);font:10px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+  #spark{display:block;margin-top:3px;width:150px;height:34px;image-rendering:pixelated;opacity:.9}
+  #hover{margin-top:3px;color:var(--dim);font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
   #census{margin-top:5px;color:var(--dim);font-size:10px;line-height:1.6;display:none}
   #census.on{display:block}
   #census b{color:var(--txt);font-weight:600}
@@ -36,7 +37,7 @@
     width:max-content;max-width:min(1180px, calc(100vw - 24px));flex-wrap:wrap;justify-content:center}
   #palette::-webkit-scrollbar{display:none}
   .catlabel{flex:0 0 auto;align-self:center;font-size:8px;letter-spacing:.12em;text-transform:uppercase;
-    color:#4d576c;padding:0 3px 0 7px;writing-mode:vertical-rl;transform:rotate(180deg);user-select:none}
+    color:var(--dim);padding:0 3px 0 7px;writing-mode:vertical-rl;transform:rotate(180deg);user-select:none}
   .mat[hidden],.catlabel[hidden]{display:none}
   .mat{position:relative;flex:0 0 auto;width:44px;height:42px;border-radius:10px;
     border:1px solid #ffffff14;background:#ffffff08;cursor:pointer;padding:0;
@@ -44,54 +45,81 @@
     transition:transform .08s ease,border-color .15s,background .15s}
   .mat:hover{transform:translateY(-2px);background:#ffffff12}
   .mat .dot{width:16px;height:16px;border-radius:5px;box-shadow:0 0 10px 1px var(--glow),inset 0 0 6px #0006}
-  .mat span{font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+  .mat span{font-size:10px;line-height:1.05;letter-spacing:0;color:var(--dim)}
   .mat[aria-pressed="true"]{border-color:var(--glow);background:#ffffff16;
     box-shadow:0 0 0 1px var(--glow),0 0 18px -4px var(--glow)}
   .mat[aria-pressed="true"] span{color:var(--txt)}
+  #toolstoggle{display:none}
   #tools{position:fixed;right:14px;top:14px;z-index:5;display:flex;flex-direction:column;gap:8px;
     padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
     backdrop-filter:blur(8px);box-shadow:0 8px 30px #0008;width:150px}
-  #tools label{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+  #tools label{color:var(--dim);font-size:10px;letter-spacing:.02em}
   #filter{width:100%;padding:5px 7px;border-radius:7px;border:1px solid var(--line);background:#ffffff08;
     color:var(--txt);font:inherit;font-size:11px;outline:none}
   #filter:focus{border-color:var(--accent)}
-  #filter::placeholder{color:#4d576c}
+  #filter::placeholder{color:var(--dim)}
   input[type=range]{width:100%;accent-color:var(--accent);height:16px;margin:0}
   .row{display:flex;gap:6px}
   .btn{flex:1;padding:7px 0;border-radius:8px;border:1px solid var(--line);cursor:pointer;
-    background:#ffffff0a;color:var(--txt);font:inherit;font-size:11px;letter-spacing:.04em;
-    transition:background .15s,border-color .15s}
+    background:#ffffff0a;color:var(--txt);font:inherit;font-size:11px;letter-spacing:.02em;
+    white-space:nowrap;transition:background .15s,border-color .15s}
   .btn:hover{background:#ffffff16;border-color:#33405a}
-  .btn.on{background:#4cc9f022;border-color:var(--accent);color:var(--accent)}
+  .btn.on{background:#e6b36a22;border-color:var(--accent);color:var(--accent)}
+  .btn.danger{border-color:#3a2822}
+  .btn.danger:hover{border-color:var(--ember);color:var(--ember);background:#e0805a16}
+  .btn.danger.on{border-color:var(--ember);color:var(--ember);background:#e0805a22}
+  .btn:focus-visible,.mat:focus-visible,#filter:focus-visible,select:focus-visible,input[type=range]:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px}
+  .sep{height:1px;background:var(--line);margin:1px 0}
+  .volrow{display:flex;align-items:center;gap:4px}
+  .volrow[hidden]{display:none}
+  .volrow label{flex:0 0 34px;color:var(--dim);font-size:10px;letter-spacing:.02em;cursor:pointer}
+  .volrow input{flex:1;min-width:0;height:14px}
+  .volrow b{flex:0 0 20px;text-align:right;color:var(--txt);font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600}
+  #np{font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--accent);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .btn.arming{border-color:var(--ember);color:var(--ember);background:#e0805a22}
   select.btn{appearance:none;text-align:center;padding:7px 0;font-size:11px}
   select.btn option{background:#0e1018;color:#dfe6f5}
-  #hint{position:fixed;left:14px;top:132px;z-index:5;color:var(--dim);font-size:11px;
-    max-width:340px;line-height:1.6;pointer-events:none;opacity:.75}
+  #hint{position:fixed;left:14px;top:180px;z-index:5;color:#8b96aa;font-size:11px;
+    max-width:360px;line-height:1.6;pointer-events:none;text-shadow:0 1px 3px #000c}
   #help{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     background:#05070bcc;backdrop-filter:blur(6px);padding:20px}
   #help[hidden]{display:none}
-  .hbox{max-width:900px;width:100%;max-height:86vh;overflow:auto;background:var(--panel);
-    border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px #000b}
-  .hbox h2{margin:0 0 8px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  .hbox{max-width:1040px;width:100%;max-height:88vh;overflow:auto;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:20px 24px;box-shadow:0 20px 60px #000b}
+  .hbox h2{margin:0 0 12px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
     display:flex;justify-content:space-between;align-items:center}
   .hbox h2 button{background:none;border:0;color:var(--dim);font-size:20px;cursor:pointer;line-height:1}
-  .hk{color:var(--dim);font-size:11px;line-height:1.7;margin:0 0 10px}
+  .hk{color:var(--dim);font-size:12px;line-height:1.65;margin:0 0 14px;max-width:74ch}
   .hk kbd{color:var(--txt);background:#ffffff10;border:1px solid var(--line);border-radius:4px;padding:0 4px}
-  .hgoals{color:var(--dim);font-size:11px;line-height:1.8;margin:0 0 12px}
-  .hgoals b{color:var(--accent);letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-right:8px}
-  .hcreatures{color:var(--dim);font-size:11px;line-height:1.9;margin:0 0 12px}
-  .hcreatures b{color:var(--accent);letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-right:8px}
-  .hcreatures .hc{display:inline-block;margin-right:14px;white-space:nowrap}
-  .hcreatures .hc b{color:var(--txt);font-size:11px;letter-spacing:0;text-transform:none;margin:0 3px 0 2px}
-  .hstory .hl{display:inline-block;margin:2px 6px 2px 0;opacity:.85}
-.hcreatures i{color:#5a657c;font-style:normal;font-size:10px}
+  .hsec{margin:0 0 18px;padding-top:14px;border-top:1px solid var(--line)}
+  .hsec h3{margin:0 0 10px;font-size:12.5px;letter-spacing:.02em;color:var(--accent);font-weight:600}
+  .hgoals{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 22px}
+  .goal{display:flex;gap:7px;align-items:baseline;color:var(--dim);font-size:11.5px;line-height:1.45}
+  .goal .mark{flex:0 0 12px;text-align:center;color:#5a657c}
+  .goal.done .mark,.goal.done b{color:var(--accent)}
+  .goal b{color:var(--txt);font-weight:600;white-space:nowrap}
+  .goal i{font-style:normal;color:#6f7a90;font-size:11px}
+  .hcreatures{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:7px 24px}
+  .hcreature{color:var(--dim);font-size:11.5px;line-height:1.4;padding-left:8px;border-left:2px solid var(--line)}
+  .hcreature b{color:var(--txt);font-weight:600}
+  .hcreature .n{font:10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--accent);margin-left:2px}
+  .hcreature i{display:block;font-style:normal;color:#6f7a90;font-size:10.5px}
+  .hfood{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:5px 24px}
+  .hfoodrow{color:var(--dim);font-size:11.5px;line-height:1.45}
+  .hfoodrow b{color:var(--txt);font-weight:600}
+  .hstory{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 22px}
+  .hl{color:var(--dim);font-size:11.5px}
+  .hl b{color:var(--txt)}
   .hmats{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}
-  .hrow{display:flex;gap:8px;align-items:baseline;font-size:11px;color:var(--dim);line-height:1.5}
+  .hrow{display:flex;gap:8px;align-items:baseline;font-size:11.5px;color:var(--dim);line-height:1.5}
   .hrow i{width:10px;height:10px;border-radius:3px;flex:0 0 auto;display:block}
   .hrow b{color:var(--txt);font-weight:600;min-width:64px}
-  body.clean #hud, body.clean #tools, body.clean #palette, body.clean #hint, body.clean #toast{display:none}
-  #log{position:fixed;left:14px;bottom:142px;z-index:4;pointer-events:none;font-size:10px;line-height:1.7;
-    color:#5f6b82;max-width:260px;letter-spacing:.02em}
+  body.clean #hud, body.clean #tools, body.clean #palette, body.clean #hint, body.clean #toast, body.clean #toolstoggle{display:none}
+  #log{position:fixed;left:14px;bottom:calc(var(--palette-h, 156px) + 24px);z-index:4;pointer-events:none;
+    font-size:11px;line-height:1.7;color:#8b96aa;width:300px;min-height:108px;max-height:108px;overflow:hidden;
+    letter-spacing:.02em;padding:6px 8px;border-radius:8px;border:1px solid var(--line);
+    background:#0e1018e8;box-shadow:0 8px 24px #0008;backdrop-filter:blur(6px)}
   #log div{opacity:.9}
   #log div:last-child{opacity:.45}
   body.clean #log{display:none}
@@ -105,8 +133,30 @@
     border-radius:4px;padding:0 4px;font:inherit;font-size:10px}
   @media (max-width:760px){
     #hint{display:none}
-    #tools{width:132px}
+    #hud{max-width:calc(100vw - 190px)}
+    #stats{font-size:10.5px}
+    #sel,#spark{max-width:100%}
+    #toolstoggle{display:block;position:fixed;right:14px;top:14px;z-index:6;width:92px;padding:8px 0}
+    #toolstoggle[hidden]{display:none}
+    #tools{top:58px;width:146px;max-height:calc(100vh - 76px);overflow-y:auto;z-index:6}
+    #tools[hidden]{display:none}
+    .row{flex-wrap:wrap}
+    .row.audio .btn{flex:1 1 44%}
+    .btn{min-width:0;padding:7px 3px;font-size:10px}
     .mat{width:40px;height:40px}
+    .hbox{padding:16px;max-height:92vh}
+    .hk{max-width:none}
+    #palette{max-height:38vh;overflow-y:auto;justify-content:flex-start;
+      scrollbar-width:thin;scrollbar-color:#ffffff24 transparent}
+    #palette::-webkit-scrollbar{display:block;width:6px}
+    #palette::-webkit-scrollbar-thumb{background:#ffffff24;border-radius:3px}
+  }
+  @media (min-width:1780px){
+    #log{bottom:16px;width:min(300px, calc((100vw - 1180px) / 2 - 24px))}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mat,.btn,#toast{transition:none}
+    .mat:hover{transform:none}
   }
 </style>
 </head>
@@ -117,6 +167,7 @@
   <h1>Powder Sandbox</h1>
   <div id="stats"><b id="fps">0</b> fps &middot; <b id="count">0</b> cells &middot; <b id="bugs">0</b> alive &middot; <b id="clock">day</b> &middot; <b id="wind" title="wind">-</b> &middot; <b id="season" title="season">-</b> &middot; <b id="gstat">0/17</b></div>
   <div id="sel"></div>
+  <div id="sparklabel">Life, last 150 ticks</div>
   <canvas id="spark" width="150" height="34" aria-label="population history"></canvas>
   <div id="hover"></div>
   <div id="census"></div>
@@ -128,34 +179,37 @@
   <input id="brush" type="range" min="1" max="24" value="6">
   <div class="row">
     <button class="btn" id="pause" aria-pressed="false">Pause</button>
-    <button class="btn" id="step">Step</button>
-    <button class="btn" id="clear">Clear</button>
+    <button class="btn" id="step" title="advance one tick">Step</button>
+    <button class="btn danger" id="clear" title="empty the world">Clear</button>
   </div>
+  <div class="sep"></div>
   <div class="row">
     <button class="btn" id="rain" aria-pressed="false">Rain</button>
-    <button class="btn" id="quake">Quake</button>
+    <button class="btn danger" id="quake" title="shake the ground">Quake</button>
     <button class="btn" id="weather" aria-pressed="false" title="turn the weather off and on">Weather</button>
   </div>
   <div class="row">
-    <button class="btn" id="volcano" aria-pressed="false">Volcano</button>
-    <button class="btn" id="terrain">Terrain</button>
-    <button class="btn" id="disaster">Wrath</button>
+    <button class="btn danger" id="volcano" aria-pressed="false" title="open a volcano">Volcano</button>
+    <button class="btn" id="terrain" title="generate new terrain">Terrain</button>
+    <button class="btn danger" id="disaster" title="unleash disasters">Wrath</button>
   </div>
   <div class="row">
-    <button class="btn" id="storm" aria-pressed="false">Storm</button>
-    <button class="btn" id="gust">Gust</button>
-    <button class="btn" id="heatview" aria-pressed="false">Heat</button>
+    <button class="btn" id="storm" aria-pressed="false" title="call a storm">Storm</button>
+    <button class="btn" id="gust" title="blow a gust of wind">Gust</button>
+    <button class="btn" id="heatview" aria-pressed="false" title="show the heat field">Heat</button>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <button class="btn" id="garden" title="plant a garden">Garden</button>
+    <button class="btn" id="shot" title="save a PNG">Shot</button>
+    <button class="btn" id="link" title="copy a scene link">Link</button>
   </div>
   <div class="row">
-    <button class="btn" id="garden">Garden</button>
-    <button class="btn" id="shot">Shot</button>
-    <button class="btn" id="link">Link</button>
+    <button class="btn" id="rec" title="record a WebM">Rec</button>
+    <button class="btn" id="psave" title="save the scene in this browser">Keep</button>
+    <button class="btn" id="pload" title="restore the saved scene">Recall</button>
   </div>
-  <div class="row">
-    <button class="btn" id="rec">Rec</button>
-    <button class="btn" id="psave">Keep</button>
-    <button class="btn" id="pload">Recall</button>
-  </div>
+  <div class="sep"></div>
   <div class="row">
   <select id="scene" class="btn" aria-label="Scene" style="flex:1">
     <option value="">Scene&hellip;</option>
@@ -171,33 +225,38 @@
   </select>
   <button class="btn" id="auto" aria-pressed="false" title="let the world settle itself — no disasters">Autoplay</button>
   </div>
-  <div class="row">
-    <button class="btn" id="speed">Speed 1x</button>
-    <button class="btn" id="sound" aria-pressed="false">Sound</button>
+  <div class="row audio">
+    <button class="btn" id="speed" title="simulation speed">1&times;</button>
+    <button class="btn" id="sound" aria-pressed="false" title="sound effects on or off">Sound</button>
     <button class="btn" id="music" aria-pressed="false" title="procedural lo-fi, no files">Lo-fi</button>
-    <button class="btn" id="fill" aria-pressed="false">Fill</button>
+    <button class="btn" id="fill" aria-pressed="false" title="keep filling with the selected material">Fill</button>
   </div>
+  <div class="sep" id="volsep" hidden></div>
+  <div class="volrow" id="sfxvolrow" hidden><label for="sfxvol">Sound</label><input id="sfxvol" type="range" min="0" max="100" value="80" aria-label="Sound volume"><b id="sfxval">80</b></div>
+  <div class="volrow" id="musicvolrow" hidden><label for="musicvol">Music</label><input id="musicvol" type="range" min="0" max="100" value="70" aria-label="Music volume"><b id="musicval">70</b></div>
+  <div id="np" hidden></div>
 </div>
+<button id="toolstoggle" class="btn" hidden aria-controls="tools" aria-expanded="true">Tools</button>
 
-<div id="help" hidden>
+<div id="help" role="dialog" aria-modal="true" aria-labelledby="helptitle" hidden>
   <div class="hbox">
-    <h2>Powder Sandbox <button id="hclose" aria-label="Close">×</button></h2>
+    <h2 id="helptitle">Powder Sandbox <button id="hclose" aria-label="Close">×</button></h2>
     <p class="hk">drag to pour &middot; right-click erases &middot; middle-click picks a material &middot;
       <kbd>space</kbd> pause &middot; <kbd>[</kbd> <kbd>]</kbd> brush &middot; <kbd>0</kbd>–<kbd>9</kbd> pick by number &middot;
-      <kbd>i</kbd> counts &middot; <kbd>y</kbd> mirror &middot; <kbd>u</kbd> photo mode &middot; <kbd>k</kbd> lo-fi &middot; <kbd>n</kbd> weather &middot; <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo &middot; <kbd>?</kbd> this panel</p>
+      <kbd>i</kbd> counts &middot; <kbd>y</kbd> mirror &middot; <kbd>h</kbd> hide panels &middot; <kbd>k</kbd> lo-fi &middot; <kbd>n</kbd> weather &middot; <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo &middot; <kbd>?</kbd> this panel</p>
     <p class="hk">Every material has a rule. Fire needs fuel, water quenches it into steam, lava fuses sand into
       glass, salt turns water to brine, brine boils back to salt. Plants grow by day, sleep at night, and
       seed themselves; bugs lay eggs, birds build nests, spiders spin webs, worms tunnel, fish and frogs stay wet,
       each kind keeps to its own — fish school, birds flock, ants march in columns —
       and one creature bolting from a predator turns its whole group the same way.
       Weather, season and heat do the rest.</p>
-    <div class="hgoals hk"></div>
-    <div class="hcreatures hk"></div>
-    <div class="hfood hk"></div>
-    <div class="hstory hk"></div>
-    <p class="hk">Scriptable: <code>sandbox.paint(x,y,r,'lava')</code>, <code>sandbox.scene('forest')</code>,
+    <section class="hsec"><h3>Goals</h3><div class="hgoals"></div></section>
+    <section class="hsec"><h3>Creatures</h3><div class="hcreatures"></div></section>
+    <section class="hsec"><h3>Food web</h3><div class="hfood"></div></section>
+    <section class="hsec"><h3>The story so far</h3><div class="hstory"></div></section>
+    <section class="hsec"><h3>Materials</h3><div class="hmats"></div></section>
+    <p class="hk" style="margin-top:14px">Scriptable: <code>sandbox.paint(x,y,r,'lava')</code>, <code>sandbox.scene('forest')</code>,
       <code>sandbox.step(30)</code>, <code>sandbox.stats()</code> &mdash; the console is enough.</p>
-    <div class="hmats"></div>
   </div>
 </div>
 
@@ -208,9 +267,8 @@
 <nav id="palette" aria-label="Materials"></nav>
 
 <div id="hint">
-<kbd>?</kbd> help &middot; <kbd>u</kbd> photo &middot; <kbd>y</kbd> mirror &middot; <kbd>drag</kbd> pour &middot; <kbd>i</kbd> counts &middot; <kbd>mid</kbd> pick &middot; <kbd>[</kbd><kbd>]</kbd> brush &middot; <kbd>right-click</kbd> erase &middot; <kbd>space</kbd> pause &middot; <kbd>0</kbd>–<kbd>9</kbd> select &middot; <kbd>C</kbd> clear<br>
-  <kbd>W</kbd><kbd>I</kbd><kbd>G</kbd> wood / ice / glass &middot; <kbd>L</kbd><kbd>F</kbd><kbd>B</kbd><kbd>O</kbd> bugs / fish / birds / worms &middot; <kbd>T</kbd><kbd>S</kbd><kbd>M</kbd> tnt / smoke / mercury<br>
-  Lava + sand &rarr; glass. Ice and snow melt near heat. Fire burns wood, oil, plants and bugs. TNT blows a crater. Spiders climb, frogs hop, snails graze, bats hunt, fish swim. Rain waters the farm and lightning starts fires. Plants grow by day and sleep at night.
+  <kbd>drag</kbd> pour &middot; <kbd>right-click</kbd> erase &middot; <kbd>?</kbd> all controls &middot; <kbd>h</kbd> hide panels<br>
+  <kbd>/</kbd> filter materials &middot; <kbd>[</kbd><kbd>]</kbd> brush &middot; <kbd>space</kbd> pause &middot; <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo
 </div>
 
 <script>
@@ -372,9 +430,16 @@ let painted = false;
 function resize(){
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const pal = document.getElementById('palette');
-  const band = Math.max(78, Math.ceil(pal.getBoundingClientRect().height) + 24);  // room for a wrapped palette
+  const palH = Math.ceil(pal.getBoundingClientRect().height) || 0;
+  document.documentElement.style.setProperty('--palette-h', palH + 'px');
+  const sideLog = !document.body.classList.contains('clean') && matchMedia('(min-width:1780px)').matches;
+  let band = document.body.classList.contains('clean') ? 0
+    : Math.max(78, palH + 24 + (sideLog ? 0 : 116));   // on wide screens the log sits beside the palette
+  if (!Number.isFinite(band)) band = 0;
   document.getElementById('stage').style.bottom = band + 'px';
-  const cw = innerWidth, ch = Math.max(240, innerHeight - band);
+  let cw = innerWidth, ch = Math.max(240, innerHeight - band);
+  if (!Number.isFinite(cw) || cw < 8) cw = 320;         // a hidden/not-yet-laid-out window still needs arrays
+  if (!Number.isFinite(ch) || ch < 8) ch = 240;
   const nW = Math.floor(cw / cell), nH = Math.floor(ch / cell);
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
@@ -852,6 +917,7 @@ function hop(x,y,tx,ty){
   moved[j] = 1;
   return true;
 }
+function airborne(x,y){ return y + 1 < H && grid[idx(x,y+1)] === EMPTY; }
 
 // a bug: falls, walks, climbs one step, eats plants, burns, drowns, dies of old age
 function tickLife(x,y,i){
@@ -1201,7 +1267,9 @@ function tickSpider(x,y,i){
 
   // climb before walking: only with a solid wall beside us to cling to
   const cling = dx => { if (!inB(x+dx,y)) return false; const t = grid[idx(x+dx,y)]; return t !== EMPTY && t !== WATER && t !== STEAM; };
-  if ((cling(-1) || cling(1)) && crawl(x,y,x,y-1)) return true;
+  const clinging = cling(-1) || cling(1);
+  if (clinging && crawl(x,y,x,y-1)) return true;
+  if (!clinging && crawl(x,y,x,y+1)) return true;            // not on a wall: gravity first
 
   const seen = sense(x,y,LIFE,4);
   if (seen && crawl(x,y,x+seen[0],y+seen[1])) return true;
@@ -1236,6 +1304,11 @@ function tickFrog(x,y,i){
 
   if (age > 1200 && Math.random() < 0.01){ set(x,y, EMPTY); return true; }
 
+  if (y + 1 < H && grid[idx(x,y+1)] === EMPTY && !reedHere(x,y)){
+    hop(x, y, x, y + 1);                                 // airborne: gravity acts before any leap
+    return true;
+  }
+
   if (reedHere(x,y)){                                    // lying up in the reeds: strike at what swims past
     const seen = senseWet(x,y,FISH,4) || senseWet(x,y,LIFE,4);
     if (seen && (hop(x,y,x + Math.sign(seen[0]), y + Math.sign(seen[1])) || hop(x,y,x + Math.sign(seen[0]), y))) return true;
@@ -1262,10 +1335,10 @@ function tickSnail(x,y,i){
   if (forage(x, y, SNAIL, 4)) return true;
   if (eatAround(x, y, SNAIL)) return true;
   if (age > 2000 && Math.random() < 0.01){ set(x,y, EMPTY); return true; }
+  if (hop(x,y,x,y+1)) return true;                // gravity first: even a snail falls
   if (((update.t|0) * 7 + x) % 6) return true;    // slow: acts on 1 update in 6
   let d = facing[i];
   if (!d || Math.random() < 0.06) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
-  if (hop(x,y,x,y+1)) return true;                // fall
   if (hop(x,y,x+d,y)) return true;                // crawl on
   facing[i] = -d;                                 // blocked: turn around
   return true;
@@ -1390,6 +1463,7 @@ function eatAround(x,y,who){
 
 // walk toward the nearest thing on your menu
 function forage(x,y,who,range){
+  if (airborne(x,y)) return false;                    // no foraging while falling
   const menu = DIET[who];
   if (!menu) return false;
   for (const food of menu){
@@ -1421,6 +1495,7 @@ function raiseAlarm(x,y,who,esc){
 
 // run from the nearest thing that would eat you
 function fleeFrom(x,y,who,range){
+  if (airborne(x,y)) return false;                    // no fleeing sideways while falling
   const foes = FEARED[who];
   if (!foes) return false;
   for (const f of foes){
@@ -1641,8 +1716,8 @@ function tickTermite(x,y,i){
   }
   let d = facing[i];
   if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
-  if (hop(x,y,x+d,y)) return true;
   if (hop(x,y,x,y+1)) return true;
+  if (hop(x,y,x+d,y)) return true;
   facing[i] = -d;
   return false;
 }
@@ -1666,6 +1741,7 @@ function tickDeer(x,y,i){
       return true;   // not while someone is watching the patch
     }
   }
+  if (hop(x,y,x,y+1)) return true;                          // gravity first
   const startled = alarmT[i] > update.t;                               // a herd that has bolted stays skittish
   const scare = sense(x,y,HUMAN,startled ? 9 : 5);
   if (scare && hop(x,y,x - scare[0], y - scare[1])) return true;
@@ -1940,6 +2016,7 @@ function tickCrab(x,y,i){
     if (t === FIRE || t === LAVA){ set(x,y, EMPTY); return true; }
 
   }
+  if (hop(x,y,x,y+1)) return true;                     // gravity first
   if (fleeFrom(x, y, CRAB, 2)) return true;
   const bone = sense(x,y,BONE,4);
   if (bone && hop(x,y,x+bone[0],y+bone[1])) return true;         // carrion comes before salad
@@ -1978,6 +2055,7 @@ function tickAnt(x,y,i){
     if (t === FIRE || t === LAVA){ set(x,y, EMPTY); return true; }
 
   }
+  if (hop(x,y,x,y+1)) return true;                     // gravity first
   if (fleeFrom(x, y, ANT, 3)) return true;
   if (forage(x, y, ANT, 5)) return true;
   eatAround(x, y, ANT);
@@ -2421,6 +2499,16 @@ for (const [name, ids] of CATS){
   for (const k of ids) addButton(k);
 }
 
+// the palette reflows after fonts and filtering; re-fit the stage whenever it does
+if (typeof ResizeObserver !== 'undefined'){
+  let palQueued = false;
+  new ResizeObserver(() => {
+    if (palQueued) return;
+    palQueued = true;
+    requestAnimationFrame(() => { palQueued = false; resize(); });
+  }).observe(document.getElementById('palette'));
+} else setTimeout(resize, 60);
+
 // typing narrows the palette to matching materials and hides empty categories
 const filterEl = document.getElementById('filter');
 filterEl.addEventListener('input', () => {
@@ -2449,6 +2537,25 @@ function select(k){
 }
 select(current);
 
+/* ---------- narrow-screen tools drawer ---------- */
+const toolsEl = document.getElementById('tools');
+const toolsToggleEl = document.getElementById('toolstoggle');
+let toolsInit = false;
+function syncTools(){
+  const narrow = matchMedia('(max-width:760px)').matches;
+  if (!narrow){
+    toolsEl.hidden = false; toolsToggleEl.hidden = true;
+    toolsToggleEl.setAttribute('aria-expanded', 'true');
+    return;
+  }
+  toolsToggleEl.hidden = false;
+  if (!toolsInit){ toolsEl.hidden = true; toolsInit = true; }
+  toolsToggleEl.setAttribute('aria-expanded', toolsEl.hidden ? 'false' : 'true');
+  toolsToggleEl.textContent = toolsEl.hidden ? 'Tools' : 'Hide tools';
+}
+toolsToggleEl.addEventListener('click', () => { toolsEl.hidden = !toolsEl.hidden; syncTools(); });
+syncTools();
+
 /* ---------- controls ---------- */
 const brushEl = document.getElementById('brush');
 brushEl.addEventListener('input', () => {
@@ -2463,7 +2570,20 @@ document.getElementById('step').addEventListener('click', () => {
   if (!paused) togglePause();          // stepping only makes sense when frozen
   stepOnce = true;
 });
-document.getElementById('clear').addEventListener('click', () => { snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0); draw(); });
+let clearArm = 0;
+document.getElementById('clear').addEventListener('click', () => {
+  const el = document.getElementById('clear'), now = performance.now();
+  if (!clearArm || now - clearArm > 2000){          // a reset is worth one confirmation
+    clearArm = now;
+    el.textContent = 'Sure?'; el.classList.add('arming');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.textContent = 'Clear'; el.classList.remove('arming'); }, 2100);
+    return;
+  }
+  clearArm = 0;
+  el.textContent = 'Clear'; el.classList.remove('arming');
+  snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0); draw();
+});
 
 function quake(){
   const tmp = new Uint8Array(W), tmpLife = new Uint16Array(W);
@@ -2484,9 +2604,15 @@ function quake(){
 }
 document.getElementById('quake').addEventListener('click', quake);
 
-let audio = null, soundOn = false;
+let audio = null, soundOn = false, sfxOut = null, musicOut = null;
+let sfxLevel = 0.8, musicLevel = 0.7;
+function volClamp(v){ return Math.max(0, Math.min(1, v)); }
 function ac(){
   if (!audio && typeof AudioContext !== 'undefined') audio = new AudioContext();
+  if (audio && !sfxOut){
+    sfxOut = audio.createGain(); sfxOut.gain.value = sfxLevel; sfxOut.connect(audio.destination);
+    musicOut = audio.createGain(); musicOut.gain.value = musicLevel; musicOut.connect(audio.destination);
+  }
   return audio;
 }
 function blip(freq, dur, type, gain){
@@ -2494,7 +2620,7 @@ function blip(freq, dur, type, gain){
   const o = a.createOscillator(), g = a.createGain();
   o.type = type || 'sine'; o.frequency.value = freq;
   g.gain.value = gain || 0.06;
-  o.connect(g); g.connect(a.destination);
+  o.connect(g); g.connect(sfxOut);
   o.start();
   g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
   o.stop(a.currentTime + dur);
@@ -2510,7 +2636,7 @@ function rumble(){
   const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
   f.type = 'lowpass'; f.frequency.value = 160;
   src.buffer = buf; g.gain.value = 0.4;
-  src.connect(f); f.connect(g); g.connect(a.destination); src.start();
+  src.connect(f); f.connect(g); g.connect(sfxOut); src.start();
 }
 function noiseBurst(dur, gain){
   const a = ac(); if (!a || !soundOn) return;
@@ -2520,8 +2646,32 @@ function noiseBurst(dur, gain){
   for (let i=0;i<n;i++) d[i] = (Math.random()*2 - 1) * (1 - i/n);
   const src = a.createBufferSource(), g = a.createGain();
   src.buffer = buf; g.gain.value = gain;
-  src.connect(g); g.connect(a.destination);
+  src.connect(g); g.connect(sfxOut);
   src.start();
+}
+const sfxVolEl = document.getElementById('sfxvol'), musicVolEl = document.getElementById('musicvol');
+const sfxValEl = document.getElementById('sfxval'), musicValEl = document.getElementById('musicval');
+function setSfxLevel(v){
+  sfxLevel = volClamp(v);
+  const n = Math.round(sfxLevel * 100);
+  sfxVolEl.value = n; sfxValEl.textContent = n;
+  if (sfxOut) sfxOut.gain.value = sfxLevel;
+}
+function setMusicLevel(v){
+  musicLevel = volClamp(v);
+  const n = Math.round(musicLevel * 100);
+  musicVolEl.value = n; musicValEl.textContent = n;
+  if (musicOut) musicOut.gain.value = musicLevel;
+}
+sfxVolEl.addEventListener('input', () => setSfxLevel(sfxVolEl.value / 100));
+sfxVolEl.addEventListener('change', savePrefs);
+musicVolEl.addEventListener('input', () => setMusicLevel(musicVolEl.value / 100));
+musicVolEl.addEventListener('change', savePrefs);
+function syncVolRows(){                            // a silent channel needs no slider
+  const s = document.getElementById('sfxvolrow'), m = document.getElementById('musicvolrow');
+  const sep = document.getElementById('volsep');
+  const musicShown = musicOn;                      // armed-but-waiting is not "on"
+  s.hidden = !soundOn; m.hidden = !musicShown; sep.hidden = !soundOn && !musicShown;
 }
 const soundEl = document.getElementById('sound');
 soundEl.addEventListener('click', () => {
@@ -2529,6 +2679,7 @@ soundEl.addEventListener('click', () => {
   soundEl.classList.toggle('on', soundOn);
   soundEl.setAttribute('aria-pressed', soundOn);
   if (soundOn) blip(660, 0.08, 'sine', 0.05);
+  syncVolRows();
 });
 
 const SPEEDS = [0.5, 1, 2, 3];
@@ -2537,7 +2688,7 @@ const speedEl = document.getElementById('speed');
 speedEl.addEventListener('click', () => {
   speedIx = (speedIx + 1) % SPEEDS.length;
   speed = SPEEDS[speedIx];
-  speedEl.textContent = 'Speed ' + speed + 'x';
+  speedEl.textContent = speed + '×';
 });
 
 let weatherOff = false;                          // the Weather button freezes rain, storms, wind and seasons
@@ -2553,7 +2704,7 @@ stormEl.addEventListener('click', () => {
 
 let acidRain = 0, wasNight = false, shake = 0, wasWet = null;
 const chronSeen = {};
-let autoPlay = false, autoNext = 0;
+let autoPlay = false, autoNext = 0, autoStroke = null, autoHideAt = 0, autoSceneAt = 0;
 const autoEl = document.getElementById('auto');
 autoEl.addEventListener('click', () => {
   autoPlay = !autoPlay;
@@ -2561,6 +2712,7 @@ autoEl.addEventListener('click', () => {
   autoEl.setAttribute('aria-pressed', autoPlay);
   logEvent(autoPlay ? '\u25b6 autoplay on' : '\u23f8 autoplay off');
   if (autoPlay && !musicOn) musicToggle();          // the click is the gesture the music needs
+  if (!autoPlay){ autoStroke = null; cursor.on = false; clearTimeout(autopilot.rainTimer); }
   autoNext = 0;
 });
 function settleCamp(){                               // a household, a hearth, a fence, and their deer
@@ -2654,30 +2806,126 @@ function plantReeds(){                               // a reed bed at the waterl
   }
   draw();
 }
+function autoSurface(x){                             // the first solid cell in a column
+  x = Math.max(0, Math.min(W-1, x|0));
+  for (let y=0; y<H; y++){
+    const v = grid[idx(x,y)];
+    if (v !== EMPTY && v !== WATER && v !== SMOKE) return y;
+  }
+  return H - 3;
+}
+function autoSelect(v, size){                        // change the palette, the brush and the HUD, like a player
+  if (MAT[v]) select(v);
+  brush = size;
+  brushEl.value = size;
+  document.getElementById('brushval').textContent = size;
+}
+function autoBrush(max){ return Math.max(1, Math.min(12, Math.round(max * W / 360))); }
+function autoLine(t, x0, y0, x1, y1, v, dur, wob){
+  autoStroke = { x0, y0, x1, y1, v, t0: t, dur, wob: wob || 1.4 };
+  autoNext = Infinity;                               // the stroke owns the clock now
+}
+function sceneMess(){
+  let occupied = 0; const kinds = new Set();
+  for (let i=0;i<grid.length;i++){ const v = grid[i]; if (v){ occupied++; kinds.add(v); } }
+  return { fill: occupied / (W*H), kinds: kinds.size, species: MIGRANTS.filter(sp => hist[sp] > 0).length };
+}
+function maybeNewScene(t){
+  if (!autoSceneAt) autoSceneAt = t;
+  if (t - autoSceneAt < 900000) return false;          // 15 minutes per scene
+  if (maybeNewScene._last && t - maybeNewScene._last < 5000) return false;
+  maybeNewScene._last = t;
+  const m = sceneMess();
+  if (m.fill < 0.55 || (m.kinds < 12 && m.species < 8)) return false;   // full and messy
+  const names = Object.keys(SCENES).filter(n => n !== sceneEl.value);
+  if (!names.length) return false;
+  loadScene(names[(Math.random()*names.length)|0]);
+  autoNext = t + 4000 + Math.random() * 4000;
+  return true;
+}
+const AUTO_MATTER = MATS.filter(k => k !== EMPTY && !MAT[k].life);
+const AUTO_ALL = MATS.filter(k => k !== EMPTY);
+const autoRecent = [];
+function autoPick(pool){                             // spread the palette; do not repeat the last few
+  for (let k = 0; k < 12; k++){
+    const v = pool[(Math.random() * pool.length) | 0];
+    if (autoRecent.indexOf(v) < 0){
+      autoRecent.push(v);
+      if (autoRecent.length > 8) autoRecent.shift();
+      return v;
+    }
+  }
+  return pool[(Math.random() * pool.length) | 0];
+}
 function autopilot(t){
+  if (autoStroke){                                   // a drag: the brush moves, the world answers
+    const s = autoStroke;
+    const k = Math.min(1, (t - s.t0) / s.dur);
+    const x = s.x0 + (s.x1 - s.x0) * k + Math.sin(k * Math.PI * 5) * s.wob;
+    const y = s.y0 + (s.y1 - s.y0) * k + Math.cos(k * Math.PI * 3) * s.wob * 0.5;
+    paintAt(x, y, s.v);
+    cursor.x = x; cursor.y = y; cursor.on = true;
+    if (k >= 1){
+      autoStroke = null;
+      autoHideAt = t + 2000 + Math.random() * 3000;   // then the hand moves away
+      autoNext = t + 3000 + Math.random() * 8000;     // and watches what it did
+    }
+    return;
+  }
+  if (autoHideAt && t > autoHideAt){ cursor.on = false; autoHideAt = 0; }
+  if (maybeNewScene(t)) return;
   if (t < autoNext) return;
-  autoNext = t + 420 + Math.random() * 620;          // autoplay is about settling, not disasters
   const r = Math.random();
-  if (r < 0.4){                                      // a camp claims a patch
-    settleCamp();
-  } else if (r < 0.56){                              // a herd runs through the settled strip
-    driveHerd();
-  } else if (r < 0.7){                               // a herd or a colony wanders in
-    const sp = [DEER, DEER, LIFE, BEE, ANT, BIRD, WORM][(Math.random()*7)|0];
-    for (let k=0;k<5;k++) set((Math.random()*W)|0, Math.round(H*0.55 + Math.random()*H*0.4), sp);
-    draw();
-  } else if (r < 0.78){                              // greenery takes the ground
-    const v = Math.random() < 0.7 ? PLANT : SEED;
-    for (let k=0;k<6;k++) set((Math.random()*W)|0, Math.round(H*0.7 + Math.random()*H*0.28), v);
-    draw();
-  } else if (r < 0.88){                              // reeds take the waterline
-    plantReeds();
-  } else {                                           // a little material to work with
-    const v = [SAND, WATER, WOOD, MUD, COMPOST][(Math.random()*5)|0];
-    paintAt(Math.random()*W, Math.round(H*0.65 + Math.random()*H*0.3), 3 + ((Math.random()*6)|0), v);
-    draw();
+  if (r < 0.35){                                     // pour a little of anything from above
+    const v = autoPick(AUTO_MATTER);
+    const x = 8 + Math.random()*(W-16), y = H*0.08 + Math.random()*H*0.35;
+    const hot = v === FIRE || v === LAVA || v === ACID || v === TNT || v === OIL || v === MERCURY;
+    autoSelect(v, autoBrush(hot ? 1 + Math.random()*2 : 1 + Math.random()*3));
+    autoLine(t, x, y, x + (Math.random()*16-8), y + (Math.random()*6-3), v,
+             hot ? 400 + Math.random()*500 : 600 + Math.random()*900, 1.2);
+  } else if (r < 0.55){                              // draw along the ground
+    const v = autoPick(AUTO_MATTER);
+    const x0 = 8 + Math.random()*(W-70), x1 = Math.min(W-2, x0 + 20 + Math.random()*Math.min(100, W-x0-8));
+    const hot = v === FIRE || v === LAVA || v === ACID || v === TNT || v === OIL || v === MERCURY;
+    autoSelect(v, autoBrush(hot ? 1 : 1 + Math.random()*3));
+    autoLine(t, x0, autoSurface(x0|0)-1, x1, autoSurface(x1|0)-1, v,
+             hot ? 300 + Math.random()*400 : 1000 + Math.random()*1400, hot ? 0.3 : 0.6);
+  } else if (r < 0.65){                              // build a little fence or wall
+    const v = autoPick([WOOD, STONE, GLASS]);
+    const x = 10 + Math.random()*(W-20), y = autoSurface(x|0)-1;
+    autoSelect(v, autoBrush(1 + Math.random()*3));
+    if (Math.random() < 0.5) autoLine(t, x, y, x + 6 + Math.random()*18, y, v, 900 + Math.random()*1000, 0.3);
+    else autoLine(t, x, y, x, Math.max(2, y - 8 - Math.random()*18), v, 900 + Math.random()*1000, 0.3);
+  } else if (r < 0.75){                              // a few creatures from the whole bestiary
+    const sp = autoPick(MIGRANTS);
+    const x = 12 + Math.random()*(W-40);
+    const y = Math.random() < 0.5 ? autoSurface(x|0)-1 : H*0.4 + Math.random()*H*0.45;
+    autoSelect(sp, autoBrush(1 + Math.random()*2));
+    autoLine(t, x, y, x + 6 + Math.random()*20, y + (Math.random()*4-2), sp, 600 + Math.random()*600, 0.4);
+  } else if (r < 0.88){                              // one small dab of any palette entry
+    const v = autoPick(AUTO_ALL);
+    const x = 10 + Math.random()*(W-20);
+    const ground = MAT[v].density >= 0 && !MAT[v].liquid && !MAT[v].life;
+    const y = ground ? autoSurface(x|0)-1 : H*0.15 + Math.random()*H*0.5;
+    autoSelect(v, autoBrush(1 + Math.random()*2));
+    autoLine(t, x, y, x + (Math.random()*8-4), y + (Math.random()*6-3), v, 240 + Math.random()*380, 0.3);
+  } else if (r < 0.94){                              // press a gentle tool, like a player would
+    const name = ['garden', 'rain'][(Math.random()*2)|0];
+    if (name === 'rain'){
+      if (!rainWanted){
+        document.getElementById('rain').click();
+        clearTimeout(autopilot.rainTimer);
+        autopilot.rainTimer = setTimeout(() => { if (rainWanted) document.getElementById('rain').click(); }, 8000 + Math.random()*8000);
+      }
+    } else document.getElementById(name).click();
+    autoNext = t + 6000 + Math.random() * 8000;
+  } else {                                           // now and then, let the world settle itself
+    const r2 = Math.random();
+    if (r2 < 0.45) settleCamp(); else if (r2 < 0.7) driveHerd(); else plantReeds();
+    autoNext = t + 7000 + Math.random() * 9000;
   }
 }
+
 const tally = { born: 0, eaten: 0, starved: 0 };               // ticks of acid weather left, and the dawn chorus
 const MIGRANTS = [LIFE, FISH, BIRD, WORM, SPIDER, FROG, SNAIL, BAT, BEE, ANT, CRAB, HERON, GULL, HUMAN, DEER, TERMITE];
 const IS_CREATURE = new Set(MIGRANTS);
@@ -2853,59 +3101,62 @@ const SCENES = {
     bed(STONE, 0.3, true);
     for (let x=0;x<W;x++){ const t = topsHint[x]; if (t > 1) set(x, t, SAND); }
 
-    const cx = (W * 0.42)|0, r = Math.max(7, (W * 0.16)|0);      // a pond in the hollow
+    const cx = (W * 0.42)|0, r = Math.max(9, (W * 0.18)|0);      // a pond in the hollow
     for (let x=Math.max(1, cx-r); x<=Math.min(W-2, cx+r); x++){
       const d = (x - cx) / r;
-      const depth = Math.max(1, Math.round(7 * Math.cos(d * Math.PI / 2)));
+      const depth = Math.max(1, Math.round(9 * Math.cos(d * Math.PI / 2)));
       const top = (topsHint[x] || H-5);
       for (let y=top; y<Math.min(H, top+depth); y++) if (get(x,y) !== STONE) set(x,y, WATER);
     }
-    for (let k=0;k<70;k++){                                       // grass and flowers round the water
+    for (let k=0;k<150;k++){                                      // a meadow, not a lawn
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
-      if (t > 2 && get(x, t) !== WATER) set(x, t-1, Math.random() < 0.2 ? FLOWER : PLANT);
+      if (t > 2 && get(x, t) !== WATER) set(x, t-1, Math.random() < 0.24 ? FLOWER : Math.random() < 0.12 ? SEED : PLANT);
     }
-    for (let k=0;k<7;k++){                                        // a few trees on the ridge
-      const x = (Math.random()*W*0.9 + W*0.05)|0, base = topsHint[x] || H-4;
+    for (let k=0;k<12;k++){                                       // trees on the ridge, some fruiting
+      const x = (Math.random()*W*0.92 + W*0.04)|0, base = topsHint[x] || H-4;
       if (get(x, base) === WATER) continue;
-      for (let y=base-1; y>base-9 && y>2; y--) set(x,y, WOOD);
-      for (let dy=-3;dy<=0;dy++) for (let dx=-3;dx<=3;dx++)
-        if (dx*dx + dy*dy < 10) set(x+dx, base-10+dy, PLANT);
+      for (let y=base-1; y>base-10 && y>2; y--) set(x,y, WOOD);
+      for (let dy=-4;dy<=1;dy++) for (let dx=-4;dx<=4;dx++)
+        if (dx*dx + dy*dy < 14) set(x+dx, base-11+dy, Math.random() < 0.05 ? FRUIT : PLANT);
+    }
+    for (let k=0;k<45;k++){                                       // reeds stand in the shallows
+      const x = Math.max(1, Math.min(W-2, cx - r - 3 + ((Math.random()*(2*r+6))|0)));
+      const t = topsHint[x] || H-4;
+      if (t > 2 && get(x, t) === WATER && get(x, t-1) === EMPTY) set(x, t-1, REED);
+    }
+    for (let k=0;k<30;k++){                                       // moss and fungus on the quiet ground
+      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, Math.random() < 0.6 ? MOSS : FUNGUS);
     }
     if (cx > 1 && cx < W-2 && H > 3) set(cx, H-2, SPRING);        // the pond keeps its own level
 
     const scar = Math.min(W - 3, (W * 0.85) | 0);                 // an old burn on the far bank
-    for (let k=0;k<18;k++){
-      const x = scar + ((Math.random()*12)|0) - 6;
+    for (let k=0;k<22;k++){
+      const x = scar + ((Math.random()*14)|0) - 7;
       const t = topsHint[x] || H-4;
       if (x > 0 && x < W && t > 3) set(x, t-1, Math.random() < 0.7 ? ASH : COMPOST);
     }
     if (scar > 0 && scar < W-1){ const t = topsHint[scar] || H-4; if (t > 5) set(scar, t-2, WOOD); }
-    for (let k=0;k<5;k++){                                        // ants on the soil
-      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
-      if (t > 3) set(x, t-1, ANT);
-    }
-    for (let k=0;k<2;k++){                                        // a hive in the trees
-      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
-      if (t > 6) set(x, t-5, HIVE);
-    }
-    for (let k=0;k<6;k++){                                        // the food chain
-      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
-      if (t > 3) set(x, t-1, WORM);
-    }
-    for (let k=0;k<9;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-2,LIFE); }
-    for (let k=0;k<6;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-1-((Math.random()*2)|0), FISH); }
-    for (let k=0;k<6;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-3,BEE); }
-    for (let k=0;k<2;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-3, FROG); }
-    for (let k=0;k<2;k++){ const x=Math.max(2, Math.min(W-3, cx - r - 2 - k*4)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, HERON); }   // herons on the bank
-    for (let k=0;k<2;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 3 + k*3)); const t=topsHint[x]||H-4; if (t>4) set(x, t-4, GULL); }   // gulls overhead
-    for (let k=0;k<2;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 8 + k*6)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, DEER); }
-    { const x = Math.max(2, Math.min(W-3, cx - r - 8)); const t = topsHint[x] || H-4; if (t > 3) set(x, t-1, HUMAN); }   // a person on the far bank
-    for (let k=0;k<3;k++){ const x = Math.max(2, Math.min(W-3, (W*0.7 + k*4)|0)); const t = topsHint[x] || H-4; if (t > 3) set(x, t-1, TERMITE); }   // termites in the timber
-    for (let k=0;k<3;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>4) set(x,t-2,SNAIL); }
+    for (let k=0;k<12;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-1,ANT); }
+    for (let k=0;k<4;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>7) set(x,t-6,HIVE); }
+    for (let k=0;k<10;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-1,WORM); }
+    for (let k=0;k<16;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-2,LIFE); }
+    for (let k=0;k<14;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-1-((Math.random()*3)|0), FISH); }
+    for (let k=0;k<12;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-3,BEE); }
+    for (let k=0;k<6;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-3, FROG); }
+    for (let k=0;k<3;k++){ const x=Math.max(2, Math.min(W-3, cx - r - 2 - k*4)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, HERON); }
+    for (let k=0;k<3;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 3 + k*3)); const t=topsHint[x]||H-4; if (t>4) set(x, t-4, GULL); }
+    for (let k=0;k<4;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 8 + k*6)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, DEER); }
+    for (let k=0;k<3;k++){ const x = Math.max(2, Math.min(W-3, cx - r - 8 - k*4)); const t = topsHint[x] || H-4; if (t > 3) set(x, t-1, HUMAN); }
+    for (let k=0;k<4;k++){ const x = Math.max(2, Math.min(W-3, (W*0.7 + k*4)|0)); const t = topsHint[x] || H-4; if (t > 3) set(x, t-1, TERMITE); }
+    for (let k=0;k<5;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>4) set(x,t-2,SNAIL); }
+    for (let k=0;k<3;k++){ const x = Math.max(2, Math.min(W-3, k % 2 ? cx - r - 3 : cx + r + 3)); const t = topsHint[x] || H-4; if (t > 3) set(x, t-1, CRAB); }
     set((Math.random()*W*0.6 + W*0.2)|0, H-16, BIRD);
+    set((Math.random()*W*0.6 + W*0.2)|0, H-10, BIRD);
     set((Math.random()*W*0.6 + W*0.2)|0, H-8, BAT);
-    const sx = (Math.random()*W*0.6 + W*0.2)|0; set(sx, (topsHint[sx]||H-5)-1, SPIDER);
-    for (let k=0;k<4;k++) set((Math.random()*W)|0, (Math.random()*H*0.4)|0, FIREFLY);
+    set((Math.random()*W*0.6 + W*0.2)|0, H-6, BAT);
+    for (let k=0;k<2;k++){ const sx = (Math.random()*W*0.6 + W*0.2)|0; set(sx, (topsHint[sx]||H-5)-1, SPIDER); }
+    for (let k=0;k<12;k++) set((Math.random()*W)|0, (Math.random()*H*0.4)|0, FIREFLY);
   },
   beach(){
     clearAll(); topsHint = new Int16Array(W); bed(SAND, 0.18, true);
@@ -3019,10 +3270,20 @@ const SCENES = {
 };
 
 const sceneEl = document.getElementById('scene');
+function loadScene(name){
+  const f = SCENES[name];
+  if (!f) return false;
+  snapshot(); f();
+  for (let i = 0; i < 24; i++) update();   // settle the new scene before the first frame
+  draw();
+  sceneEl.value = name;
+  autoSceneAt = performance.now();
+  autoStroke = null; autoHideAt = 0; cursor.on = false;
+  logEvent('↻ scene: ' + name);
+  return true;
+}
 sceneEl.addEventListener('change', () => {
-  const fn = SCENES[sceneEl.value];
-  if (fn){ snapshot(); fn(); draw(); }
-  sceneEl.value = '';
+  loadScene(sceneEl.value);
   sceneEl.blur();
 });
 
@@ -3103,57 +3364,323 @@ function setWeather(on){
   savePrefs();
 }
 weatherEl.addEventListener('click', () => setWeather(weatherOff));
+let booting = true;
 function savePrefs(){
-  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff })); }
+  if (booting) return;
+  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel })); }
   catch (e) { /* storage blocked */ }
 }
 
-/* ---------- procedural lo-fi: nothing is loaded, every note is synthesised ---------- */
-const CHORDS = [                                   // Am7, Dm7, G7, Cmaj7
-  [220.00, 261.63, 329.63, 392.00],
-  [146.83, 174.61, 220.00, 261.63],
-  [196.00, 246.94, 293.66, 349.23],
-  [130.81, 164.81, 196.00, 246.94],
+/* ---------- procedural lo-fi: fifteen tracks, nothing is loaded, every note is synthesised ---------- */
+const NOTE_IX = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+function noteHz(name){                             // 'A4' -> 440, 'Bb3' -> 233.08
+  const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
+  if (!m) return 220;
+  const n = NOTE_IX[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (parseInt(m[3], 10) + 1) * 12;
+  return 440 * Math.pow(2, (n - 69) / 12);
+}
+const CHORD = {                                    // close voicings, so the pads stack without mud
+  Am7:   ['A3','C4','E4','G4'],    A7:    ['A3','C#4','E4','G4'],   Amaj7: ['A3','C#4','E4','G#4'],
+  Bm7:   ['B3','D4','F#4','A4'],   Bm7b5: ['B3','D4','F4','A4'],
+  Cmaj7: ['C4','E4','G4','B4'],    C7:    ['C4','E4','G4','Bb4'],
+  Dm7:   ['D4','F4','A4','C5'],    Dmaj7: ['D4','F#4','A4','C#5'],    D7:    ['D4','F#4','A4','C5'],
+  E7:    ['E4','G#4','B4','D5'],   Em7:   ['E4','G4','B4','D5'],     Ebmaj7:['Eb4','G4','Bb4','D5'],
+  Fmaj7: ['F4','A4','C5','E5'],    F7:    ['F4','A4','C5','Eb5'],    'F#m7': ['F#4','A4','C#5','E5'],
+  Gm7:   ['G4','Bb4','D5','F5'],   G7:    ['G3','B3','D4','F4'],     Gmaj7: ['G3','B3','D4','F#4'],
+  Bbmaj7:['Bb3','D4','F4','A4'],
+  Abmaj7:['Ab3','C4','Eb4','G4'],
+};
+const TRACKS = [                                   // ten moods; each plays 3–5 min, then a random other one starts
+  { name:'Rainy Window', group:'cozy', bpm:70, minutes:4.2, prog:['Am7','Dm7','G7','Cmaj7'],
+    scale:['A4','C5','D5','E5','G5','A5'], density:0.24,
+    padType:'triangle', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0],
+    motif:[0,-1,2,-1,1,-1,3,-1],
+    kick:[0,7,10], snare:[4,12], hat:2, swing:0.06, ghost:0.12 },
+  { name:'Night Bus', group:'focus', bpm:78, minutes:3.6, prog:['Dm7','Gm7','A7','Dm7'],
+    scale:['D4','E4','F4','G4','A4','B4','C5','D5'], density:0.30,
+    padType:'sine', pluckType:'sine', bassType:'triangle', chordBars:2, bassSteps:[0,10],
+    motif:[2,-1,1,-1,0,-1,2,-1],
+    kick:[0,10], snare:[8], hat:2, swing:0.10, ghost:0.10 },
+  { name:'Paper Lanterns', group:'cozy', bpm:66, minutes:4.6, prog:['Cmaj7','Am7','Fmaj7','G7'],
+    scale:['C5','D5','E5','G5','A5','C6'], density:0.18,
+    padType:'triangle', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0,8],
+    motif:[0,1,2,3,-1,2,1,0],
+    kick:[0,8], snare:[12], hat:4, swing:0.04, ghost:0.06 },
+  { name:'Dusty Shelf', group:'cafe', bpm:74, minutes:3.4, prog:['Fmaj7','Dm7','Gm7','C7'],
+    scale:['F4','G4','A4','C5','D5','F5'], density:0.28,
+    padType:'triangle', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0,6,10],
+    motif:[3,-1,2,-1,1,-1,0,-1],
+    kick:[0,7,10], snare:[4,12], rim:[2,14], hat:2, swing:0.08, ghost:0.16 },
+  { name:'Snowed In', group:'cozy', bpm:62, minutes:4.9, prog:['Em7','Am7','Dmaj7','Bm7'],
+    scale:['E4','G4','A4','B4','D5','E5'], density:0.16,
+    padType:'sine', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0],
+    motif:[-1,0,-1,2,-1,-1,3,-1],
+    kick:[0,10], snare:[8], hat:4, swing:0.05, ghost:0.05 },
+  { name:'Rooftop Dusk', group:'study', bpm:72, minutes:4.0, prog:['Bm7','E7','Amaj7','F#m7'],
+    scale:['A4','B4','C#5','E5','F#5','A5'], density:0.26,
+    padType:'triangle', pluckType:'triangle', bassType:'triangle', chordBars:1, bassSteps:[0,10],
+    motif:[0,2,1,3,2,-1,1,-1],
+    kick:[0,3,8,11], snare:[4,12], rim:[6,14], hat:2, swing:0.12, ghost:0.18 },
+  { name:'Late Train', group:'study', bpm:80, minutes:3.2, prog:['Gm7','Ebmaj7','Bbmaj7','F7'],
+    scale:['G4','Bb4','C5','D5','F5','G5'], density:0.32,
+    padType:'triangle', pluckType:'square', bassType:'triangle', chordBars:1, bassSteps:[0,3,8,11],
+    motif:[1,1,0,-1,2,2,1,-1],
+    kick:[0,3,8,11], snare:[4,12], rim:[2,6,10,14], hat:2, swing:0.14, ghost:0.20 },
+  { name:'Slow Tide', group:'focus', bpm:64, minutes:4.8, prog:['Dmaj7','Bm7','Gmaj7','A7'],
+    scale:['D5','E5','F#5','A5','B5','D6'], density:0.20,
+    padType:'sine', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0,10],
+    motif:[2,-1,3,-1,1,-1,0,-1],
+    kick:[0,6,10], snare:[4,12], hat:2, swing:0.10, ghost:0.08 },
+  { name:'Sunroom', group:'cafe', bpm:88, minutes:3.3, prog:['Gmaj7','Cmaj7','Am7','D7'],
+    scale:['G4','A4','B4','D5','E5','G5'], density:0.18,
+    padType:'sine', pluckType:'sine', bassType:'triangle', chordBars:1, bassSteps:[0,8], arp:true,
+    kick:[0,8], snare:[4,12], hat:2, swing:0.03, ghost:0.05 },
+  { name:'Blue Hour', group:'focus', bpm:56, minutes:4.7, prog:['Bm7b5','E7','Am7','F#m7'],
+    scale:['A4','B4','C5','D5','E5','F5','G5'], density:0.12,
+    padType:'triangle', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0],
+    motif:[-1,-1,0,-1,-1,2,-1,-1],
+    kick:[0], snare:[8], rim:[12], hat:4, swing:0.06, ghost:0.02 },
+  { name:'Cafe Window', group:'cafe', bpm:72, minutes:4.1, prog:['Fmaj7','Em7','Dm7','Cmaj7'],
+    scale:['F4','G4','A4','C5','D5','F5'], density:0.26,
+    padType:'sine', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0,10],
+    motif:[0,2,1,3,-1,2,1,0],
+    kick:[0,7,10], snare:[4,12], rim:[2,14], hat:2, swing:0.07, ghost:0.10 },
+  { name:'Cozy Blanket', group:'cozy', bpm:60, minutes:4.7, prog:['Cmaj7','Am7','Dm7','G7'],
+    scale:['C5','D5','E5','G5','A5','C6'], density:0.14,
+    padType:'sine', pluckType:'triangle', bassType:'sine', chordBars:2, bassSteps:[0],
+    motif:[-1,0,-1,2,-1,1,-1,-1],
+    kick:[0,10], snare:[8], hat:4, swing:0.05, ghost:0.04 },
+  { name:'Study Desk', group:'study', bpm:84, minutes:3.5, prog:['Dm7','G7','Cmaj7','Am7'],
+    scale:['D4','E4','F4','G4','A4','B4','C5','D5'], density:0.22,
+    padType:'triangle', pluckType:'sine', bassType:'triangle', chordBars:1, bassSteps:[0,8],
+    motif:[0,1,2,-1,1,0,-1,-1],
+    kick:[0,7,10], snare:[4,12], hat:2, swing:0.09, ghost:0.12 },
+  { name:'Deep Focus', group:'focus', bpm:68, minutes:4.9, prog:['Am7','Fmaj7','Cmaj7','G7'],
+    scale:['A4','C5','D5','E5','G5','A5'], density:0.12,
+    padType:'sine', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0],
+    motif:[-1,-1,2,-1,-1,0,-1,-1],
+    kick:[0,10], snare:[8], hat:4, swing:0.04, ghost:0.02 },
+  { name:'Coffee Steam', group:'cafe', bpm:76, minutes:3.8, prog:['Cmaj7','Dm7','Em7','Am7'],
+    scale:['C5','D5','E5','G5','A5','C6'], density:0.24,
+    padType:'triangle', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0,8],
+    motif:[0,2,-1,1,3,-1,2,0],
+    kick:[0,7,10], snare:[4,12], rim:[6,14], hat:2, swing:0.06, ghost:0.14 },
 ];
-const BEAT = 60 / 74;                              // 74 bpm, slow enough to sway
-function musicDelay(){ return storm && !weatherOff ? 60 / 96 : 60 / 68; }   // the tempo follows the weather
-let musicOn = false, musicWanted = false, skipMusicClick = false, musicTimer = 0, musicBeat = 0, hissSrc = null;
-let lofiCutoff = 1500;                             // low by night, open by day
-function padNote(freq, t, dur, type, gain, cutoff){
+
+let musicOn = false, musicWanted = false, skipMusicClick = false, skipMusicAt = 0, armBound = false, musicTimer = 0, hissSrc = null;
+let musicBeat = 0, lofiCutoff = 1500;              // low by night, open by day
+let trackIx = 0, trackStep = 0, trackSteps = 1440, nextNoteTime = 0;
+let musicIn = null, musicFilter = null, noiseBuf = null;
+let fadeNext = -1, fadeUntil = 0;                  // a track change waits for the old one to fade
+const LOOKAHEAD = 0.12;                            // seconds of notes queued ahead of the audio clock
+
+function bpmNow(){ const t = TRACKS[trackIx]; return t.bpm * (storm && !weatherOff ? 1.1 : 1); }
+function stepDur(){ return 15 / bpmNow(); }        // one sixteenth, in seconds
+function musicDelay(){ return 60000 / bpmNow(); }  // quarter-note ms, for the scripting API
+
+function noiseBuffer(a){
+  if (noiseBuf) return noiseBuf;
+  const n = (a.sampleRate * 2) | 0;
+  noiseBuf = a.createBuffer(1, n, a.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i=0;i<n;i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+function musicBus(){                               // one warm room: a filter plus a short tape echo
   const a = ac(); if (!a) return;
+  if (musicIn){ try { musicIn.disconnect(); } catch (e) {} }   // silence the previous session's pads
+  musicIn = a.createGain(); musicIn.gain.value = 0.85;         // fadeIn opens it
+  if (!musicFilter){
+    musicFilter = a.createBiquadFilter();
+    musicFilter.type = 'lowpass'; musicFilter.frequency.value = 1500; musicFilter.Q.value = 0.4;
+    musicFilter.connect(musicOut);
+    const send = a.createGain(), d = a.createDelay(1.2), fb = a.createGain(), wet = a.createGain();
+    send.gain.value = 0.30; d.delayTime.value = 0.32; fb.gain.value = 0.28; wet.gain.value = 0.36;
+    musicFilter.connect(send); send.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(musicOut);
+  }
+  musicIn.connect(musicFilter);
+}
+function holdGain(g, now){                         // keep the current automated value, then ramp from it
+  if (typeof g.cancelAndHoldAtTime === 'function') g.cancelAndHoldAtTime(now);
+  else { g.cancelScheduledValues(now); g.setValueAtTime(0.85, now); }
+}
+function fadeIn(a, when){                          // the new track rises out of the hiss
+  const g = musicIn.gain;
+  g.cancelScheduledValues(when);
+  g.setValueAtTime(0.0001, when);
+  g.exponentialRampToValueAtTime(0.85, when + 1.2);
+}
+function beginFade(a){                             // let the old track exhale before the next one starts
+  fadeNext = nextTrackIx(trackIx);
+  fadeUntil = a.currentTime + 1.35;
+  const g = musicIn.gain;
+  holdGain(g, a.currentTime);
+  g.exponentialRampToValueAtTime(0.0001, a.currentTime + 1.1);
+}
+function padNote(freq, t, dur, type, gain, cutoff, detune){
+  const a = ac(); if (!a || !musicIn) return;
   const o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter();
-  o.type = type; o.frequency.value = freq;
-  f.type = 'lowpass'; f.frequency.value = cutoff || 1500; f.Q.value = 0.7;
-  o.connect(f); f.connect(g); g.connect(a.destination);
+  o.type = type; o.frequency.value = freq; o.detune.value = detune || 0;
+  f.type = 'lowpass'; f.frequency.value = cutoff || 1500; f.Q.value = 0.6;
+  o.connect(f); f.connect(g); g.connect(musicIn);
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(gain, t + 0.3);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.start(t); o.stop(t + dur + 0.05);
+}
+function pluck(freq, t, dur, gain, cutoff, pan, type){
+  const a = ac(); if (!a || !musicIn) return;
+  const o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter(), p = a.createStereoPanner();
+  o.type = type || 'triangle'; o.frequency.value = freq;
+  f.type = 'lowpass'; f.frequency.value = cutoff || 1800; f.Q.value = 1.2;
+  p.pan.value = pan || 0;
+  o.connect(f); f.connect(g); g.connect(p); p.connect(musicIn);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function drum(kind, t, gain){
+  const a = ac(); if (!a || !musicIn) return;
+  if (kind === 'kick'){
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(44, t + 0.13);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    o.connect(g); g.connect(musicIn); o.start(t); o.stop(t + 0.26);
+    return;
+  }
+  if (kind === 'rim'){                             // a short woodblock tick
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(1350, t);
+    o.frequency.exponentialRampToValueAtTime(700, t + 0.03);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    o.connect(g); g.connect(musicIn); o.start(t); o.stop(t + 0.08);
+    return;
+  }
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = noiseBuffer(a);
+  if (kind === 'snare'){
+    f.type = 'bandpass'; f.frequency.value = 1900; f.Q.value = 0.7;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+  } else {                                         // hat
+    f.type = 'highpass'; f.frequency.value = 6800;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+  }
+  src.connect(f); f.connect(g); g.connect(musicIn);
+  src.start(t); src.stop(t + (kind === 'snare' ? 0.20 : 0.07));
 }
 function hissStart(){
   const a = ac(); if (!a || hissSrc) return;
   const n = (a.sampleRate * 2) | 0;
   const buf = a.createBuffer(1, n, a.sampleRate);
   const d = buf.getChannelData(0);
-  for (let i=0;i<n;i++) d[i] = (Math.random()*2 - 1) * (Math.random() < 0.0015 ? 0.10 : 0.005);   // hiss with crackle
+  for (let i=0;i<n;i++) d[i] = (Math.random()*2 - 1) * (Math.random() < 0.003 ? 0.09 : 0.0045);   // hiss with crackle
   const src = a.createBufferSource(), g = a.createGain();
   src.buffer = buf; src.loop = true; g.gain.value = 0.3;
-  src.connect(g); g.connect(a.destination); src.start();
+  src.connect(g); g.connect(musicOut); src.start();
   hissSrc = src;
 }
-function musicStep(){
-  const a = ac(); if (!a || !musicOn) return;
-  const t = a.currentTime + 0.06;
-  const chord = CHORDS[((musicBeat / 4) | 0) % CHORDS.length];
-  const day = 0.5 + 0.5 * Math.sin(sun);                     // the pad follows the sky
-  lofiCutoff = Math.round(500 + 1900 * day);
-  if (musicBeat % 4 === 0){
-    for (const f of chord) padNote(f, t, BEAT * 3.8, 'triangle', 0.024 + 0.01 * day, lofiCutoff);   // the pad
-    padNote(chord[0] / 2, t, BEAT * 2.2, 'sine', 0.05, lofiCutoff);                                 // the bass
+function musicStep(t, step){
+  const a = ac(); if (!a || !musicOn || !musicIn) return;
+  const tr = TRACKS[trackIx];
+  const day = 0.5 + 0.5 * Math.sin(sun);                       // the room darkens with the sky
+  const bar = step % 16, barNo = (step / 16) | 0;
+  const chordBars = tr.chordBars || 1;
+  const chord = CHORD[tr.prog[Math.floor(barNo / chordBars) % tr.prog.length]];
+  const beat = 60 / bpmNow();
+  if (bar === 0 && barNo % chordBars === 0){
+    lofiCutoff = Math.round(500 + 1900 * day);
+    musicFilter.frequency.setTargetAtTime(Math.max(900, lofiCutoff * 1.3), t, 0.6);
+    const padGain = (tr.padType === 'sine' ? 0.030 : 0.024) + 0.009 * day;
+    for (const n of chord) padNote(noteHz(n), t, beat * 3.9 * chordBars, tr.padType || 'triangle', padGain, lofiCutoff, (Math.random()*2-1)*5);
   }
-  if (day > 0.4 && musicBeat % 8 === 3) padNote(chord[2] * 2, t, 1.1, 'sine', 0.02, lofiCutoff);    // bells by day
-  if (day > 0.4 && musicBeat % 8 === 6) padNote(chord[1] * 2, t, 0.9, 'sine', 0.018, lofiCutoff);
-  musicBeat++;
+  const bs = tr.bassSteps || [0];
+  if (bs.indexOf(bar) >= 0){                                   // the bass walks on its own pattern
+    const root = noteHz(chord[0]) / 2;
+    const n = bar === 10 ? root * 1.5 : (bar === 3 || bar === 11) ? noteHz(chord[1]) / 2 : root;
+    padNote(n, t, beat * (bar === 0 ? 2.4 : 1.1), tr.bassType || 'sine', bar === 0 ? 0.045 : 0.028, lofiCutoff);
+  }
+  if (tr.kick.indexOf(bar) >= 0) drum('kick', t, 0.30);
+  if (tr.snare.indexOf(bar) >= 0) drum('snare', t, 0.13);
+  if (tr.rim && tr.rim.indexOf(bar) >= 0) drum('rim', t, 0.05);
+  if (bar % tr.hat === 0 && Math.random() > 0.12) drum('hat', t, 0.020 + Math.random() * 0.012);
+  if (Math.random() < tr.ghost) drum('hat', t + stepDur() * 0.5, 0.011);                        // a ghost hit
+  if (barNo % 4 === 3 && bar === 14 && Math.random() < 0.6) drum('snare', t, 0.08 + Math.random() * 0.05);   // a fill
+  if (bar % 2 === 0){                                                                           // the hook
+    let n = null;
+    if (tr.arp && Math.random() < 0.85){
+      const seq = chord.concat(chord.slice(0, -1).reverse());   // up, then back down
+      n = noteHz(seq[((step / 2) | 0) % seq.length]) * 2;
+    } else if (tr.motif && Math.random() < 0.8){
+      const m = tr.motif[((step / 2) | 0) % tr.motif.length];
+      if (m >= 0) n = noteHz(chord[m % chord.length]) * 2;
+    } else if (Math.random() < tr.density){
+      n = Math.random() < 0.55 ? noteHz(chord[(Math.random() * chord.length) | 0]) * 2
+                               : noteHz(tr.scale[(Math.random() * tr.scale.length) | 0]);
+    }
+    if (n) pluck(n, t, 0.4 + Math.random() * 0.9, 0.022 + Math.random() * 0.014,
+                 lofiCutoff * 1.6, (Math.random() * 2 - 1) * 0.45, tr.pluckType || 'triangle');
+  }
+  if (bar === 6 && day > 0.45 && Math.random() < 0.35)                                           // a high bell by day
+    pluck(noteHz(chord[2]) * 2, t, 1.2, 0.016, lofiCutoff * 2, 0.3, 'sine');
+}
+function startTrack(i){
+  trackIx = i;
+  const tr = TRACKS[trackIx];
+  trackStep = 0; musicBeat = 0;
+  trackSteps = trackStepsFor(tr);                          // 16th-note steps, at the calm tempo
+  const el = document.getElementById('music');
+  el.title = 'Track ' + (trackIx + 1) + '/' + TRACKS.length + ' — ' + tr.name + ' · ' + tr.minutes.toFixed(1) + ' min';
+  const np = document.getElementById('np');
+  if (np){ np.textContent = '♪ ' + tr.name; np.hidden = false; }
+  const toast = document.getElementById('toast');
+  if (toast){
+    toast.textContent = 'Lo-fi · ' + tr.name;
+    toast.classList.add('on');
+    clearTimeout(startTrack._t);
+    startTrack._t = setTimeout(() => toast.classList.remove('on'), 2600);
+  }
+}
+function trackStepsFor(tr){ return Math.round(tr.minutes * 60 * tr.bpm / 15); }   // 16ths in the track
+function nextTrackIx(from){
+  if (TRACKS.length < 2) return 0;
+  const groups = [...new Set(TRACKS.map(t => t.group))];
+  const g = groups[(Math.random() * groups.length) | 0];       // a random mood, then a random pace inside it
+  const pool = [];
+  for (let i = 0; i < TRACKS.length; i++) if (TRACKS[i].group === g && i !== from) pool.push(i);
+  return pool.length ? pool[(Math.random() * pool.length) | 0] : (from + 1) % TRACKS.length;
+}
+function musicScheduler(){
+  const a = ac(); if (!a || !musicOn) return;
+  if (fadeNext >= 0){                                // hold the old track's place until the fade lands
+    if (a.currentTime < fadeUntil) return;
+    startTrack(fadeNext);
+    fadeNext = -1;
+    nextNoteTime = a.currentTime + 0.02;
+    fadeIn(a, nextNoteTime);
+    return;
+  }
+  if (nextNoteTime < a.currentTime - 0.2) nextNoteTime = a.currentTime + 0.05;   // a hidden tab must not catch up in a burst
+  while (nextNoteTime < a.currentTime + LOOKAHEAD){
+    if (trackStep >= trackSteps){ beginFade(a); return; }
+    const tr = TRACKS[trackIx];
+    const t = nextNoteTime + (trackStep % 2 ? tr.swing * stepDur() : 0);
+    musicStep(t, trackStep);
+    nextNoteTime += stepDur();
+    trackStep++;
+    musicBeat = trackStep >> 2;
+  }
 }
 function musicToggle(){
   const a = ac(); if (!a) return false;
@@ -3162,41 +3689,65 @@ function musicToggle(){
   const el = document.getElementById('music');
   el.classList.toggle('on', musicOn);
   el.setAttribute('aria-pressed', musicOn);
-  el.textContent = musicOn ? 'Lo-fi on' : 'Lo-fi';
+  el.textContent = 'Lo-fi';
   if (musicOn){
-    musicBeat = 0; hissStart();
-    const loop = () => { if (!musicOn) return; musicStep(); musicTimer = setTimeout(loop, musicDelay() * 1000); };
-    loop();
+    fadeNext = -1;
+    musicBus(); hissStart();
+    startTrack((Math.random() * TRACKS.length) | 0);
+    nextNoteTime = a.currentTime + 0.08;
+    fadeIn(a, nextNoteTime);
+    musicTimer = setInterval(musicScheduler, 25);
+    musicScheduler();
   } else {
-    clearTimeout(musicTimer); musicTimer = 0;
+    fadeNext = -1;
+    if (musicIn){                                    // let the last notes fall away instead of cutting them
+      const g = musicIn.gain, now = a.currentTime;
+      holdGain(g, now);
+      g.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    }
+    clearInterval(musicTimer); musicTimer = 0;
     if (hissSrc){ try { hissSrc.stop(); } catch (err) {} hissSrc = null; }
+    const np = document.getElementById('np'); if (np) np.hidden = true;
   }
   musicWanted = musicOn;
+  syncVolRows();
   savePrefs();
   return musicOn;
 }
 document.getElementById('music').addEventListener('click', () => {
-  if (skipMusicClick){ skipMusicClick = false; return; }   // the pointerdown already started it
+  if (skipMusicClick){
+    skipMusicClick = false;
+    if (performance.now() - skipMusicAt < 400) return;     // the pointerdown already started it
+  }
   musicToggle();
 });
 function armMusic(){
   musicWanted = true;
   const el = document.getElementById('music');
-  el.classList.add('on');
-  el.setAttribute('aria-pressed', 'true');
-  el.textContent = 'Lo-fi on';
-  addEventListener('pointerdown', (ev) => {
-    if (musicWanted && !musicOn){
-      musicWanted = false;
-      skipMusicClick = !!(ev.target && ev.target.closest && ev.target.closest('#music'));
-      musicToggle();
-    }
-  }, { once: true });
+  el.classList.remove('on');                       // it is armed, not playing: do not look switched on
+  el.setAttribute('aria-pressed', 'false');
+  el.textContent = 'Lo-fi';
+  el.title = 'tap anywhere to start the music';
+  syncVolRows();
+  if (!armBound){
+    armBound = true;
+    addEventListener('pointerdown', (ev) => {
+      armBound = false;
+      if (musicWanted && !musicOn){
+        musicWanted = false;
+        skipMusicClick = !!(ev.target && ev.target.closest && ev.target.closest('#music'));
+        skipMusicAt = performance.now();
+        musicToggle();
+      }
+    }, { once: true });
+  }
 }
 function loadPrefs(){
   let p = null;
   try { p = JSON.parse(localStorage.getItem('powder-prefs') || 'null'); } catch (e) { return; }
   if (!p) return;
+  if (typeof p.sfx === 'number') setSfxLevel(p.sfx);
+  if (typeof p.musicVol === 'number') setMusicLevel(p.musicVol);
   if (p.weather === false) setWeather(false);
   if (p.music) armMusic();                                 // music waits for a real gesture
 }
@@ -3204,6 +3755,9 @@ function loadPrefs(){
 addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')){ undo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;    // leave other browser shortcuts alone
+  if (!helpEl.hidden && e.key !== 'Escape' && !(e.key === '?' || (e.key === '/' && e.shiftKey))) return;   // the help dialog is modal
+  if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;   // let the filter and sliders type
+  if (e.key === '/'){ e.preventDefault(); if (toolsEl.hidden){ toolsEl.hidden = false; syncTools(); } filterEl.focus(); return; }   // jump to the palette filter
   if (e.code === 'Space'){ e.preventDefault(); togglePause(); return; }
   if ((e.key === 'z' || e.key === 'Z')){ undo(); return; }
   if (e.key === 'c' || e.key === 'C'){ snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); draw(); return; }
@@ -3213,7 +3767,7 @@ addEventListener('keydown', e => {
   if (e.key === 'y' || e.key === 'Y'){ mirror = !mirror; return; }   // symmetric painting
   if (e.key === 'k' || e.key === 'K'){ musicToggle(); return; }        // lo-fi on/off
   if (e.key === 'n' || e.key === 'N'){ setWeather(weatherOff); return; }   // weather on/off
-  if (e.key === 'u' || e.key === 'U'){ photoMode = !photoMode; document.body.classList.toggle('clean', photoMode); cursor.on = false; return; }   // photo mode
+  if (e.key === 'u' || e.key === 'U' || e.key === 'h' || e.key === 'H'){ photoMode = !photoMode; document.body.classList.toggle('clean', photoMode); cursor.on = false; resize(); return; }   // hide every panel; press again to bring them back
   if (e.key === 'i' || e.key === 'I'){
     censusOn = !censusOn;
     document.getElementById('census').classList.toggle('on', censusOn);
@@ -3242,33 +3796,57 @@ addEventListener('keydown', e => {
 /* ---------- help ---------- */
 const helpEl = document.getElementById('help');
 function buildHelp(){
-  helpEl.querySelector('.hgoals').innerHTML = '<b>Goals</b> ' + GOALS.map(g =>
-    (g.done ? '\u2713 ' : '\u25cb ') + g.label.split(' \u2014 ')[0]).join(' &middot; ');
+  helpEl.querySelector('.hgoals').innerHTML = GOALS.map(g => {
+    const parts = g.label.split(' — '), name = parts[0], desc = parts.slice(1).join(' — ');
+    return '<div class="goal' + (g.done ? ' done' : '') + '"><span class="mark">' + (g.done ? '✓' : '○') + '</span>' +
+      '<span><b>' + name + '</b> <i>— ' + desc + '</i></span></div>';
+  }).join('');
   const names = list => list.map(v => MAT[v].name).join(', ');
-  helpEl.querySelector('.hcreatures').innerHTML = '<b>Creatures</b> ' + MIGRANTS.map(sp => {
+  helpEl.querySelector('.hcreatures').innerHTML = MIGRANTS.map(sp => {
     const n = hist[sp], prey = DIET[sp] || [], foes = FEARED[sp] || [];
     const bits = [];
     if (prey.length) bits.push('eats ' + names(prey));
     if (foes.length) bits.push('flees ' + names(foes));
-    return '<span class="hc">' + MAT[sp].name + ' <b>' + n + '</b>' +
-      (bits.length ? ' <i>' + bits.join('; ') + '</i>' : '') + '</span>';
+    return '<div class="hcreature"><b>' + MAT[sp].name + '</b><span class="n">' + n + '</span>' +
+      (bits.length ? '<i>' + bits.join('; ') + '</i>' : '') + '</div>';
   }).join('');
-  helpEl.querySelector('.hfood').innerHTML = '<b>Food web</b> ' + Object.keys(DIET)
+  helpEl.querySelector('.hfood').innerHTML = Object.keys(DIET)
     .filter(k => DIET[k].length)
-    .map(k => MAT[k].name + ' eat' + (String(MAT[k].name).endsWith('s') ? '' : 's') + ' ' + names(DIET[k]))
-    .join(' &middot; ');
+    .map(k => '<div class="hfoodrow"><b>' + MAT[k].name + '</b> eat' +
+      (String(MAT[k].name).endsWith('s') ? '' : 's') + ' ' + names(DIET[k]) + '</div>')
+    .join('');
   const story = chronicleLog.slice(-12).reverse();
-  helpEl.querySelector('.hstory').innerHTML = '<b>The story so far</b> ' + (story.length
-    ? story.map(e => '<span class="hl">day ' + e.d + ' · ' + e.t + '</span>').join(' ')
-    : '<i>nothing yet — light a fire, plant a seed</i>');
+  helpEl.querySelector('.hstory').innerHTML = story.length
+    ? story.map(e => '<span class="hl"><b>day ' + e.d + '</b> · ' + e.t + '</span>').join('')
+    : '<span class="hl"><i>nothing yet — light a fire, plant a seed</i></span>';
   helpEl.querySelector('.hmats').innerHTML = MATS.map(k =>
     '<div class="hrow"><i style="background:' + MAT[k].glow + '"></i><b>' + MAT[k].name +
     '</b><span>' + (DESC[k] || '') + '</span></div>').join('');
 }
+
+let helpReturn = null;
 function toggleHelp(force){
   if (helpEl.hidden) buildHelp();
-  helpEl.hidden = force === undefined ? !helpEl.hidden : !force;
+  const open = force === undefined ? helpEl.hidden : !!force;
+  helpEl.hidden = !open;
+  if (open){
+    helpReturn = document.activeElement;
+    const close = document.getElementById('hclose');
+    if (close) close.focus();
+  } else if (helpReturn && helpReturn.focus){
+    helpReturn.focus();
+    helpReturn = null;
+  }
 }
+helpEl.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const f = [...helpEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !helpEl.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (document.activeElement === last || !helpEl.contains(document.activeElement))){ e.preventDefault(); first.focus(); }
+});
 document.getElementById('hclose').addEventListener('click', () => toggleHelp(false));
 helpEl.addEventListener('click', e => { if (e.target === helpEl) toggleHelp(false); });
 
@@ -3291,7 +3869,7 @@ function drawSpark(){
     const y = h - 2 - (popHistory[i] / top) * (h - 6);
     i ? sparkCtx.lineTo(x, y) : sparkCtx.moveTo(x, y);
   }
-  sparkCtx.strokeStyle = '#4cc9f0';
+  sparkCtx.strokeStyle = '#e6b36a';
   sparkCtx.lineWidth = 1;
   sparkCtx.stroke();
 }
@@ -3397,14 +3975,11 @@ function frame(t){
     fpsT = t; frames = 0;
     countEl.textContent = lastCount.toLocaleString();
     bugsEl.textContent = lastBugs;
-    const wetness = Math.sin(season);
     drawSpark();
     clockEl.textContent = (Math.sin(sun) > 0 ? 'day ' : 'night ') + (1 + Math.floor(sun / 6.2832))
+      + (showPerf ? ' \u00b7 ' + perfMs.toFixed(1) + 'ms' : '');
     if (windEl) windEl.textContent = weatherOff ? '-' : Math.abs(wind) < 0.04 ? 'calm' : (wind > 0 ? '\u2192 ' : '\u2190 ') + Math.abs(wind).toFixed(2);
     if (seasonEl) seasonEl.textContent = weatherOff ? '-' : Math.sin(season) > 0.45 ? 'wet' : Math.sin(season) < -0.45 ? 'dry' : 'mild';
-      + (wetness > 0.45 ? ' \u00b7 wet' : wetness < -0.45 ? ' \u00b7 dry' : '')
-      + (Math.abs(wind) > 0.12 ? (wind > 0 ? ' \u2192' : ' \u2190') : '')
-      + (showPerf ? ' \u00b7 ' + perfMs.toFixed(1) + 'ms' : '');
     if (censusOn){
       const rows = [];
       for (let v=1; v<hist.length; v++) if (hist[v]) rows.push([v, hist[v]]);
@@ -3423,7 +3998,7 @@ function frame(t){
   }
 }
 
-addEventListener('resize', () => { clearTimeout(resize._t); resize._t = setTimeout(resize, 120); });
+addEventListener('resize', () => { clearTimeout(resize._t); resize._t = setTimeout(() => { syncTools(); resize(); }, 120); });
 
 /* ---------- self-check (?selftest) ---------- */
 function selfTest(){
@@ -3611,6 +4186,22 @@ function selfTest(){
   shaft(20,6);
   set(20,6,LIFE); set(20,7,FROG); run(5);
   ok('frog eats bug', count(LIFE) === 0);
+  // a frog in the air falls instead of leaping across open sky
+  grid.fill(0); life.fill(0); moved.fill(0);
+  set(20,10,FROG);
+  tickFrog(20,10,idx(20,10));
+  ok('a frog in the air falls', grid[idx(20,11)] === FROG);
+  // and the other walkers follow gravity instead of levitating
+  const airFall = (v, tick) => {
+    grid.fill(0); life.fill(0); moved.fill(0);
+    set(20,10,v);
+    for (let k = 0; k < 8 && grid[idx(20,10)] === v; k++){ moved.fill(0); update.t = (update.t || 0) + 1; tick(20,10,idx(20,10)); }
+    return grid[idx(20,11)] === v;
+  };
+  ok('ground creatures fall in air',
+    airFall(LIFE, tickLife) && airFall(WORM, tickWorm) && airFall(SNAIL, tickSnail) &&
+    airFall(ANT, tickAnt) && airFall(CRAB, tickCrab) && airFall(DEER, tickDeer) &&
+    airFall(TERMITE, tickTermite) && airFall(SPIDER, tickSpider) && airFall(HUMAN, tickHuman));
 
   // a snail eats the plant next to it
   chamber(36,20);
@@ -3753,7 +4344,7 @@ function selfTest(){
 
   // a crab eats what is next to it
   chamber(14,32);
-  set(14,32,CRAB); set(15,32,PLANT); run(5);
+  set(14,33,CRAB); set(15,33,PLANT); run(5);          // on the floor: gravity does not move it first
   ok('crabs scavenge', count(PLANT) === 0);
 
   // a bug backs away from a hunting bird
@@ -3871,7 +4462,7 @@ function selfTest(){
   chamber(8,8);
   for (let x=7;x<=9;x++) set(x,9,COMPOST);
   set(8,8,SEED);
-  run(120);
+  run(240);                                            // growth rolls a die each tick; leave room for a slow roll
   ok('a seed takes root fast on compost', count(TREE) + count(WOOD) + count(PLANT) > 0);
 
   // a heron leaves the scraps behind, and both scavengers will take them
@@ -4819,6 +5410,34 @@ function selfTest(){
   }
   ok('deer herd together', towards > 30);
 
+  // lo-fi tracks: the playlist must stay musical and in range
+  ok('lo-fi has 5-20 tracks', TRACKS.length >= 5 && TRACKS.length <= 20);
+  ok('lo-fi moods are groups', new Set(TRACKS.map(t => t.group)).size >= 4 &&
+    [...new Set(TRACKS.map(t => t.group))].every(g => TRACKS.filter(t => t.group === g).length >= 2));
+  ok('lo-fi tracks run 3-5 minutes', TRACKS.every(t => {
+    const secs = trackStepsFor(t) * 15 / t.bpm;
+    return secs >= 180 && secs <= 300;
+  }));
+  ok('lo-fi track names are distinct', new Set(TRACKS.map(t => t.name)).size === TRACKS.length);
+  ok('lo-fi chords resolve', TRACKS.every(t => t.prog.every(c =>
+    CHORD[c] && CHORD[c].every(n => noteHz(n) > 55 && noteHz(n) < 1400))));
+  ok('lo-fi scales resolve', TRACKS.every(t => t.scale.every(n => noteHz(n) > 150 && noteHz(n) < 1400)));
+  ok('lo-fi patterns are in range', TRACKS.every(t =>
+    (!t.bassSteps || t.bassSteps.every(s => s >= 0 && s < 16)) &&
+    (!t.rim || t.rim.every(s => s >= 0 && s < 16)) &&
+    (!t.chordBars || (t.chordBars >= 1 && t.chordBars <= 4)) &&
+    (!t.motif || t.motif.every(m => m >= -1 && m < 4))));
+  ok('lo-fi advance never repeats', TRACKS.every((_, i) => {
+    for (let k=0;k<40;k++) if (nextTrackIx(i) === i) return false;
+    return true;
+  }));
+  ok('lo-fi A4 is 440 Hz', Math.abs(noteHz('A4') - 440) < 0.01);
+  ok('volume clamps to 0..1', volClamp(-3) === 0 && volClamp(0.5) === 0.5 && volClamp(4) === 1);
+  const wasClean = document.body.classList.contains('clean');
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
+  ok('h hides all panels', document.body.classList.contains('clean') !== wasClean);
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
+
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
   moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm;
@@ -4847,8 +5466,8 @@ const SANDBOX_API = {
   heading(x, y){ return inB(x|0,y|0) ? facing[idx(x|0,y|0)] : 0; },
   clear(){ snapshot(); clearAll(); draw(); },
   music(){ return musicOn; },
-  lofi(){ return { playing: musicOn, cutoff: lofiCutoff, beat: musicBeat, beatMs: Math.round(musicDelay()*1000) }; },
-  audio(){ return { sound: soundOn, thunder: thunderCount }; },
+  lofi(){ const tr = TRACKS[trackIx]; return { playing: musicOn, cutoff: lofiCutoff, beat: musicBeat, beatMs: Math.round(musicDelay()), track: tr.name, trackNo: trackIx + 1, tracks: TRACKS.length, minutes: tr.minutes }; },
+  audio(){ return { sound: soundOn, thunder: thunderCount, sfx: Math.round(sfxLevel * 100), music: Math.round(musicLevel * 100) }; },
   zap(){ return strike(); },
   sun(v){ if (typeof v === 'number'){ sun = v; draw(); } return sun; },
   season(v){ if (typeof v === 'number'){ season = v; draw(); } return season; },
@@ -4859,12 +5478,12 @@ const SANDBOX_API = {
   auto(on){ if (on !== undefined && on !== autoPlay){ autoPlay = on; autoEl.classList.toggle('on', autoPlay); autoEl.setAttribute('aria-pressed', autoPlay); } return autoPlay; },
   star(x, y){ return inB(x|0,y|0) ? stars[idx(x|0,y|0)] : 0; },
   weather(on){ if (on !== undefined) setWeather(!!on); return !weatherOff; },
-  scene(name){ const f = SCENES[name]; if (f){ snapshot(); f(); draw(); return true; } return false; },
+  scene(name){ return loadScene(name); },
   step(n){ const k = Math.max(1, n|0); for (let i=0;i<k;i++) update(); draw(); },
   bench(n){ const k = Math.max(1, n|0), t0 = performance.now(); for (let i=0;i<k;i++) update(); const ms = performance.now() - t0; const d0 = performance.now(); draw(); return { ms, ticks: k, drawMs: performance.now() - d0 }; },
   pause(){ if (!paused) togglePause(); },
   resume(){ if (paused) togglePause(); },
-  speed(n){ if (SPEEDS.indexOf(n) >= 0){ speed = n; document.getElementById('speed').textContent = 'Speed ' + n + 'x'; } return speed; },
+  speed(n){ if (SPEEDS.indexOf(n) >= 0){ speed = n; document.getElementById('speed').textContent = n + '×'; } return speed; },
   save(){ return pack(); },
   size(){ return { w: W, h: H }; },
   load(str){ return unpack(str); },
@@ -4896,6 +5515,8 @@ if (/[?&]autoplay\b/.test(location.search)){       // ?autoplay: the world runs 
   logEvent('\u25b6 autoplay on');
 }
 loadPrefs();
+booting = false;
+syncVolRows();
 if (location.hash && location.hash.length > 1){
   try { unpack(decodeURIComponent(location.hash.slice(1))); } catch (e) { /* not our scene */ }
 }
