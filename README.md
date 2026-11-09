@@ -4,13 +4,13 @@ A living falling-sand world in **one HTML file** — no build step, no dependenc
 
 Sand, water, fire, lava, ice, ash, reeds and coal. Deer, herons, gulls, crabs, ants, termites and people who hunt, farm, build, haul and keep a fire. Weather that turns to snow at night, seasons that dry the ponds and brown the reeds, lightning that starts wildfires in a drought and puts itself out in the wet season. Procedural lo-fi that follows the sky, and a chronicle in which the world writes down what happened in it.
 
-**Live demo:** upload `powder-sandbox.html` to this repo as `index.html` and enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root). Nothing else is needed.
+**Live demo:** the repo root is already `index.html` — enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root). Nothing else is needed.
 
 ---
 
 ## Run it
 
-1. Download `powder-sandbox.html`.
+1. Download `index.html`.
 2. Double-click it.
 
 That's it. It runs from `file://`, from a static host, from a USB stick. Everything — graphics, audio, music — is generated at runtime.
@@ -74,7 +74,7 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `powder-sandbox.html?selftest` runs **189 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **189 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - A headless Chromium/Playwright pass is used during development (scripts are not shipped); the current build measures about **0.56 ms per simulation tick and 0.4 ms per draw** on the ecosystem scene.
 
 ## Notes
