@@ -32,12 +32,17 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `i` | census overlay + population sparkline |
 | `k` | lo-fi on / off |
 | `n` | weather on / off |
+| `j` | broadcast captions on / off |
+| `v` | camera drift on / off |
+| `p` | scene loop on / off |
 | `Ctrl`+`Z` | undo |
 | `?` | help panel — goals, creatures, food web, **the story so far** |
 
-Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, Autoplay, and a scene picker. The Sound and Music volume sliders appear only while that channel is on.
+Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, Autoplay, Cast, Cine, Loop, Calm, and a scene picker. The Sound and Music volume sliders appear only while that channel is on.
 
-Lo-fi is fifteen procedural tracks in four mood groups — cafe, cozy, study, focus — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. When a track ends it fades out, the vinyl keeps playing, and a random track from a random mood group fades in. The music follows the sky (darker at night, faster in a storm).
+**Cast** swaps the panels for a stream overlay: the latest chronicle line as a caption, and the current day and track in the corner. **Cine** adds a slow camera drift, **Loop** rotates scenes every 20 minutes through a fade, and **Calm** removes flashes, screen shake and flicker (it starts on when the OS asks for reduced motion). The same are available as `?broadcast`, `?cine`, `?playlist` and `?calm`.
+
+Lo-fi is twenty procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. When a track ends it fades out, the vinyl keeps playing, and a random track from a random mood group fades in. The music follows the sky (darker at night, faster in a storm).
 
 ## Autoplay
 
@@ -47,6 +52,10 @@ Lo-fi is fifteen procedural tracks in four mood groups — cafe, cozy, study, fo
 Autoplay never presses a disaster button, but it will use any **element** in small doses. It settles camps (hearth, household, fence, deer), drives herds through them, plants reed beds at the waterline (with fish, herons, fishers and crabs), and drops materials to work with. Camps grow, gain households, spill over into daughter camps, and the herds return to quiet ground.
 
 It also plays the way a person does: it picks from the whole palette — every element and every creature — changes the brush (scaled to the window size), drags a short stream, ground line, fence, creature trail or one small dab with the brush ring visible, then stops for a few seconds to watch what it made. It avoids repeating the last few materials, uses smaller doses for fire, lava, acid, TNT, oil and mercury, and never erases. Now and then it presses Rain or Garden. After 15 minutes on a full, messy world it picks a new random scene. Pauses, strokes and choices are deliberate rather than a spawn every second.
+
+For long live runs it also does housekeeping every 90 seconds: it tops up the bestiary when too little is alive, replants reed beds, settles a household if none is left, sends rain when the world has gone dry, and refreshes a world that has filled up. It never triggers a disaster.
+
+It also runs small projects instead of isolated dabs: a pond with reeds and fish, a grove, a bestiary suited to the scene (water, land or cold), a camp, or a lava-and-water glassworks. Each project is chosen by what the world is missing, staged over several deliberate strokes, and left to settle before the next one. While an experiment scene is active it holds still and lets the experiment play out.
 
 ## Scripting
 

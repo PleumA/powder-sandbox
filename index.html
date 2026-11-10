@@ -7,157 +7,193 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%20%3Cdefs%3E%20%3CradialGradient%20id='bg'%20cx='50%25'%20cy='42%25'%20r='72%25'%3E%20%3Cstop%20offset='0'%20stop-color='%234a2a24'/%3E%20%3Cstop%20offset='1'%20stop-color='%230b060e'/%3E%20%3C/radialGradient%3E%20%3ClinearGradient%20id='sand'%20x1='0'%20y1='0'%20x2='0'%20y2='1'%3E%20%3Cstop%20offset='0'%20stop-color='%23ffd08a'/%3E%20%3Cstop%20offset='1'%20stop-color='%23ff6a2a'/%3E%20%3C/linearGradient%3E%20%3C/defs%3E%20%3Crect%20width='64'%20height='64'%20fill='url(%23bg)'/%3E%20%3Cpath%20d='M17.7%208.3H46.3L32%2032ZM32%2032L17.7%2055.7H46.3Z'%20fill='%23241a2e'/%3E%20%3Cpath%20d='M23.3%2015.3H40.7L32%2031.6Z'%20fill='url(%23sand)'/%3E%20%3Cpath%20d='M21.9%2055.8L32%2047.8L42.1%2055.8Z'%20fill='url(%23sand)'/%3E%20%3Crect%20x='31.6'%20y='32'%20width='0.8'%20height='15.5'%20fill='%23ffaa50'/%3E%20%3Cg%20fill='none'%20stroke='%23f3d6a0'%20stroke-width='1.7'%20stroke-linejoin='round'%3E%20%3Cpath%20d='M17.7%208.3H46.3L32%2032ZM32%2032L17.7%2055.7H46.3Z'/%3E%20%3C/g%3E%20%3Crect%20x='14.5'%20y='5.5'%20width='35'%20height='3.1'%20rx='1.55'%20fill='%23f3d6a0'/%3E%20%3Crect%20x='14.5'%20y='55.7'%20width='35'%20height='3.1'%20rx='1.55'%20fill='%23f3d6a0'/%3E%20%3Ccircle%20cx='32'%20cy='32'%20r='2.9'%20fill='%23f3d6a0'/%3E%20%3Ccircle%20cx='32'%20cy='32'%20r='1.2'%20fill='%23281a28'/%3E%20%3C/svg%3E">
 <style>
   :root{
-    --bg:#07080c; --panel:#0e1018ee; --line:#1e2433;
-    --txt:#dfe6f5; --dim:#7c869c; --accent:#e6b36a; --ember:#e0805a;
+    --ink:#0a1119; --slate:#0d141c; --panel:#0d141cf2; --line:#24303c;
+    --txt:#e7dfce; --dim:#93a0aa; --accent:#e2a25a; --ember:#c96a46;
+    --reed:#8fae7a; --water:#5c8fbf;
+    --serif:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
-    font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--txt);
+    font:13px/1.45 var(--sans);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
   #stage{position:fixed;inset:0}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair}
-  #hud{position:fixed;left:14px;top:14px;z-index:5;padding:11px 13px;border-radius:10px;
-    background:#0e1018f5;border:1px solid #2a3348;border-left:2px solid var(--accent);
-    backdrop-filter:blur(8px);box-shadow:0 10px 36px #000b;pointer-events:none}
-  #hud h1{margin:0 0 3px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--accent);font-weight:600}
-  #stats{color:var(--dim);font:11.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
-  #stats b{color:var(--txt);font-weight:600}
-  #sel{margin-top:6px;max-width:300px;color:var(--dim);font-size:12px;line-height:1.45}
-  #sel b{color:var(--accent);font-weight:600;letter-spacing:.04em}
-  #sparklabel{margin-top:7px;color:var(--dim);font:10px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
-  #spark{display:block;margin-top:3px;width:150px;height:34px;image-rendering:pixelated;opacity:.9}
-  #hover{margin-top:3px;color:var(--dim);font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
-  #census{margin-top:5px;color:var(--dim);font-size:10px;line-height:1.6;display:none}
+  #c{transform-origin:50% 50%}
+
+  /* readings: an instrument margin, not a card */
+  #hud{position:fixed;left:0;top:0;z-index:5;max-width:min(430px,calc(100vw - 210px));
+    padding:16px 20px 18px 20px;pointer-events:none;
+    background:linear-gradient(100deg,#0a1119d9 0%,#0a111999 68%,transparent 100%);
+    border-left:1px solid #e2a25a66}
+  #hud h1{margin:0 0 8px;font:400 18px/1.2 var(--serif);letter-spacing:.01em;color:var(--txt)}
+  #stats{color:var(--dim);font:11px/1.7 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  #stats b{color:var(--txt);font-weight:500}
+  .statsep{display:inline-block;width:1px;height:9px;background:#39454f;margin:0 7px;vertical-align:-1px}
+  #sel{margin-top:8px;max-width:320px;color:var(--dim);font-size:12px;line-height:1.5}
+  #sel b{color:var(--accent);font-weight:500}
+  #sparklabel{margin-top:10px;color:var(--dim);font:10px/1.4 var(--sans);letter-spacing:.02em}
+  #spark{display:block;margin-top:4px;width:150px;height:34px;image-rendering:pixelated;opacity:.75}
+  #hover{margin-top:4px;color:var(--dim);font:10.5px/1.5 var(--sans);font-variant-numeric:tabular-nums}
+  #census{margin-top:6px;color:var(--dim);font-size:10.5px;line-height:1.6;display:none}
   #census.on{display:block}
-  #census b{color:var(--txt);font-weight:600}
-  #palette{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:5;
-    display:flex;gap:6px;padding:8px;border-radius:14px;background:var(--panel);
-    border:1px solid var(--line);backdrop-filter:blur(8px);box-shadow:0 10px 40px #000a;
-    width:max-content;max-width:min(1180px, calc(100vw - 24px));flex-wrap:wrap;justify-content:center}
+  #census b{color:var(--txt);font-weight:500}
+
+  /* specimen shelf */
+  #bottom{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;flex-direction:column;pointer-events:none}
+  #palette{position:static;pointer-events:auto;
+    display:flex;gap:2px 4px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,transparent,#0a1119e6 26%,#0a1119fa 100%);
+    border-top:1px solid var(--line);flex-wrap:wrap;justify-content:center}
   #palette::-webkit-scrollbar{display:none}
-  .catlabel{flex:0 0 auto;align-self:center;font-size:8px;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--dim);padding:0 3px 0 7px;writing-mode:vertical-rl;transform:rotate(180deg);user-select:none}
+  .catlabel{flex:0 0 auto;align-self:center;font:italic 10px/1 var(--serif);color:#7d8a95;
+    padding:0 6px;writing-mode:vertical-rl;transform:rotate(180deg);user-select:none}
   .mat[hidden],.catlabel[hidden]{display:none}
-  .mat{position:relative;flex:0 0 auto;width:44px;height:42px;border-radius:10px;
-    border:1px solid #ffffff14;background:#ffffff08;cursor:pointer;padding:0;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-    transition:transform .08s ease,border-color .15s,background .15s}
-  .mat:hover{transform:translateY(-2px);background:#ffffff12}
-  .mat .dot{width:16px;height:16px;border-radius:5px;box-shadow:0 0 10px 1px var(--glow),inset 0 0 6px #0006}
-  .mat span{font-size:10px;line-height:1.05;letter-spacing:0;color:var(--dim)}
-  .mat[aria-pressed="true"]{border-color:var(--glow);background:#ffffff16;
-    box-shadow:0 0 0 1px var(--glow),0 0 18px -4px var(--glow)}
+  .mat{position:relative;flex:0 0 auto;width:46px;height:50px;border:0;border-radius:2px;
+    background:transparent;cursor:pointer;padding:3px 2px;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-start;gap:3px;transition:background .12s ease}
+  .mat .dot{width:22px;height:22px;border-radius:3px;
+    box-shadow:inset 0 0 0 1px #0006,0 0 0 1px #ffffff10}
+  .mat span{font:9.5px/1.15 var(--sans);color:#8d99a3;letter-spacing:.01em;text-align:center}
+  .mat:hover{background:#ffffff08}
+  .mat:active{background:#ffffff10}
+  .mat[aria-pressed="true"]{background:#e2a25a12}
+  .mat[aria-pressed="true"] .dot{box-shadow:inset 0 0 0 1px #0006,0 0 0 2px var(--accent)}
   .mat[aria-pressed="true"] span{color:var(--txt)}
-  #toolstoggle{display:none}
-  #tools{position:fixed;right:14px;top:14px;z-index:5;display:flex;flex-direction:column;gap:8px;
-    padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
-    backdrop-filter:blur(8px);box-shadow:0 8px 30px #0008;width:150px}
-  #tools label{color:var(--dim);font-size:10px;letter-spacing:.02em}
-  #filter{width:100%;padding:5px 7px;border-radius:7px;border:1px solid var(--line);background:#ffffff08;
-    color:var(--txt);font:inherit;font-size:11px;outline:none}
-  #filter:focus{border-color:var(--accent)}
-  #filter::placeholder{color:var(--dim)}
+
+  /* tool rail */
+  #tools{position:fixed;right:0;top:0;z-index:5;width:172px;display:flex;
+    flex-direction:column;gap:2px;padding:14px 12px;overflow-y:auto;
+    max-height:calc(100vh - var(--palette-h,90px) - 20px);
+    background:transparent;
+    border-left:1px solid #24303c77;text-shadow:0 1px 2px #000c}
+  #tools label{color:var(--dim);font:10.5px/1.4 var(--sans);letter-spacing:.02em}
+  #filter{width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--line);background:none;
+    color:var(--txt);font:11.5px/1.4 var(--sans);outline:none}
+  #filter:focus{border-bottom-color:var(--accent)}
+  #filter::placeholder{color:#6f7c87}
   input[type=range]{width:100%;accent-color:var(--accent);height:16px;margin:0}
-  .row{display:flex;gap:6px}
-  .btn{flex:1;padding:7px 0;border-radius:8px;border:1px solid var(--line);cursor:pointer;
-    background:#ffffff0a;color:var(--txt);font:inherit;font-size:11px;letter-spacing:.02em;
-    white-space:nowrap;transition:background .15s,border-color .15s}
-  .btn:hover{background:#ffffff16;border-color:#33405a}
-  .btn.on{background:#e6b36a22;border-color:var(--accent);color:var(--accent)}
-  .btn.danger{border-color:#3a2822}
-  .btn.danger:hover{border-color:var(--ember);color:var(--ember);background:#e0805a16}
-  .btn.danger.on{border-color:var(--ember);color:var(--ember);background:#e0805a22}
+  .row{display:flex;gap:0}
+  .btn{flex:1;padding:8px 3px;border:0;border-bottom:1px solid var(--line);border-radius:0;
+    background:none;color:var(--txt);font:11px/1.2 var(--sans);letter-spacing:.01em;
+    white-space:nowrap;cursor:pointer;transition:color .12s ease,background .12s ease}
+  .btn:hover{background:#ffffff07;color:#fff}
+  .btn.on{color:var(--accent);border-bottom-color:#e2a25a88}
+  .btn.danger{color:#b58a76}
+  .btn.danger:hover{color:var(--ember)}
+  .btn.danger.on{color:var(--ember);border-bottom-color:#c96a4688}
   .btn:focus-visible,.mat:focus-visible,#filter:focus-visible,select:focus-visible,input[type=range]:focus-visible{
     outline:2px solid var(--accent);outline-offset:2px}
-  .sep{height:1px;background:var(--line);margin:1px 0}
-  .volrow{display:flex;align-items:center;gap:4px}
+  .sep{height:1px;background:var(--line);margin:6px 0}
+  .volrow{display:flex;align-items:center;gap:6px}
   .volrow[hidden]{display:none}
-  .volrow label{flex:0 0 34px;color:var(--dim);font-size:10px;letter-spacing:.02em;cursor:pointer}
+  .volrow label{flex:0 0 42px;cursor:pointer;font-size:10px}
   .volrow input{flex:1;min-width:0;height:14px}
-  .volrow b{flex:0 0 20px;text-align:right;color:var(--txt);font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600}
-  #np{font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--accent);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .btn.arming{border-color:var(--ember);color:var(--ember);background:#e0805a22}
-  select.btn{appearance:none;text-align:center;padding:7px 0;font-size:11px}
-  select.btn option{background:#0e1018;color:#dfe6f5}
-  #hint{position:fixed;left:14px;top:180px;z-index:5;color:#8b96aa;font-size:11px;
-    max-width:360px;line-height:1.6;pointer-events:none;text-shadow:0 1px 3px #000c}
+  .volrow b{flex:0 0 24px;text-align:right;color:var(--txt);font:10px var(--sans);
+    font-variant-numeric:tabular-nums;font-weight:500}
+  #np{font:10px var(--sans);color:var(--accent);letter-spacing:.02em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .btn.arming{color:var(--ember)}
+  select.btn{appearance:none;text-align:center;padding:8px 0;font-size:11px}
+  select.btn option{background:#0d141c;color:#e7dfce}
+
+  #hint{position:fixed;left:20px;top:210px;z-index:5;color:#84919b;font-size:11px;
+    max-width:340px;line-height:1.7;pointer-events:none;text-shadow:0 1px 3px #000c}
+  #hint kbd{color:var(--txt);border-bottom:1px solid #ffffff33;padding:0 2px;font:inherit;font-size:10px}
+
+  /* field log */
+  #log{position:static;margin:0 0 22px 20px;align-self:flex-start;
+    pointer-events:none;font-size:11.5px;line-height:1.75;color:#b3bcc4;width:300px;text-shadow:0 1px 2px #000e,0 0 16px #000b;
+    min-height:104px;max-height:104px;overflow:hidden;padding-left:12px;
+    border-left:1px solid var(--line)}
+  #log div{opacity:.95}
+  #log div:last-child{opacity:.45}
+
+  #toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-6px);z-index:6;
+    padding:7px 12px;border:1px solid #e2a25a66;border-radius:2px;background:#0d141cf0;
+    color:var(--accent);font:12px/1.4 var(--sans);opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;white-space:nowrap}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* help as a sheet */
   #help{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
-    background:#05070bcc;backdrop-filter:blur(6px);padding:20px}
+    background:#05080bd9;padding:20px}
   #help[hidden]{display:none}
-  .hbox{max-width:1040px;width:100%;max-height:88vh;overflow:auto;background:var(--panel);
-    border:1px solid var(--line);border-radius:14px;padding:20px 24px;box-shadow:0 20px 60px #000b}
-  .hbox h2{margin:0 0 12px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  .hbox{max-width:1040px;width:100%;max-height:88vh;overflow:auto;background:#0d141cf8;
+    border:1px solid var(--line);border-radius:2px;padding:26px 30px}
+  .hbox h2{margin:0 0 14px;font:400 20px/1.2 var(--serif);color:var(--txt);
     display:flex;justify-content:space-between;align-items:center}
-  .hbox h2 button{background:none;border:0;color:var(--dim);font-size:20px;cursor:pointer;line-height:1}
-  .hk{color:var(--dim);font-size:12px;line-height:1.65;margin:0 0 14px;max-width:74ch}
-  .hk kbd{color:var(--txt);background:#ffffff10;border:1px solid var(--line);border-radius:4px;padding:0 4px}
-  .hsec{margin:0 0 18px;padding-top:14px;border-top:1px solid var(--line)}
-  .hsec h3{margin:0 0 10px;font-size:12.5px;letter-spacing:.02em;color:var(--accent);font-weight:600}
+  .hbox h2 button{background:none;border:0;color:var(--dim);font-size:22px;cursor:pointer;line-height:1}
+  .hk{color:var(--dim);font-size:12.5px;line-height:1.75;margin:0 0 16px;max-width:72ch}
+  .hk kbd{color:var(--txt);border-bottom:1px solid #ffffff33;padding:0 2px}
+  .hsec{margin:0 0 20px;padding-top:16px;border-top:1px solid var(--line)}
+  .hsec h3{margin:0 0 10px;font:italic 13px/1.2 var(--serif);color:var(--accent);font-weight:400}
   .hgoals{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 22px}
-  .goal{display:flex;gap:7px;align-items:baseline;color:var(--dim);font-size:11.5px;line-height:1.45}
-  .goal .mark{flex:0 0 12px;text-align:center;color:#5a657c}
+  .goal{display:flex;gap:8px;align-items:baseline;color:var(--dim);font-size:11.5px;line-height:1.5}
+  .goal .mark{flex:0 0 12px;text-align:center;color:#5f6b76}
   .goal.done .mark,.goal.done b{color:var(--accent)}
-  .goal b{color:var(--txt);font-weight:600;white-space:nowrap}
-  .goal i{font-style:normal;color:#6f7a90;font-size:11px}
-  .hcreatures{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:7px 24px}
-  .hcreature{color:var(--dim);font-size:11.5px;line-height:1.4;padding-left:8px;border-left:2px solid var(--line)}
-  .hcreature b{color:var(--txt);font-weight:600}
-  .hcreature .n{font:10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--accent);margin-left:2px}
-  .hcreature i{display:block;font-style:normal;color:#6f7a90;font-size:10.5px}
+  .goal b{color:var(--txt);font-weight:500;white-space:nowrap}
+  .goal i{font-style:normal;color:#71808b;font-size:11px}
+  .hcreatures{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px 24px}
+  .hcreature{color:var(--dim);font-size:11.5px;line-height:1.45;padding-left:10px;border-left:1px solid var(--line)}
+  .hcreature b{color:var(--txt);font-weight:500}
+  .hcreature .n{font:10.5px var(--sans);color:var(--accent);margin-left:2px;font-variant-numeric:tabular-nums}
+  .hcreature i{display:block;font-style:normal;color:#71808b;font-size:10.5px}
   .hfood{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:5px 24px}
-  .hfoodrow{color:var(--dim);font-size:11.5px;line-height:1.45}
-  .hfoodrow b{color:var(--txt);font-weight:600}
+  .hfoodrow{color:var(--dim);font-size:11.5px;line-height:1.5}
+  .hfoodrow b{color:var(--txt);font-weight:500}
   .hstory{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 22px}
   .hl{color:var(--dim);font-size:11.5px}
   .hl b{color:var(--txt)}
   .hmats{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}
-  .hrow{display:flex;gap:8px;align-items:baseline;font-size:11.5px;color:var(--dim);line-height:1.5}
-  .hrow i{width:10px;height:10px;border-radius:3px;flex:0 0 auto;display:block}
-  .hrow b{color:var(--txt);font-weight:600;min-width:64px}
-  body.clean #hud, body.clean #tools, body.clean #palette, body.clean #hint, body.clean #toast, body.clean #toolstoggle{display:none}
-  #log{position:fixed;left:14px;bottom:calc(var(--palette-h, 156px) + 24px);z-index:4;pointer-events:none;
-    font-size:11px;line-height:1.7;color:#8b96aa;width:300px;min-height:108px;max-height:108px;overflow:hidden;
-    letter-spacing:.02em;padding:6px 8px;border-radius:8px;border:1px solid var(--line);
-    background:#0e1018e8;box-shadow:0 8px 24px #0008;backdrop-filter:blur(6px)}
-  #log div{opacity:.9}
-  #log div:last-child{opacity:.45}
-  body.clean #log{display:none}
-  #toast{position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-8px);z-index:6;
-    padding:8px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--accent);
-    color:var(--accent);font-size:12px;letter-spacing:.03em;opacity:0;pointer-events:none;
-    transition:opacity .25s ease,transform .25s ease;backdrop-filter:blur(8px);
-    box-shadow:0 8px 30px #000a;white-space:nowrap}
-  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-  #hint kbd{color:var(--txt);background:#ffffff10;border:1px solid var(--line);
-    border-radius:4px;padding:0 4px;font:inherit;font-size:10px}
+  .hrow{display:flex;gap:9px;align-items:baseline;font-size:11.5px;color:var(--dim);line-height:1.55}
+  .hrow i{width:10px;height:10px;border-radius:2px;flex:0 0 auto;display:block}
+  .hrow b{color:var(--txt);font-weight:500;min-width:64px}
+
+  #toolstoggle{display:none}
+
+  body.clean #hud,body.cast #hud,body.clean #tools,body.cast #tools,body.clean #palette,body.cast #palette,
+  body.clean #hint,body.cast #hint,body.clean #toast,body.cast #toast,
+  body.clean #toolstoggle,body.cast #toolstoggle,body.clean #log,body.cast #log{display:none}
+
+  /* live presentation */
+  #fade{position:fixed;inset:0;z-index:9;background:#080b0e;opacity:0;pointer-events:none;transition:opacity .8s ease}
+  #fade.on{opacity:1}
+  #broadcast{position:fixed;inset:0;z-index:4;pointer-events:none;display:none}
+  body.cast #broadcast{display:block}
+  #bcap{position:fixed;left:4vw;bottom:9vh;max-width:56vw;font:400 clamp(15px,1.7vw,30px)/1.4 var(--serif);
+    color:#e7dfce;opacity:0;transition:opacity .9s ease;text-shadow:0 2px 22px #000d}
+  #bcap.on{opacity:.92}
+  #bmeta{position:fixed;right:4vw;bottom:9vh;text-align:right;font:11px/1.8 var(--sans);
+    color:#a7a196;letter-spacing:.04em;opacity:.75;text-shadow:0 1px 10px #000c;font-variant-numeric:tabular-nums}
+
   @media (max-width:760px){
     #hint{display:none}
-    #hud{max-width:calc(100vw - 190px)}
-    #stats{font-size:10.5px}
+    #spark,#sparklabel{display:none}
+    #hud{max-width:calc(100vw - 180px);padding:12px 14px}
+    #stats{font-size:10px}
     #sel,#spark{max-width:100%}
-    #toolstoggle{display:block;position:fixed;right:14px;top:14px;z-index:6;width:92px;padding:8px 0}
+    #toolstoggle{display:block;position:fixed;right:8px;top:8px;z-index:6;width:84px;padding:8px 0;
+      border:1px solid var(--line);border-radius:2px;background:#0d141cf0}
     #toolstoggle[hidden]{display:none}
-    #tools{top:58px;width:146px;max-height:calc(100vh - 76px);overflow-y:auto;z-index:6}
+    #tools{top:0;bottom:auto;width:156px;max-height:calc(100vh - 90px);overflow-y:auto;z-index:6;
+      background:#0d141cf5;border:1px solid var(--line);border-top:0;border-right:0}
     #tools[hidden]{display:none}
     .row{flex-wrap:wrap}
     .row.audio .btn{flex:1 1 44%}
     .btn{min-width:0;padding:7px 3px;font-size:10px}
-    .mat{width:40px;height:40px}
-    .hbox{padding:16px;max-height:92vh}
+    .mat{width:42px;height:46px}
+    .hbox{padding:18px;max-height:92vh}
     .hk{max-width:none}
     #palette{max-height:38vh;overflow-y:auto;justify-content:flex-start;
       scrollbar-width:thin;scrollbar-color:#ffffff24 transparent}
     #palette::-webkit-scrollbar{display:block;width:6px}
     #palette::-webkit-scrollbar-thumb{background:#ffffff24;border-radius:3px}
   }
-  @media (min-width:1780px){
-    #log{bottom:16px;width:min(300px, calc((100vw - 1180px) / 2 - 24px))}
-  }
   @media (prefers-reduced-motion: reduce){
-    .mat,.btn,#toast{transition:none}
-    .mat:hover{transform:none}
+    .mat,.btn,#toast,#bcap,#fade{transition:none}
+    .mat:hover{background:none}
   }
+
 </style>
 </head>
 <body>
@@ -165,7 +201,7 @@
 
 <div id="hud">
   <h1>Powder Sandbox</h1>
-  <div id="stats"><b id="fps">0</b> fps &middot; <b id="count">0</b> cells &middot; <b id="bugs">0</b> alive &middot; <b id="clock">day</b> &middot; <b id="wind" title="wind">-</b> &middot; <b id="season" title="season">-</b> &middot; <b id="gstat">0/17</b></div>
+  <div id="stats"><b id="fps">0</b> fps<span class="statsep"></span><b id="count">0</b> cells<span class="statsep"></span><b id="bugs">0</b> alive<span class="statsep"></span><b id="clock">day</b><span class="statsep"></span><b id="wind" title="wind">-</b><span class="statsep"></span><b id="season" title="season">-</b><span class="statsep"></span><b id="gstat">0/17</b></div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
   <canvas id="spark" width="150" height="34" aria-label="population history"></canvas>
@@ -211,19 +247,16 @@
   </div>
   <div class="sep"></div>
   <div class="row">
-  <select id="scene" class="btn" aria-label="Scene" style="flex:1">
-    <option value="">Scene&hellip;</option>
-    <option value="ecosystem">Ecosystem</option>
-    <option value="beach">Beach</option>
-    <option value="volcano">Volcano</option>
-    <option value="forest">Forest</option>
-    <option value="lab">Laboratory</option>
-    <option value="snow">Snowfield</option>
-    <option value="desert">Desert</option>
-    <option value="city">City</option>
-    <option value="reef">Reef</option>
-  </select>
+  <select id="scene" class="btn" aria-label="Scene" style="flex:1"></select>
   <button class="btn" id="auto" aria-pressed="false" title="let the world settle itself — no disasters">Autoplay</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="cast" aria-pressed="false" title="chronicle captions and now-playing">Cast</button>
+    <button class="btn" id="cine" aria-pressed="false" title="slow camera drift">Cine</button>
+    <button class="btn" id="playlist" aria-pressed="false" title="rotate scenes every 20 minutes">Loop</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="calm" aria-pressed="false" title="reduce motion, flashes and flicker">Calm</button>
   </div>
   <div class="row audio">
     <button class="btn" id="speed" title="simulation speed">1&times;</button>
@@ -260,11 +293,18 @@
   </div>
 </div>
 
-<div id="log" aria-live="polite"></div>
+<div id="broadcast" aria-live="polite">
+  <div id="bcap"></div>
+  <div id="bmeta"></div>
+</div>
+<div id="fade"></div>
 
 <div id="toast" aria-live="polite"></div>
 
-<nav id="palette" aria-label="Materials"></nav>
+<div id="bottom">
+  <div id="log" aria-live="polite"></div>
+  <nav id="palette" aria-label="Materials"></nav>
+</div>
 
 <div id="hint">
   <kbd>drag</kbd> pour &middot; <kbd>right-click</kbd> erase &middot; <kbd>?</kbd> all controls &middot; <kbd>h</kbd> hide panels<br>
@@ -343,6 +383,8 @@ const MAT = {
   26: {name:'Spiders', color:[176,110,220], glow:'#b06edc', density:2},  // SPIDER; literal key since the const is declared after MAT
   [FROG]: {name:'Frogs', color:[120,220,110], glow:'#78dc6e', density:1.5},
   28:       {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2},
+  61:       {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2},
+  62:       {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true},
 };
 const MATS = Object.keys(MAT).map(Number);
 const HOT = {[FIRE]:1, [LAVA]:1};
@@ -384,6 +426,8 @@ const DEER = 57;
 const COAL = 58;
 const FROST = 59;
 const TERMITE = 60;
+const OCTOPUS = 61;
+const INK = 62;
 // who eats whom: one table drives predation, fear and breeding
 const STARVE = 900;                                  // ticks a creature can go without a meal
 const DIET = {
@@ -398,16 +442,18 @@ const DIET = {
   [ANT]:    [PLANT, SEED, FLOWER, FRUIT, HONEY, REED],
   [CRAB]:   [PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE],
   [BEE]:    [],
-  [GULL]:   [LIFE, ANT, BEE, FISH, BONE, COMPOST],
-  [HUMAN]:  [LIFE, DEER, FISH, SNAIL, CRAB, FRUIT, BONE],
+  [GULL]:   [LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST],
+  [HUMAN]:  [LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE],
   [DEER]:   [PLANT, FLOWER, REED, MOSS, FRUIT, SEED],
   [TERMITE]:[WOOD],
+  [OCTOPUS]:[CRAB, FISH, SNAIL, WORM],
 };
 const FEARED = {};                                   // prey -> its predators
 for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).push(+p);
 
 LIQUID[BRINE] = 1;
 LIQUID[HONEY] = 1;
+LIQUID[INK] = 1;
 
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
@@ -424,17 +470,14 @@ let sun = 0;           // day/night phase
 let strikes = 0;
 let brush = 6;
 let paused = false, stepOnce = false;
-let painted = false;
 
 /* ---------- grid ---------- */
 function resize(){
-  const dpr = Math.min(devicePixelRatio || 1, 2);
   const pal = document.getElementById('palette');
   const palH = Math.ceil(pal.getBoundingClientRect().height) || 0;
   document.documentElement.style.setProperty('--palette-h', palH + 'px');
-  const sideLog = !document.body.classList.contains('clean') && matchMedia('(min-width:1780px)').matches;
-  let band = document.body.classList.contains('clean') ? 0
-    : Math.max(78, palH + 24 + (sideLog ? 0 : 116));   // on wide screens the log sits beside the palette
+  const bare = document.body.classList.contains('clean') || document.body.classList.contains('cast');
+  let band = bare ? 0 : Math.max(78, palH + 24);   // chrome overlays the world; only the shelf reserves ground
   if (!Number.isFinite(band)) band = 0;
   document.getElementById('stage').style.bottom = band + 'px';
   let cw = innerWidth, ch = Math.max(240, innerHeight - band);
@@ -665,6 +708,9 @@ function spreadHeat(){
     }
     if (v === FIRE) h = 1.0;
     else if (v === LAVA) h = 1.4;
+    else if (v === ICE) h = h < 0.1 ? Math.min(h, -0.9) : h;    // ice, snow and frost hold a negative temperature,
+    else if (v === SNOW) h = h < 0.1 ? Math.min(h, -0.5) : h;   // so the thermal view can show cold as blue —
+    else if (v === FROST) h = h < 0.1 ? Math.min(h, -0.8) : h;  // unless something is actively heating them
 
     heat[i] = h;
   }
@@ -673,7 +719,7 @@ function spreadHeat(){
     for (let x=1;x<W-1;x++){
       const i = row + x;
       const n = (heat[i-1] + heat[i+1] + heat[i-W] + heat[i+W]) * 0.25;
-      if (n > heat[i]) heat[i] += (n - heat[i]) * 0.45;   // heat flows from hot to cold only
+      if (Math.abs(n) > Math.abs(heat[i])) heat[i] += (n - heat[i]) * 0.45;   // heat and cold both spread outward
     }
   }
 }
@@ -687,6 +733,7 @@ function step(x,y,dir){
   if (v === VENT) return tickVent(x,y,i);
   if (v === ANT) return tickAnt(x,y,i);
   if (v === CRAB) return tickCrab(x,y,i);
+  if (v === OCTOPUS) return tickOctopus(x,y,i);
   if (v === TREE) return tickTree(x,y,i);
   if (v === FRUIT) return tickFruit(x,y,dir,i);
   if (v === MOSS) return tickMoss(x,y,i);
@@ -734,6 +781,7 @@ function step(x,y,dir){
   if (v === FLOWER) return tickFlower(x,y,i);
   if (v === BEE)    return tickBee(x,y,i);
   if (v === BRINE)  return tickBrine(x,y,dir,i);
+  if (v === INK)    return tickInk(x,y,dir,i);
   if (LIQUID[v])   return tickLiquid(x,y,dir,v);
   return tickPowder(x,y,dir,v);
 }
@@ -2045,6 +2093,53 @@ function tickCrab(x,y,i){
   return true;
 }
 
+// an octopus: drifts through water, hunts crabs and fish, and inks when a gull or a person comes
+function tickOctopus(x,y,i){
+  if (moved[i]) return false;
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  let wet = false;
+  for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
+    if (!inB(nx,ny)) continue;
+    const t = grid[idx(nx,ny)];
+    if (t === FIRE || t === LAVA){ set(x,y, EMPTY); return true; }
+    if (t === WATER) wet = true;
+  }
+  for (const f of (FEARED[OCTOPUS] || [])){            // a shadow overhead: ink, then bolt
+    const seen = senseWet(x,y,f,4);
+    if (seen && Math.random() < 0.5){
+      for (let k=1;k<=2;k++){
+        const ix = x - seen[0]*k, iy = y - seen[1]*k;
+        if (inB(ix,iy) && (grid[idx(ix,iy)] === WATER || grid[idx(ix,iy)] === EMPTY)) set(ix,iy, INK);
+      }
+      if (swim(x,y,x - seen[0], y - seen[1])) return true;
+    }
+  }
+  eatAround(x, y, OCTOPUS);
+  for (const prey of DIET[OCTOPUS]){                   // stalk the nearest meal
+    const seen = senseWet(x,y,prey,6);
+    if (seen && Math.random() < 0.85){
+      if (swim(x,y,x+seen[0],y+seen[1]) || swim(x,y,x+seen[0],y) || swim(x,y,x,y+seen[1])) return true;
+      break;
+    }
+  }
+  if (!wet && Math.random() < 0.012){ set(x,y, EMPTY); return true; }   // too long out of water
+  if (age > 2400 && Math.random() < 0.01){ set(x,y, EMPTY); return true; }
+  let d = facing[i];
+  if (!d || Math.random() < 0.06) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
+  if (swim(x,y,x+d,y)) return true;
+  if (swim(x,y,x,y+1)) return true;
+  if (swim(x,y,x,y-1)) return true;
+  facing[i] = -d;
+  if (hop(x,y,x,y+1)) return true;                     // beached: flop back down
+  return true;
+}
+
+// ink spreads like a liquid, then thins back into the water
+function tickInk(x,y,dir,i){
+  if (Math.random() < 0.004){ set(x,y, EMPTY); return true; }
+  return tickLiquid(x,y,dir,INK);
+}
+
 // ants walk the surface and pack the sand under them into a mound
 function tickAnt(x,y,i){
   if (moved[i]) return false;
@@ -2208,6 +2303,50 @@ function tickLava(x,y,dir,i){
 const palette = new Uint8ClampedArray(MATS.length*3); // precomputed material colours
 for (const k of MATS){ const c = MAT[k].color; palette[k*3]=c[0]; palette[k*3+1]=c[1]; palette[k*3+2]=c[2]; }
 
+// thermal palette: cold reads blue, neutral is black, heat runs red
+const HEAT_LUT = (() => {
+  const stops = [[0,[26,86,220]],[0.18,[60,150,235]],[0.34,[10,12,18]],[0.42,[8,8,12]],[0.55,[120,16,18]],[0.78,[226,34,28]],[1,[255,72,58]]];
+  const lut = new Uint8ClampedArray(64*3);
+  for (let q=0; q<64; q++){
+    const t = q/63;
+    let a = stops[0], b = stops[stops.length-1];
+    for (let s=0; s<stops.length-1; s++) if (t >= stops[s][0] && t <= stops[s+1][0]){ a = stops[s]; b = stops[s+1]; break; }
+    const k = (t - a[0]) / Math.max(1e-6, b[0] - a[0]);
+    for (let c=0;c<3;c++) lut[q*3+c] = a[1][c] + (b[1][c] - a[1][c]) * k;
+  }
+  return lut;
+})();
+
+// soft morning clouds: a few drifting banks, drawn over the sky at low opacity
+let cloudDrift = 0, cloudLast = 0;   // accumulated so far, in cells — Calm freezes it without snapping back
+const CLOUDS = [
+  {x:0.06, y:0.10, s:1.0, r:26, p:[[-1.1,0.15,1.0,0.55],[0,0,1.35,0.7],[1.1,0.2,0.9,0.5]]},
+  {x:0.42, y:0.06, s:0.7, r:20, p:[[-0.9,0.1,0.9,0.5],[0,0,1.2,0.62],[0.9,0.12,0.8,0.45]]},
+  {x:0.72, y:0.14, s:1.3, r:32, p:[[-1.2,0.18,1.0,0.5],[0,0,1.4,0.66],[1.2,0.22,0.95,0.48]]},
+  {x:0.90, y:0.05, s:0.9, r:23, p:[[-0.8,0.1,0.9,0.5],[0,0,1.1,0.6],[0.8,0.12,0.75,0.42]]},
+];
+function drawClouds(day, nowMs){
+  if (cloudLast && !paused){
+    const rate = (20 + Math.abs(wind) * 24) * (calmOn ? 0.4 : 1);   // Calm slows the sky down, it doesn't stop it
+    cloudDrift += Math.min(0.25, nowMs - cloudLast) * rate;        // a backgrounded tab resumes without a jump
+  }
+  cloudLast = nowMs;
+  if (day < 0.04 || (storm && !weatherOff)) return;
+  const scale = W / 640;
+  const span = W + 160 * scale;
+  ctx.fillStyle = 'rgba(226,236,250,' + (0.06 + 0.10 * Math.min(1, day)).toFixed(3) + ')';
+  for (const c of CLOUDS){
+    const x = (((c.x * W + cloudDrift * c.s) % span) + span) % span - 80 * scale;
+    const y = c.y * H + (calmOn ? 0 : Math.sin(nowMs * 0.22 + c.x * 11) * 3 * scale);
+    for (const [dx,dy,rx,ry] of c.p){
+      ctx.beginPath();
+      ctx.ellipse(x + dx*c.r*scale, y + dy*c.r*scale, rx*c.r*scale, ry*c.r*scale, 0, 0, 6.2832);
+      ctx.fill();
+    }
+  }
+}
+
+let skyR = null, skyG = null, skyB = null;      // reused between frames; resized only when the grid changes
 function draw(){
   const d = img.data;
   let count = 0, bugs = 0;
@@ -2215,7 +2354,21 @@ function draw(){
   const sky = Math.sin(sun);                       // -1 midnight .. +1 noon
   const autumn = Math.sin(season) < -0.35;         // the dry half of the year
   const gloom = storm && !weatherOff ? (flash > 0.35 ? 1 : 0.45) : 1;   // a storm pulls the lid down — until a bolt lifts it
-  const er = Math.max(3, (12 + sky*5) * gloom)|0, eg = Math.max(4, (14 + sky*5) * gloom)|0, eb = Math.max(6, (20 + sky*9) * gloom)|0;
+  // a real sky: blue overhead at noon, warm at the horizon, brightening through the morning
+  const day = Math.max(0, sky), dawn = Math.max(0, 1 - Math.abs(sky - 0.18) * 2.6);
+  const topR = (7 + 20 * day) * gloom, topG = (8 + 38 * day) * gloom, topB = (12 + 70 * day) * gloom;
+  const horR = (10 + 58 * day + 46 * dawn * (1 - 0.4 * day)) * gloom;
+  const horG = (10 + 84 * day + 16 * dawn) * gloom;
+  const horB = (16 + 112 * day - 6 * dawn) * gloom;
+  if (!skyR || skyR.length !== H){
+    skyR = new Uint8ClampedArray(H); skyG = new Uint8ClampedArray(H); skyB = new Uint8ClampedArray(H);
+  }
+  for (let y = 0; y < H; y++){
+    const m = Math.pow(y / Math.max(1, H - 1), 1.5);
+    skyR[y] = topR + (horR - topR) * m;
+    skyG[y] = topG + (horG - topG) * m;
+    skyB[y] = topB + (horB - topB) * m;
+  }
   const TAU = 6.2832;
   const nowMs = (typeof performance !== 'undefined' ? performance.now() : 0) * 0.001;
   const phase = ((sun % TAU) + TAU) % TAU;                       // the sun rides one arc, the moon the other
@@ -2227,15 +2380,14 @@ function draw(){
   for (let i=0, p=0; i<W*H; i++, p+=4){
     const v = grid[i];
     if (v){ count++; hist[v]++;
-      if (v === LIFE || v === FISH || v === BIRD || v === WORM || v === SPIDER || v === FROG || v === BAT || v === FIREFLY || v === BEE || v === ANT || v === CRAB || v === HERON || v === GULL || v === HUMAN || v === DEER || v === TERMITE) bugs++;
-      if (v === SNAIL) bugs++;
+      if (IS_CREATURE.has(v)) bugs++;
       let r = palette[v*3], g = palette[v*3+1], b = palette[v*3+2];
       // cheap glow: hot materials get a flicker; idle materials keep flat colour
       if (v === FIRE){
-        const f = 0.75 + Math.random()*0.35;
+        const f = (calmOn || paused) ? 0.9 : 0.75 + Math.random()*0.35;
         r = Math.min(255, r*f); g = Math.min(255, g*f);
       } else if (v === LAVA){
-        const f = 0.85 + Math.random()*0.2;
+        const f = (calmOn || paused) ? 0.92 : 0.85 + Math.random()*0.2;
         r = Math.min(255, r*f); g = Math.min(255, g*f*0.6);
       } else if (v === FROST){                            // settled frost reads as a pale crust
         if (i + W < grid.length && grid[i + W] !== EMPTY){ r = Math.min(255, r*1.14); g = Math.min(255, g*1.14); b = Math.min(255, b*1.1); }
@@ -2243,7 +2395,7 @@ function draw(){
         r = Math.min(255, r * 1.25 + 40); g = Math.max(30, g * 0.78); b = Math.max(20, b * 0.5);
       } else if (v === STEAM){
         r = 150 + (life[i]&7)*10; g = r+10; b = r+20;
-      } else if (v === LIFE || v === FISH || v === BIRD || v === WORM || v === SPIDER || v === FROG || v === SNAIL || v === BAT || v === FIREFLY || v === BEE || v === ANT || v === CRAB || v === HERON || v === GULL || v === HUMAN || v === DEER || v === TERMITE){
+      } else if (IS_CREATURE.has(v)){
         const f = ((life[i] >> 3) & 1 ? 1 : 0.65) * (1 - Math.min(0.35, life[i] / 4000));   // pulse, dimmer with age
         let shade = 1;
         if (sky < -0.25){                                        // the moon throws a dim shadow
@@ -2252,13 +2404,14 @@ function draw(){
         }
         r = Math.min(255, r*f*shade); g = Math.min(255, g*f*shade); b = Math.min(255, b*f*shade);
       }
-      if (heatView){                                 // thermal camera: colour by temperature, not material
-        const k = Math.min(1, heat[i] * 0.8);
-        r = 25 + 230*k; g = 15 + 180*k*k; b = 40 + 60*k*k;
+      if (heatView){                                 // thermal camera: cold blue, hot white
+        const q = Math.min(63, Math.max(0, Math.round(((heat[i] + 1) / 2.4) * 63)));
+        r = HEAT_LUT[q*3]; g = HEAT_LUT[q*3+1]; b = HEAT_LUT[q*3+2];
       }
       d[p]=r; d[p+1]=g; d[p+2]=b; d[p+3]=255;
     } else if ((sky < -0.25 || flash > 0.35) && stars[i]){   // out after dark, or by a lightning flash
-      const b2 = Math.min(255, (120 + stars[i] * 55) * (0.72 + 0.28 * Math.sin(nowMs * 3 + i * 0.7)) + (flash > 0.35 ? 70 * flash : 0));   // each on its own beat
+      const b2 = (calmOn || paused) ? Math.min(255, 120 + stars[i] * 55)
+        : Math.min(255, (120 + stars[i] * 55) * (0.72 + 0.28 * Math.sin(nowMs * 3 + i * 0.7)) + (flash > 0.35 ? 70 * flash : 0));   // each on its own beat
       d[p]=b2; d[p+1]=b2 + 8; d[p+2]=Math.min(255, b2 + 35); d[p+3]=255;
     } else {
       const sx2 = i % W, sy2 = (i / W) | 0;
@@ -2266,23 +2419,27 @@ function draw(){
       const dm = (sx2 - moonX) * (sx2 - moonX) + (sy2 - moonY) * (sy2 - moonY);
       if (ds < 14){ d[p]=255; d[p+1]=sunG; d[p+2]=sunB; }          // the sun
       else if (dm < 10){ d[p]=214; d[p+1]=222; d[p+2]=236; }       // the moon
-      else { d[p]=er; d[p+1]=eg; d[p+2]=eb; }
+      else { d[p]=skyR[sy2]; d[p+1]=skyG[sy2]; d[p+2]=skyB[sy2]; }
       d[p+3]=255;
     }
   }
   ctx.putImageData(img, 0, 0);
-  if (shake > 0.3){
+  drawClouds(day, nowMs);
+  if (!calmOn && shake > 0.3){
     cvs.style.transform = 'translate(' + ((Math.random()-0.5)*shake).toFixed(1) + 'px,' +
                           ((Math.random()-0.5)*shake).toFixed(1) + 'px)';
     shake *= 0.82;
   } else if (shake) { shake = 0; cvs.style.transform = ''; }
+  if (cineOn && !calmOn && !paused && shake <= 0.3) applyCine();   // a slow, quiet drift
   if (flash > 0){                                   // blast flash
-    ctx.fillStyle = `rgba(255,190,90,${(flash*0.4).toFixed(3)})`;
-    ctx.fillRect(0, 0, W, H);
+    if (!calmOn){
+      ctx.fillStyle = `rgba(255,190,90,${(flash*0.4).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
     flash *= 0.72;
     if (flash < 0.02) flash = 0;
   }
-  if (cursor.on && !photoMode){                     // brush ring so you can aim
+  if (cursor.on && !document.body.classList.contains('clean')){   // brush ring so you can aim
     ctx.strokeStyle = 'rgba(235,246,255,0.45)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
@@ -2425,7 +2582,6 @@ const DESC = {
   [FROG]:'leaps two cells, hunts bugs and fish',
   [SNAIL]:'a slow grazer that eats plants',
   [BAT]:'flutters erratically and hunts bugs',
-  [EGG]:'hatches into a bug',
   [FIREFLY]:'comes out at dusk and is gone by morning',
   [FLOWER]:'bees make them; they seed new plants when wet',
   [BEE]:'pollinates plants into flowers by day',
@@ -2457,6 +2613,8 @@ const DESC = {
   [COAL]:'a dark lump that smoulders far longer than wood',
   [FROST]:'cold dust: chills the water it touches to ice, melts near heat',
   [TERMITE]:'chews timber: the only thing that keeps a wooden world in check',
+  [OCTOPUS]:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes',
+  [INK]:'a dark cloud that spreads through water and thins away',
 };
 const selEl = document.getElementById('sel');
 
@@ -2467,10 +2625,10 @@ const CATS = [
   ['tool',    [EMPTY]],
   ['powder',  [SAND, SNOW, SALT, SEED, MUD, ANTHILL, ASH, FROST]],
   ['solid',   [STONE, WOOD, COAL, ICE, GLASS, IRON, FUNGUS, MOSS, CORAL, COMPOST, BONE, HIVE, PLANT, REED, FLOWER, WEB, NEST]],
-  ['liquid',  [WATER, OIL, ACID, LAVA, MERCURY, BRINE, HONEY, SLIME]],
+  ['liquid',  [WATER, OIL, ACID, LAVA, MERCURY, BRINE, HONEY, SLIME, INK]],
   ['energy',  [FIRE, STEAM, SMOKE, TNT, FIREWORK]],
   ['source',  [SPRING, VENT]],
-  ['life',    [LIFE, EGG, FISH, FROG, BIRD, BAT, WORM, SPIDER, SNAIL, BEE, FIREFLY, ANT, CRAB, HERON, GULL, HUMAN, DEER, TERMITE, TREE, FRUIT]],
+  ['life',    [LIFE, EGG, FISH, FROG, BIRD, BAT, WORM, SPIDER, SNAIL, BEE, FIREFLY, ANT, CRAB, OCTOPUS, HERON, GULL, HUMAN, DEER, TERMITE, TREE, FRUIT]],
 ];
 const listed = new Set(CATS.flatMap(c => c[1]));
 const leftovers = MATS.filter(k => !listed.has(k));
@@ -2533,7 +2691,7 @@ function select(k){
   }
   if (buttons[k] && buttons[k].scrollIntoView) buttons[k].scrollIntoView({ block: 'nearest', inline: 'center' });
   for (const j in buttons) buttons[j].setAttribute('aria-pressed', j == k ? 'true' : 'false');
-  selEl.innerHTML = '<b>' + MAT[k].name + '</b> &mdash; ' + (DESC[k] || '');
+  selEl.innerHTML = '<b>' + MAT[k].name + '</b>: ' + (DESC[k] || '');
 }
 select(current);
 
@@ -2705,6 +2863,7 @@ stormEl.addEventListener('click', () => {
 let acidRain = 0, wasNight = false, shake = 0, wasWet = null;
 const chronSeen = {};
 let autoPlay = false, autoNext = 0, autoStroke = null, autoHideAt = 0, autoSceneAt = 0;
+let autoQueue = [];                                  // the current project's scheduled moves
 const autoEl = document.getElementById('auto');
 autoEl.addEventListener('click', () => {
   autoPlay = !autoPlay;
@@ -2712,9 +2871,93 @@ autoEl.addEventListener('click', () => {
   autoEl.setAttribute('aria-pressed', autoPlay);
   logEvent(autoPlay ? '\u25b6 autoplay on' : '\u23f8 autoplay off');
   if (autoPlay && !musicOn) musicToggle();          // the click is the gesture the music needs
-  if (!autoPlay){ autoStroke = null; cursor.on = false; clearTimeout(autopilot.rainTimer); }
+  if (!autoPlay){ autoStroke = null; cursor.on = false; autoQueue.length = 0; clearTimeout(autopilot.rainTimer); }
   autoNext = 0;
 });
+/* ---------- live presentation: broadcast captions, camera drift, scene loop, calm ---------- */
+const castEl = document.getElementById('cast');
+const cineEl = document.getElementById('cine');
+const loopEl = document.getElementById('playlist');
+const calmEl = document.getElementById('calm');
+const bcapEl = document.getElementById('bcap');
+const bmetaEl = document.getElementById('bmeta');
+const fadeEl = document.getElementById('fade');
+let castOn = false, cineOn = false, playlistOn = false;
+let calmOn = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+let camEpoch = performance.now();
+
+function reflect(el, on){ el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); }
+function setCast(on){
+  castOn = on;
+  reflect(castEl, on);
+  document.body.classList.toggle('cast', on);
+  resize();
+  if (on){
+    const last = chronicleLog[chronicleLog.length - 1];
+    if (last) showCaption(last.t);
+    updateBroadcastMeta();
+  }
+}
+function showCaption(text){
+  if (!castOn) return;
+  bcapEl.textContent = text;
+  bcapEl.classList.add('on');
+  clearTimeout(bcapEl._t);
+  bcapEl._t = setTimeout(() => bcapEl.classList.remove('on'), 9000);
+}
+function updateBroadcastMeta(){
+  if (!castOn) return;
+  const day = 1 + Math.floor(sun / 6.2832);
+  const tr = TRACKS[trackIx];
+  bmetaEl.textContent = 'day ' + day + '   /   ' + (musicOn ? '♪ ' + tr.name + ' / ' + tr.group : 'lo-fi off');
+}
+castEl.addEventListener('click', () => setCast(!castOn));
+
+function setCine(on){
+  cineOn = on;
+  reflect(cineEl, on);
+  camEpoch = performance.now();
+  if (!on) cvs.style.transform = '';
+}
+function applyCine(){
+  const t = (performance.now() - camEpoch) / 1000;
+  const s = 1.055 + 0.018 * Math.sin(t / 47);
+  const tx = 1.7 * Math.sin(t / 61);
+  const ty = 1.2 * Math.cos(t / 83);
+  cvs.style.transform = 'translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%) scale(' + s.toFixed(3) + ')';
+}
+cineEl.addEventListener('click', () => setCine(!cineOn));
+
+const PLAYLIST = ['ecosystem','forest','beach','reef','desert','snow','swamp'];
+let playlistIx = 0, playlistAt = 0, playlistFading = false;
+function setPlaylist(on){
+  playlistOn = on;
+  reflect(loopEl, on);
+  playlistAt = performance.now();
+}
+loopEl.addEventListener('click', () => setPlaylist(!playlistOn));
+function playlistTick(){
+  if (!playlistOn || playlistFading) return;
+  if (performance.now() - playlistAt < 20 * 60 * 1000) return;
+  playlistFading = true;
+  playlistIx = (playlistIx + 1) % PLAYLIST.length;
+  fadeEl.classList.add('on');
+  setTimeout(() => {
+    loadScene(PLAYLIST[playlistIx]);
+    fadeEl.classList.remove('on');
+    playlistFading = false;
+    playlistAt = performance.now();
+  }, 850);
+}
+
+function setCalm(on){
+  calmOn = on;
+  reflect(calmEl, on);
+  savePrefs();
+}
+calmEl.addEventListener('click', () => setCalm(!calmOn));
+reflect(calmEl, calmOn);
+
 function settleCamp(){                               // a household, a hearth, a fence, and their deer
   const homes = [];
   for (let i=0;i<grid.length;i++) if (grid[i] === HUMAN) homes.push(i);
@@ -2826,9 +3069,9 @@ function autoLine(t, x0, y0, x1, y1, v, dur, wob){
   autoNext = Infinity;                               // the stroke owns the clock now
 }
 function sceneMess(){
-  let occupied = 0; const kinds = new Set();
-  for (let i=0;i<grid.length;i++){ const v = grid[i]; if (v){ occupied++; kinds.add(v); } }
-  return { fill: occupied / (W*H), kinds: kinds.size, species: MIGRANTS.filter(sp => hist[sp] > 0).length };
+  let kinds = 0;
+  for (let v=1; v<hist.length; v++) if (hist[v]) kinds++;
+  return { fill: lastCount / (W*H), kinds, species: MIGRANTS.filter(sp => hist[sp] > 0).length };
 }
 function maybeNewScene(t){
   if (!autoSceneAt) autoSceneAt = t;
@@ -2857,6 +3100,81 @@ function autoPick(pool){                             // spread the palette; do n
   }
   return pool[(Math.random() * pool.length) | 0];
 }
+/* ---------- the autopilot's projects: small, deliberate compositions ---------- */
+const AUTO_SPECIES_WET = [FISH, FROG, HERON, CRAB, GULL];
+const AUTO_SPECIES_LAND = [DEER, ANT, BIRD, WORM, SNAIL];
+const AUTO_SPECIES_COLD = [DEER, WORM, BIRD];
+function autoSpecies(){
+  const scene = sceneEl.value;
+  if (scene === 'reef' || scene === 'swamp' || scene === 'beach') return AUTO_SPECIES_WET;
+  if (scene === 'snow' || scene === 'exp_freeze') return AUTO_SPECIES_COLD;
+  return (hist[WATER] || 0) > W*H*0.01 ? AUTO_SPECIES_WET : AUTO_SPECIES_LAND;
+}
+function autoSurfacePick(){                          // the lowest of a few columns, so water gathers
+  let bx = W>>1, by = -1;
+  for (let i=0;i<14;i++){
+    const x = 6 + ((Math.random() * Math.max(1, W-12)) | 0);
+    const y = autoSurface(x);
+    if (y > by){ by = y; bx = x; }
+  }
+  return [bx, Math.max(3, by)];
+}
+function queuePlan(t, steps, gap){
+  steps.forEach((run, i) => autoQueue.push({ at: t + i*gap, run }));
+  autoNext = t + steps.length*gap + 5000 + Math.random()*5000;
+  return true;
+}
+function planPond(t){
+  const [bx, by] = autoSurfacePick();
+  return queuePlan(t, [
+    tt => { autoSelect(WATER, autoBrush(6)); autoLine(tt, bx, Math.max(2, by-18), bx, by-2, WATER, 1800, 1.4); },
+    tt => { autoSelect(WATER, autoBrush(3)); autoLine(tt, Math.max(4, bx-12), Math.max(2, by-8), Math.min(W-4, bx+12), Math.max(2, by-5), WATER, 1500, 0.8); },
+    tt => { const x = Math.max(4, Math.min(W-4, bx)); const y = autoSurface(x); autoSelect(REED, autoBrush(1)); autoLine(tt, x-3, y-1, x+3, y-1, REED, 500, 0.3); },
+    tt => { const sp = autoPick(autoSpecies()); autoSelect(sp, autoBrush(1)); autoLine(tt, bx-5, by-2, bx+5, by-2, sp, 600, 0.5); }
+  ], 1900);
+}
+function planGrove(t){
+  const pts = [];
+  for (let k=0;k<3;k++) pts.push(autoSurfacePick());
+  return queuePlan(t, pts.map(([x,y]) => tt => {
+    const v = Math.random() < 0.25 ? FLOWER : SEED;
+    autoSelect(v, autoBrush(1));
+    autoLine(tt, x, Math.max(2, y-1), x + (Math.random()*4-2), Math.max(2, y-1), v, 500, 0.2);
+  }), 1500);
+}
+function planBestiary(t){
+  const sp = autoPick(autoSpecies());
+  const [x, y] = autoSurfacePick();
+  const yy = MAT[sp].density < 0 ? Math.round(H*0.3 + Math.random()*H*0.3) : y-1;
+  return queuePlan(t, [
+    tt => { autoSelect(sp, autoBrush(1)); autoLine(tt, x-6, yy, x+6, yy + (Math.random()*4-2), sp, 900, 0.4); }
+  ], 2000);
+}
+function planGeology(t){
+  const [x, y] = autoSurfacePick();
+  return queuePlan(t, [
+    tt => { autoSelect(LAVA, autoBrush(1)); autoLine(tt, x, Math.max(2, y-8), x, y-1, LAVA, 700, 0.3); },
+    tt => { autoSelect(WATER, autoBrush(1)); autoLine(tt, x-2, Math.max(2, y-6), x+2, Math.max(2, y-4), WATER, 600, 0.2); }
+  ], 1700);
+}
+function planCamp(t){ settleCamp(); autoNext = t + 8000 + Math.random()*5000; return true; }
+function planRain(t){
+  if (!rainWanted) document.getElementById('rain').click();
+  autoNext = t + 12000 + Math.random()*8000;
+  return true;
+}
+function planGarden(t){ document.getElementById('garden').click(); autoNext = t + 10000 + Math.random()*6000; return true; }
+function startAutoPlan(t){                            // pick the project the world needs most
+  const species = MIGRANTS.filter(sp => hist[sp] > 0).length;
+  const plans = [];
+  if ((hist[WATER] || 0) < W*H*0.008) plans.push(planPond, planRain);
+  if ((hist[PLANT] || 0) + (hist[REED] || 0) < 30) plans.push(planGrove);
+  if ((hist[HUMAN] || 0) < 1) plans.push(planCamp);
+  if (species < 5) plans.push(planBestiary);
+  plans.push(planGeology, planBestiary, planGrove, planGarden);
+  return plans[(Math.random()*plans.length)|0](t);
+}
+
 function autopilot(t){
   if (autoStroke){                                   // a drag: the brush moves, the world answers
     const s = autoStroke;
@@ -2874,7 +3192,19 @@ function autopilot(t){
   }
   if (autoHideAt && t > autoHideAt){ cursor.on = false; autoHideAt = 0; }
   if (maybeNewScene(t)) return;
+  if (t - (autopilot.careAt || 0) > 90000){          // live maintenance: keep the world alive, never empty
+    autopilot.careAt = t;
+    liveCare();
+    return;
+  }
+  if (activeExp) return;                              // let an experiment finish undisturbed
+  if (autoQueue.length){                              // a project is in progress
+    if (t < autoQueue[0].at) return;
+    autoQueue.shift().run(t);
+    return;
+  }
   if (t < autoNext) return;
+  if (Math.random() < 0.5 && startAutoPlan(t)) return;   // half the time, work on a project
   const r = Math.random();
   if (r < 0.35){                                     // pour a little of anything from above
     const v = autoPick(AUTO_MATTER);
@@ -2926,8 +3256,28 @@ function autopilot(t){
   }
 }
 
+function liveCare(){                                 // keeps a long stream from drifting to an empty world
+  const alive = MIGRANTS.reduce((n, m) => n + (hist[m] || 0), 0);
+  if ((hist[HUMAN] || 0) < 2 && Math.random() < 0.7) settleCamp();
+  if ((hist[REED] || 0) < 8) plantReeds();
+  if (alive < 10){
+    const sp = autoPick(MIGRANTS);
+    for (let k=0;k<5;k++){
+      const x = 5 + ((Math.random()*(W-10))|0);
+      const y = Math.random() < 0.5 ? autoSurface(x) - 1 : Math.round(H*0.35 + Math.random()*H*0.4);
+      set(x, Math.max(0, Math.min(H-2, y)), sp);
+    }
+    draw();
+  }
+  if ((hist[WATER] || 0) < W * 0.01) running(true);   // a dry world gets a little rain
+  if (lastCount > W*H*0.74 && Math.random() < 0.5){
+    const names = PLAYLIST.filter(n => n !== sceneEl.value);
+    loadScene(names[(Math.random()*names.length)|0]);
+  }
+}
+
 const tally = { born: 0, eaten: 0, starved: 0 };               // ticks of acid weather left, and the dawn chorus
-const MIGRANTS = [LIFE, FISH, BIRD, WORM, SPIDER, FROG, SNAIL, BAT, BEE, ANT, CRAB, HERON, GULL, HUMAN, DEER, TERMITE];
+const MIGRANTS = [LIFE, FISH, BIRD, WORM, SPIDER, FROG, SNAIL, BAT, BEE, ANT, CRAB, OCTOPUS, HERON, GULL, HUMAN, DEER, TERMITE];
 const IS_CREATURE = new Set(MIGRANTS);
 const DISASTERS = [
   ['meteor', () => {
@@ -3225,6 +3575,7 @@ const SCENES = {
     for (let k=0;k<30;k++){ const x=(Math.random()*W)|0; set(x, tops[x]-1, CORAL); }   // a reef on the rock
     for (let k=0;k<26;k++) set((Math.random()*W)|0, tops[(Math.random()*W)|0] - 1 - ((Math.random()*8)|0), FISH);
     for (let k=0;k<8;k++) set((Math.random()*W)|0, H-3, CRAB);
+    for (let k=0;k<3;k++) set((Math.random()*W)|0, H-6-((Math.random()*4)|0), OCTOPUS);
     for (let k=0;k<5;k++) set((Math.random()*W)|0, (Math.random()*H*0.5)|0, FROG);
     for (let k=0;k<3;k++) set(2 + k*3, H-2, SPRING);                  // springs feed the sea
     for (let k=0;k<2;k++) set((Math.random()*W)|0, 2, BIRD);
@@ -3267,19 +3618,113 @@ const SCENES = {
     for (let k=0;k<3;k++) set((Math.random()*W)|0, H-18, FIREFLY);
     for (let k=0;k<2;k++) set((Math.random()*W)|0, H-6, WORM);
   },
+  swamp(){
+    clearAll(); topsHint = new Int16Array(W); bed(MUD, 0.24, true);
+    const cx = (W*0.5)|0, r = Math.max(9, (W*0.24)|0);      // a slow, half-silted basin
+    for (let x=Math.max(1,cx-r); x<=Math.min(W-2,cx+r); x++){
+      const d = (x-cx)/r, depth = Math.max(1, Math.round(7*Math.cos(d*Math.PI/2)));
+      const top = (topsHint[x] || H-5);
+      for (let y=top; y<Math.min(H, top+depth); y++) if (get(x,y) !== STONE) set(x,y, WATER);
+    }
+    for (let k=0;k<80;k++){                                 // reeds crowd the waterline
+      const x = Math.max(1, Math.min(W-2, cx - r - 5 + ((Math.random()*(2*r+11))|0)));
+      const t = topsHint[x] || H-4;
+      if (t > 2 && get(x,t-1) === EMPTY) set(x,t-1, Math.random() < 0.55 ? REED : MOSS);
+    }
+    for (let k=0;k<20;k++){                                 // drowned wood and rot on the banks
+      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, Math.random() < 0.4 ? WOOD : Math.random() < 0.5 ? FUNGUS : COMPOST);
+    }
+    for (let k=0;k<10;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-2-((Math.random()*3)|0), FROG); }
+    for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-1,SNAIL); }
+    for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-2,WORM); }
+    for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-1,LIFE); }
+    for (let k=0;k<3;k++){ const x=Math.max(2,Math.min(W-3, cx-r-4+k*4)); const t=topsHint[x]||H-4; if (t>3) set(x,t-1,HERON); }
+    for (let k=0;k<3;k++){ const x=Math.max(2,Math.min(W-3, cx+r+3+k*4)); const t=topsHint[x]||H-4; if (t>3) set(x,t-1,DEER); }
+    for (let k=0;k<14;k++) set((Math.random()*W)|0, (Math.random()*H*0.35)|0, FIREFLY);
+    for (let k=0;k<8;k++) set(cx-r+((Math.random()*(2*r))|0), H-1-((Math.random()*2)|0), FISH);
+  },
+  exp_heat(){
+    clearAll();
+    for (let x=0;x<W;x++) set(x,H-1,STONE);                 // the bench
+    const x0 = Math.max(6,(W*0.3)|0), x1 = Math.min(W-7,(W*0.72)|0), by = (H*0.55)|0;
+    for (let x=x0;x<=x1;x++){ set(x,by,IRON); set(x,by+1,STONE); }
+    for (let y=by;y>by-8;y--){ set(x0-1,y,STONE); }         // a fire pit under the near end
+    for (let x=x0-6;x<x0;x++) for (let y=by+1;y>by-4;y--) set(x,y, WOOD);
+    set(x0-3,by-4,FIRE); set(x0-2,by-4,FIRE);
+    for (let x=x1;x<=x1+6 && x<W-1;x++) for (let y=by;y>by-6;y--) if (get(x,y)===EMPTY) set(x,y,ICE);
+    for (let x=x1+7;x<=x1+10 && x<W-1;x++) for (let y=by;y>by-4;y--) if (get(x,y)===EMPTY) set(x,y,WATER);
+  },
+  exp_acid(){
+    clearAll();
+    for (let x=0;x<W;x++) set(x,H-1,STONE);
+    const cx = W>>1, w = Math.max(10,(W*0.18)|0), top = (H*0.5)|0;
+    for (let x=cx-w;x<=cx+w;x++){                           // three samples side by side
+      for (let y=H-2;y>top;y--) if (x%9===0) set(x,y,STONE);
+    }
+    for (let x=cx-w;x<cx;x++) for (let y=H-2;y>top;y--) if (get(x,y)===EMPTY) set(x,y,SAND);
+    for (let x=cx;x<=cx+w;x++) for (let y=H-2;y>top;y--) if (get(x,y)===EMPTY) set(x,y,WOOD);
+    for (let x=cx-w+2;x<=cx+w-2;x++) for (let y=top;y>top-6;y--) set(x,y,ACID);
+  },
+  exp_freeze(){
+    clearAll();
+    sun = 4.7;                                              // this one only works at night
+    for (let x=0;x<W;x++) set(x,H-1,STONE);
+    const cx = W>>1, w = Math.max(10,(W*0.22)|0), top = Math.max(4,(H*0.55)|0);
+    for (let y=top;y<H-1;y++){ set(cx-w,y,STONE); set(cx+w,y,STONE); }   // stone walls
+    for (let x=cx-w+1;x<cx+w;x++) for (let y=top;y<H-1;y++) set(x,y,WATER);
+    for (let x=cx-w+1;x<=cx-w+3;x++) for (let y=top;y<=top+3;y++) set(x,y,ICE);   // a seed of ice
+    for (let k=0;k<14;k++) set(cx-w+5+((Math.random()*(2*w-8))|0), top, SNOW);
+  },
 };
 
+// three guided experiments: a hypothesis, a setup, and a result worth waiting for
+const EXPERIMENTS = {
+  exp_heat:  {text:'heat travels: will the ice at the far end of the iron melt?',
+              check:() => hist[ICE] < expBase[ICE] - 2},
+  exp_acid:  {text:'acid eats everything but stone: watch the columns',
+              check:() => hist[SAND] < expBase[SAND] * 0.6 && hist[STONE] >= expBase[STONE] * 0.85},
+  exp_freeze:{text:'cold spreads: will the ice take the water?',
+              check:() => hist[ICE] > expBase[ICE] + 10},
+};
+let activeExp = null, expBase = null, expDone = false;
+function checkExperiment(){
+  if (!activeExp || expDone) return;
+  const ex = EXPERIMENTS[activeExp];
+  if (!ex || !ex.check()) return;
+  expDone = true;
+  logEvent('✓ ' + ex.text);
+}
+
 const sceneEl = document.getElementById('scene');
+const SCENE_LABELS = { lab:'Laboratory', snow:'Snowfield' };   // keys stay in SCENES; only odd labels live here
+for (const n of Object.keys(SCENES)){
+  const o = document.createElement('option');
+  o.value = n;
+  o.textContent = SCENE_LABELS[n] || (n.startsWith('exp_') ? 'Experiment: ' + n.slice(4).replace('_',' ') : n[0].toUpperCase() + n.slice(1));
+  sceneEl.appendChild(o);
+}
 function loadScene(name){
   const f = SCENES[name];
   if (!f) return false;
   snapshot(); f();
+  draw();
+  if (EXPERIMENTS[name]){
+    activeExp = name; expDone = false; expBase = {};
+    for (const m of [ICE, SAND, STONE, WOOD, WATER]) expBase[m] = hist[m];
+  } else activeExp = null;
   for (let i = 0; i < 24; i++) update();   // settle the new scene before the first frame
   draw();
   sceneEl.value = name;
   autoSceneAt = performance.now();
   autoStroke = null; autoHideAt = 0; cursor.on = false;
-  logEvent('↻ scene: ' + name);
+  const hEl = document.getElementById('heatview');
+  if (name === 'exp_heat'){
+    if (!heatView){ heatView = true; heatAuto = true; if (hEl) reflect(hEl, true); }   // the thermal camera is the point
+  } else if (heatAuto){
+    heatView = false; heatAuto = false; if (hEl) reflect(hEl, false);                   // …and it leaves with the experiment
+  }
+  logEvent(EXPERIMENTS[name] ? '⚗ ' + EXPERIMENTS[name].text : '↻ scene: ' + name);
   return true;
 }
 sceneEl.addEventListener('change', () => {
@@ -3334,9 +3779,10 @@ volcEl.addEventListener('click', () => {
   volcEl.setAttribute('aria-pressed', volcano);
 });
 
-let raining = false, rainWanted = false, heatView = false, censusOn = false, photoMode = false, showPerf = false;
+let raining = false, rainWanted = false, heatView = false, heatAuto = false, censusOn = false, showPerf = false;
 const heatEl = document.getElementById('heatview');
 heatEl.addEventListener('click', () => {
+  heatAuto = false;                 // a manual choice is never undone by a scene change
   heatView = !heatView;
   heatEl.classList.toggle('on', heatView);
   heatEl.setAttribute('aria-pressed', heatView);
@@ -3367,11 +3813,11 @@ weatherEl.addEventListener('click', () => setWeather(weatherOff));
 let booting = true;
 function savePrefs(){
   if (booting) return;
-  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel })); }
+  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel, calm: calmOn })); }
   catch (e) { /* storage blocked */ }
 }
 
-/* ---------- procedural lo-fi: fifteen tracks, nothing is loaded, every note is synthesised ---------- */
+/* ---------- procedural lo-fi: twenty tracks, four moods plus jazz, every note is synthesised ---------- */
 const NOTE_IX = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
 function noteHz(name){                             // 'A4' -> 440, 'Bb3' -> 233.08
   const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
@@ -3389,8 +3835,11 @@ const CHORD = {                                    // close voicings, so the pad
   Gm7:   ['G4','Bb4','D5','F5'],   G7:    ['G3','B3','D4','F4'],     Gmaj7: ['G3','B3','D4','F#4'],
   Bbmaj7:['Bb3','D4','F4','A4'],
   Abmaj7:['Ab3','C4','Eb4','G4'],
+  Am9:   ['A3','C4','E4','G4','B4'],  Dm9:   ['D4','F4','A4','C5','E5'],
+  G13:   ['G3','B3','D4','F4','E4'],  Cmaj9: ['C4','E4','G4','B4','D5'],
+  Fmaj9: ['F4','A4','C5','E5','G5'],  Bb7:   ['Bb3','D4','F4','Ab4'],
 };
-const TRACKS = [                                   // ten moods; each plays 3–5 min, then a random other one starts
+const TRACKS = [                                   // five moods; each plays 3–5 min, then a random other one starts
   { name:'Rainy Window', group:'cozy', bpm:70, minutes:4.2, prog:['Am7','Dm7','G7','Cmaj7'],
     scale:['A4','C5','D5','E5','G5','A5'], density:0.24,
     padType:'triangle', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0],
@@ -3465,6 +3914,32 @@ const TRACKS = [                                   // ten moods; each plays 3–
     padType:'triangle', pluckType:'triangle', bassType:'sine', chordBars:1, bassSteps:[0,8],
     motif:[0,2,-1,1,3,-1,2,0],
     kick:[0,7,10], snare:[4,12], rim:[6,14], hat:2, swing:0.06, ghost:0.14 },
+  // --- late-night jazz: ii–V–I changes, a walking bass and a brushed kit ---
+  { name:'Blue Note', group:'jazz', bpm:90, minutes:4.2, prog:['Am9','Dm9','G13','Cmaj9'],
+    scale:['A4','C5','D5','E5','G5','A5'], density:0.30,
+    padType:'sine', pluckType:'triangle', bassType:'triangle', chordBars:1,
+    bassSteps:[0,2,4,6,8,10,12,14], motif:[0,1,2,3,-1,2,1,-1],
+    kick:[0,7,10], snare:[4,12], rim:[2,6,10,14], hat:2, swing:0.16, ghost:0.18 },
+  { name:'Corner Table', group:'jazz', bpm:84, minutes:4.6, prog:['Cmaj9','Am9','Dm9','G13'],
+    scale:['C5','D5','E5','G5','A5','B5','C6'], density:0.26,
+    padType:'triangle', pluckType:'sine', bassType:'sine', chordBars:1,
+    bassSteps:[0,4,8,12], motif:[0,2,1,3,-1,2,0,-1],
+    kick:[0,8], snare:[4,12], rim:[6,14], hat:2, swing:0.14, ghost:0.12 },
+  { name:'Late Set', group:'jazz', bpm:76, minutes:4.8, prog:['Fmaj9','Bb7','Am9','Dm9'],
+    scale:['F4','G4','A4','C5','D5','E5','F5'], density:0.22,
+    padType:'triangle', pluckType:'sine', bassType:'triangle', chordBars:2,
+    bassSteps:[0,10], motif:[2,-1,1,-1,3,-1,0,-1],
+    kick:[0,10], snare:[8], rim:[12], hat:4, swing:0.12, ghost:0.08 },
+  { name:'Rainy Standards', group:'jazz', bpm:88, minutes:3.9, prog:['Dm9','G13','Cmaj9','A7'],
+    scale:['D4','E4','F4','G4','A4','B4','C5','D5'], density:0.30,
+    padType:'sine', pluckType:'triangle', bassType:'triangle', chordBars:1,
+    bassSteps:[0,3,6,8,11,14], motif:[0,2,-1,1,3,-1,2,0],
+    kick:[0,7,10], snare:[4,12], rim:[2,14], hat:2, swing:0.17, ghost:0.16 },
+  { name:'Velvet Steps', group:'jazz', bpm:96, minutes:3.4, prog:['Cmaj9','A7','Dm9','G13'],
+    scale:['C5','D5','E5','G5','A5','C6'], density:0.24,
+    padType:'triangle', pluckType:'square', bassType:'triangle', chordBars:1,
+    bassSteps:[0,2,4,6,8,10,12,14], motif:[0,2,1,3,2,-1,1,0],
+    kick:[0,3,8,11], snare:[4,12], rim:[6,14], hat:2, swing:0.18, ghost:0.20 },
 ];
 
 let musicOn = false, musicWanted = false, skipMusicClick = false, skipMusicAt = 0, armBound = false, musicTimer = 0, hissSrc = null;
@@ -3749,6 +4224,8 @@ function loadPrefs(){
   if (typeof p.sfx === 'number') setSfxLevel(p.sfx);
   if (typeof p.musicVol === 'number') setMusicLevel(p.musicVol);
   if (p.weather === false) setWeather(false);
+  if (p.calm === true) setCalm(true);
+  else if (p.calm === false) setCalm(false);
   if (p.music) armMusic();                                 // music waits for a real gesture
 }
 
@@ -3767,7 +4244,10 @@ addEventListener('keydown', e => {
   if (e.key === 'y' || e.key === 'Y'){ mirror = !mirror; return; }   // symmetric painting
   if (e.key === 'k' || e.key === 'K'){ musicToggle(); return; }        // lo-fi on/off
   if (e.key === 'n' || e.key === 'N'){ setWeather(weatherOff); return; }   // weather on/off
-  if (e.key === 'u' || e.key === 'U' || e.key === 'h' || e.key === 'H'){ photoMode = !photoMode; document.body.classList.toggle('clean', photoMode); cursor.on = false; resize(); return; }   // hide every panel; press again to bring them back
+  if (e.key === 'u' || e.key === 'U' || e.key === 'h' || e.key === 'H'){ const hide = !document.body.classList.contains('clean'); document.body.classList.toggle('clean', hide); cursor.on = false; resize(); return; }   // hide every panel; press again to bring them back
+  if (e.key === 'j' || e.key === 'J'){ setCast(!castOn); return; }          // broadcast captions
+  if (e.key === 'v' || e.key === 'V'){ setCine(!cineOn); return; }         // camera drift
+  if (e.key === 'p' || e.key === 'P'){ setPlaylist(!playlistOn); return; }  // scene loop
   if (e.key === 'i' || e.key === 'I'){
     censusOn = !censusOn;
     document.getElementById('census').classList.toggle('on', censusOn);
@@ -3861,7 +4341,7 @@ function drawSpark(){
   const w = sparkEl.width, h = sparkEl.height;
   const top = Math.max(8, Math.max.apply(null, popHistory));
   sparkCtx.clearRect(0, 0, w, h);
-  sparkCtx.strokeStyle = '#1e2433';
+  sparkCtx.strokeStyle = '#2a3642';
   sparkCtx.strokeRect(0.5, 0.5, w - 1, h - 1);
   sparkCtx.beginPath();
   for (let i=0;i<popHistory.length;i++){
@@ -3869,7 +4349,7 @@ function drawSpark(){
     const y = h - 2 - (popHistory[i] / top) * (h - 6);
     i ? sparkCtx.lineTo(x, y) : sparkCtx.moveTo(x, y);
   }
-  sparkCtx.strokeStyle = '#e6b36a';
+  sparkCtx.strokeStyle = 'rgba(231,223,206,.55)';
   sparkCtx.lineWidth = 1;
   sparkCtx.stroke();
 }
@@ -3891,6 +4371,7 @@ function logEvent(text){
   logLines.unshift(text);
   if (logLines.length > 5) logLines.pop();
   logEl.innerHTML = logLines.map(t => '<div>' + t + '</div>').join('');
+  showCaption(text);
 }
 
 /* ---------- little goals ---------- */
@@ -3968,6 +4449,7 @@ function frame(t){
   }
   draw();
   if (autoPlay && !paused) autopilot(t);
+  playlistTick();
   checkGoals();
   frames++;
   if (t - fpsT > 500){
@@ -3980,6 +4462,8 @@ function frame(t){
       + (showPerf ? ' \u00b7 ' + perfMs.toFixed(1) + 'ms' : '');
     if (windEl) windEl.textContent = weatherOff ? '-' : Math.abs(wind) < 0.04 ? 'calm' : (wind > 0 ? '\u2192 ' : '\u2190 ') + Math.abs(wind).toFixed(2);
     if (seasonEl) seasonEl.textContent = weatherOff ? '-' : Math.sin(season) > 0.45 ? 'wet' : Math.sin(season) < -0.45 ? 'dry' : 'mild';
+    updateBroadcastMeta();
+    checkExperiment();
     if (censusOn){
       const rows = [];
       for (let v=1; v<hist.length; v++) if (hist[v]) rows.push([v, hist[v]]);
@@ -5410,8 +5894,23 @@ function selfTest(){
   }
   ok('deer herd together', towards > 30);
 
+  // the octopus, the swamp and the guided experiments
+  ok('octopus is a creature', IS_CREATURE.has(OCTOPUS) && MATS.indexOf(OCTOPUS) >= 0);
+  ok('ink is a liquid', LIQUID[INK] === 1);
+  let ate = false;
+  for (let k=0;k<80 && !ate;k++){
+    grid.fill(0); facing.fill(0); alarmT.fill(0); heat.fill(0);
+    set(20,29,OCTOPUS); set(21,29,CRAB);
+    moved.fill(0);
+    tickOctopus(20,29,idx(20,29));
+    ate = count(CRAB) === 0;
+  }
+  ok('an octopus hunts crabs', ate);
+  ok('the swamp exists', !!SCENES.swamp);
+  ok('experiments exist', ['exp_heat','exp_acid','exp_freeze'].every(n => SCENES[n] && EXPERIMENTS[n]));
+
   // lo-fi tracks: the playlist must stay musical and in range
-  ok('lo-fi has 5-20 tracks', TRACKS.length >= 5 && TRACKS.length <= 20);
+  ok('lo-fi has 5-30 tracks', TRACKS.length >= 5 && TRACKS.length <= 30);
   ok('lo-fi moods are groups', new Set(TRACKS.map(t => t.group)).size >= 4 &&
     [...new Set(TRACKS.map(t => t.group))].every(g => TRACKS.filter(t => t.group === g).length >= 2));
   ok('lo-fi tracks run 3-5 minutes', TRACKS.every(t => {
@@ -5500,7 +5999,7 @@ if (typeof window !== 'undefined') window.sandbox = SANDBOX_API;
 /* ---------- boot ---------- */
 resize();
 (() => {                                            // ?scene=forest picks the world
-  const m = /[?&]scene=([a-z]+)/.exec(location.search);
+  const m = /[?&]scene=([a-z_]+)/.exec(location.search);
   if (m && SCENES[m[1]]){
     sceneEl.value = m[1];
     sceneEl.dispatchEvent(new Event('change'));
@@ -5514,8 +6013,12 @@ if (/[?&]autoplay\b/.test(location.search)){       // ?autoplay: the world runs 
   armMusic();                                        // autoplay comes with its soundtrack
   logEvent('\u25b6 autoplay on');
 }
+if (/[?&]broadcast\b/.test(location.search)) setCast(true);   // ?broadcast: captions for a stream
+if (/[?&]cine\b/.test(location.search)) setCine(true);        // ?cine: slow camera drift
+if (/[?&]playlist\b/.test(location.search)) setPlaylist(true);// ?playlist: rotate scenes
 loadPrefs();
 booting = false;
+if (/[?&]calm\b/.test(location.search)) setCalm(true);        // ?calm: no flashes, shake or flicker
 syncVolRows();
 if (location.hash && location.hash.length > 1){
   try { unpack(decodeURIComponent(location.hash.slice(1))); } catch (e) { /* not our scene */ }
