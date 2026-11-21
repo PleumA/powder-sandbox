@@ -470,6 +470,7 @@ let sun = 0;           // day/night phase
 let strikes = 0;
 let brush = 6;
 let paused = false, stepOnce = false;
+let dirty = true;      // something changed since the last draw (a paused world redraws only then)
 
 /* ---------- grid ---------- */
 function resize(){
@@ -572,6 +573,7 @@ function reindexRows(){                            // after anything that writes
 
 function set(x,y,v){
   if (!inB(x,y) || !MAT[v]) return;
+  dirty = true;
   const i = idx(x,y);
   const was = grid[i] !== EMPTY, now = v !== EMPTY;
   if (was !== now) rowLive[y] += now ? 1 : -1;
@@ -2485,6 +2487,7 @@ function toCell(e){
 }
 
 const cursor = {x:0, y:0, on:false};
+function needsFrame(){ return !paused || dirty || cursor.on; }
 let fillMode = false, mirror = false;
 const pointers = new Map();        // pointerId -> { last, erasing }, so two fingers paint at once
 const fillEl = document.getElementById('fill');
@@ -2892,7 +2895,10 @@ const bcapEl = document.getElementById('bcap');
 const bmetaEl = document.getElementById('bmeta');
 const fadeEl = document.getElementById('fade');
 let castOn = false, cineOn = false, playlistOn = false;
-let calmOn = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function prefersReducedMotion(){
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+let calmOn = prefersReducedMotion();
 let camEpoch = performance.now();
 
 function reflect(el, on){ el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); }
@@ -3393,26 +3399,26 @@ function restoreScene(str, what = 'scene'){
   return false;
 }
 function sceneUrl(){ return location.href.split('#')[0] + '#' + encodeURIComponent(pack()); }
+function recMime(){
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+  for (const m of ['video/webm;codecs=vp9', 'video/webm', 'video/mp4']) if (MediaRecorder.isTypeSupported(m)) return m;
+  return '';
+}
 let recorder = null, recChunks = [];
 document.getElementById('rec').addEventListener('click', () => {
   const btn = document.getElementById('rec');
   if (recorder && recorder.state === 'recording'){ recorder.stop(); return; }
-  if (!cvs.captureStream || typeof MediaRecorder === 'undefined'){
-    toastEl.textContent = 'this browser cannot record the canvas';
-    toastEl.classList.add('on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('on'), 2500);
-    return;
-  }
+  const mime = recMime();
+  if (!cvs.captureStream || !mime){ toastMsg('this browser cannot record the canvas'); return; }
   const stream = cvs.captureStream(30);
   recChunks = [];
-  recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  recorder = new MediaRecorder(stream, { mimeType: mime });
   recorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
   recorder.onstop = () => {
-    const blob = new Blob(recChunks, { type: 'video/webm' });
+    const blob = new Blob(recChunks, { type: mime.split(';')[0] });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'powder-sandbox.webm';
+    a.download = 'powder-sandbox.' + (mime.includes('mp4') ? 'mp4' : 'webm');
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     btn.classList.remove('on'); btn.textContent = 'Rec';
@@ -4260,10 +4266,14 @@ function loadPrefs(){
   let p = null;
   try { p = JSON.parse(localStorage.getItem('powder-prefs') || 'null'); } catch (e) { return; }
   if (!p) return;
+  applyPrefs(p);
+}
+function applyPrefs(p){
   if (typeof p.sfx === 'number') setSfxLevel(p.sfx);
   if (typeof p.musicVol === 'number') setMusicLevel(p.musicVol);
   if (p.weather === false) setWeather(false);
-  if (p.calm === true) setCalm(true);
+  if (prefersReducedMotion()){ calmOn = true; reflect(calmEl, true); }   // do not overwrite the stored pref
+  else if (p.calm === true) setCalm(true);
   else if (p.calm === false) setCalm(false);
   if (p.music) armMusic();                                 // music waits for a real gesture
 }
@@ -4509,9 +4519,9 @@ function frame(t){
     perfMs = perfMs * 0.9 + (performance.now() - t0) * 0.1;
   } else {
     frame.last = t;
-    if (stepOnce){ stepOnce = false; update(); }
+    if (stepOnce){ stepOnce = false; update(); dirty = true; }
   }
-  draw();
+  if (needsFrame()){ draw(); dirty = false; }
   if (autoPlay && !paused) autopilot(t);
   playlistTick();
   checkGoals();
@@ -6169,6 +6179,39 @@ function selfTest(){
   scenePick.value = Object.keys(SCENES)[0];
   scenePick.dispatchEvent(new Event('change'));
   ok('the scene picker keeps focus', document.activeElement === scenePick);
+
+  // the OS setting wins over a stored calm:false
+  const mmWas = window.matchMedia, calmWas = calmOn;
+  let prefsWas = null;
+  try { prefsWas = localStorage.getItem('powder-prefs'); } catch (e) {}
+  if (typeof applyPrefs === 'function'){
+    window.matchMedia = () => ({ matches: true });
+    applyPrefs({ calm: false });
+  }
+  ok('reduced motion beats a saved calm:false', typeof applyPrefs === 'function' && calmOn === true);
+  window.matchMedia = mmWas;
+  calmOn = calmWas; reflect(calmEl, calmOn);
+  try { prefsWas === null ? localStorage.removeItem('powder-prefs') : localStorage.setItem('powder-prefs', prefsWas); } catch (e) {}
+
+  // the recorder picks a MIME type the browser supports
+  const rm = typeof recMime === 'function' ? recMime() : undefined;
+  ok('recording picks a supported mime', typeof rm === 'string' &&
+    (rm === '' || (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(rm))));
+
+  // paused frames redraw only when something changed
+  const pausedWas3 = paused, cursorWas = cursor.on;
+  let dirtyWas = null;
+  try { dirtyWas = dirty; } catch (e) {}
+  paused = true; cursor.on = false;
+  if (typeof dirty === 'boolean') dirty = false;
+  ok('a clean paused world needs no frame', typeof needsFrame === 'function' && needsFrame() === false);
+  if (typeof dirty === 'boolean') dirty = true;
+  ok('a dirty paused world needs a frame', typeof needsFrame === 'function' && needsFrame() === true);
+  if (typeof dirty === 'boolean') dirty = false;
+  cursor.on = true;
+  ok('a visible cursor needs a frame', typeof needsFrame === 'function' && needsFrame() === true);
+  paused = pausedWas3; cursor.on = cursorWas;
+  if (dirtyWas !== null) dirty = dirtyWas;
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
