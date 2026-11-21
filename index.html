@@ -197,7 +197,7 @@
 </style>
 </head>
 <body>
-<div id="stage"><canvas id="c"></canvas></div>
+<div id="stage"><canvas id="c" tabindex="0" aria-label="World canvas. Arrow keys move the cursor; Enter pours the selected material; Delete erases; X picks the material under the cursor."></canvas></div>
 
 <div id="hud">
   <h1>Powder Sandbox</h1>
@@ -2559,6 +2559,24 @@ cvs.addEventListener('pointermove', e => {
 });
 cvs.addEventListener('pointerleave', () => cursor.on = false);
 cvs.addEventListener('contextmenu', e => e.preventDefault());
+const kb = { x: 0, y: 0 };
+let kbCentered = false;
+function kbShow(){
+  if (!kbCentered){ kb.x = W >> 1; kb.y = H >> 1; kbCentered = true; }
+  kb.x = Math.max(0, Math.min(W-1, kb.x));
+  kb.y = Math.max(0, Math.min(H-1, kb.y));
+  cursor.x = kb.x + 0.5; cursor.y = kb.y + 0.5; cursor.on = true; dirty = true;
+}
+cvs.addEventListener('focus', kbShow);
+cvs.addEventListener('blur', () => { cursor.on = false; dirty = true; });
+cvs.addEventListener('keydown', e => {
+  const k = e.key;
+  const d = k === 'ArrowLeft' ? [-1,0] : k === 'ArrowRight' ? [1,0] : k === 'ArrowUp' ? [0,-1] : k === 'ArrowDown' ? [0,1] : null;
+  if (d){ e.preventDefault(); e.stopPropagation(); kb.x += d[0]; kb.y += d[1]; kbShow(); return; }
+  if (k === 'Enter'){ e.preventDefault(); e.stopPropagation(); snapshot(); paintCircle(kb.x, kb.y, current); dirty = true; return; }
+  if (k === 'Delete' || k === 'Backspace'){ e.preventDefault(); e.stopPropagation(); snapshot(); paintCircle(kb.x, kb.y, EMPTY); dirty = true; return; }
+  if (k === 'x' || k === 'X'){ e.preventDefault(); e.stopPropagation(); if (inB(kb.x, kb.y)) select(grid[idx(kb.x, kb.y)]); return; }
+});
 addEventListener('pointerup', e => pointers.delete(e.pointerId));
 addEventListener('pointercancel', e => pointers.delete(e.pointerId));
 
@@ -6212,6 +6230,29 @@ function selfTest(){
   ok('a visible cursor needs a frame', typeof needsFrame === 'function' && needsFrame() === true);
   paused = pausedWas3; cursor.on = cursorWas;
   if (dirtyWas !== null) dirty = dirtyWas;
+
+  // the world canvas is focusable, named, and has a keyboard path
+  const cvsEl = document.getElementById('c');
+  cvsEl.focus();
+  const hasKb = typeof kb === 'object' && kb !== null;
+  if (hasKb){ kb.x = 20; kb.y = 20; }
+  ok('the canvas is focusable and named', cvsEl.tabIndex === 0 && !!cvsEl.getAttribute('aria-label'));
+  cvsEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  ok('arrow keys move the keyboard cursor', hasKb && kb.x === 21);
+
+  const matWas2 = current;
+  if (hasKb){ current = SAND; kb.x = 20; kb.y = 20; }
+  cvsEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  ok('enter pours at the keyboard cursor', hasKb && grid[idx(20,20)] === SAND);
+
+  cvsEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+  ok('delete erases at the keyboard cursor', hasKb && grid[idx(20,20)] === EMPTY);
+
+  if (hasKb){ current = WOOD; set(21,20,WOOD); kb.x = 21; kb.y = 20; }
+  cvsEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
+  ok('x picks the material under the keyboard cursor', hasKb && current === WOOD);
+
+  current = matWas2; cursor.on = false; chamber(20,20);
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
