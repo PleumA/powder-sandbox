@@ -571,14 +571,14 @@ function reindexRows(){                            // after anything that writes
 }
 
 function set(x,y,v){
-  if (!inB(x,y)) return;
+  if (!inB(x,y) || !MAT[v]) return;
   const i = idx(x,y);
   const was = grid[i] !== EMPTY, now = v !== EMPTY;
   if (was !== now) rowLive[y] += now ? 1 : -1;
   hunger[i] = 200;   // a cell born now starts hungry
   if (home) home[i] = 0;
   grid[i] = v;
-  life[i] = MAT[v] && MAT[v].life ? MAT[v].life : 0;
+  life[i] = MAT[v].life || 0;
 }
 function swap(a,b){
   const ah = hunger[a]; hunger[a] = hunger[b]; hunger[b] = ah;
@@ -3366,20 +3366,33 @@ function pack(){
   return W + 'x' + H + '|' + out.join(',');
 }
 function unpack(str){
-  const [dims, body] = str.split('|');
-  if (dims !== W + 'x' + H) return false;                  // a different window size cannot take it
-  const parts = body.split(',');
-  let i = 0;
-  grid.fill(0); life.fill(0); rowLive.fill(0);
-  for (const part of parts){
-    const c = part.indexOf(':');
-    const v = +part.slice(0, c), n = +part.slice(c+1);
-    for (let k=0;k<n && i<grid.length;k++, i++) grid[i] = v;
+  const m = /^(\d+)x(\d+)\|(.*)$/.exec(String(str));
+  if (!m || +m[1] !== W || +m[2] !== H) return false;     // a different window size cannot take it
+  const cells = [];
+  let total = 0;
+  for (const part of m[3].split(',')){
+    const pm = /^(\d+):(\d+)$/.exec(part);
+    if (!pm) return false;
+    const v = +pm[1], n = +pm[2];
+    if (!MAT[v] || n < 1) return false;
+    total += n;
+    if (total > grid.length) return false;
+    cells.push([v, n]);
   }
+  if (total !== grid.length) return false;
+  grid.fill(0); life.fill(0); rowLive.fill(0);
+  let i = 0;
+  for (const [v, n] of cells) for (let k=0;k<n;k++) grid[i++] = v;
   reindexRows();
   draw();
   return true;
 }
+function restoreScene(str, what = 'scene'){
+  if (unpack(str)) return true;
+  toastMsg(what + ' was made at a different window size');
+  return false;
+}
+function sceneUrl(){ return location.href.split('#')[0] + '#' + encodeURIComponent(pack()); }
 let recorder = null, recChunks = [];
 document.getElementById('rec').addEventListener('click', () => {
   const btn = document.getElementById('rec');
@@ -3409,13 +3422,16 @@ document.getElementById('rec').addEventListener('click', () => {
 });
 
 document.getElementById('link').addEventListener('click', () => {
-  const url = location.pathname + '#' + encodeURIComponent(pack());
-  try { history.replaceState(null, '', url); } catch (e) { /* file:// may refuse */ }
-  if (navigator.clipboard) navigator.clipboard.writeText(location.origin === 'null' ? url : location.href).catch(() => {});
-  toastEl.textContent = '\u2713 scene link copied to the address bar';
-  toastEl.classList.add('on');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('on'), 3000);
+  const url = sceneUrl();
+  let inBar = false;
+  try { history.replaceState(null, '', url); inBar = true; } catch (e) { /* file:// may refuse */ }
+  if (navigator.clipboard){
+    navigator.clipboard.writeText(url)
+      .then(() => toastMsg('\u2713 scene link copied'))
+      .catch(() => toastMsg(inBar ? '\u2713 scene link is in the address bar' : 'could not copy the link \u2014 copy the URL manually'));
+  } else {
+    toastMsg(inBar ? '\u2713 scene link is in the address bar' : 'could not copy the link \u2014 copy the URL manually');
+  }
 });
 
 function keepScene(){
@@ -3427,7 +3443,7 @@ function recallScene(){
   try { s = localStorage.getItem('powder-scene'); } catch (e) {}
   if (!s) return false;
   snapshot();
-  if (!unpack(s)){ toastMsg('that scene was kept at a different window size'); return false; }
+  if (!restoreScene(s, 'that scene')) return false;
   return true;
 }
 document.getElementById('psave').addEventListener('click', () => keepScene());
@@ -6071,6 +6087,29 @@ function selfTest(){
   ok('a wrong-size save reports an error', sizeFailed === false && toastEl.textContent !== toastBefore && /window/.test(toastEl.textContent));
   try { sceneWas === null ? localStorage.removeItem('powder-scene') : localStorage.setItem('powder-scene', sceneWas); } catch (e) {}
 
+  // an unknown id never enters the grid
+  chamber(20,20); set(20,20,STONE);
+  set(20,20,999);
+  ok('unknown material ids are ignored', grid[idx(20,20)] === STONE);
+
+  // a scene with an unknown id is rejected before it mutates anything
+  chamber(20,20); set(20,20,STONE);
+  const badId = unpack(W + 'x' + H + '|999:9');
+  ok('a scene with unknown ids is rejected', badId === false && grid[idx(20,20)] === STONE && count(999) === 0);
+
+  // a truncated scene is rejected
+  ok('a truncated scene is rejected', unpack(W + 'x' + H + '|1:1') === false);
+
+  // a load failure is reported
+  toastEl.textContent = '';
+  const toastBefore2 = '';
+  ok('restoreScene reports a wrong-size scene',
+    typeof restoreScene === 'function' && restoreScene('999x999|0:1') === false && toastEl.textContent !== toastBefore2);
+
+  // links are absolute even from file://
+  ok('scene links are absolute',
+    typeof sceneUrl === 'function' && sceneUrl().startsWith(location.href.split('#')[0] + '#'));
+
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
   moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm;
@@ -6155,7 +6194,7 @@ booting = false;
 if (/[?&]calm\b/.test(location.search)) setCalm(true);        // ?calm: no flashes, shake or flicker
 syncVolRows();
 if (location.hash && location.hash.length > 1){
-  try { unpack(decodeURIComponent(location.hash.slice(1))); } catch (e) { /* not our scene */ }
+  try { restoreScene(decodeURIComponent(location.hash.slice(1)), 'scene link'); } catch (e) { /* not our scene */ }
 }
 if (location.search.includes('selftest')) selfTest();
 requestAnimationFrame(frame);
