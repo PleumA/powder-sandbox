@@ -3380,9 +3380,6 @@ function unpack(str){
   draw();
   return true;
 }
-addEventListener('beforeunload', () => {
-  try { localStorage.setItem('powder-scene', pack()); } catch (e) { /* storage blocked */ }
-});
 let recorder = null, recChunks = [];
 document.getElementById('rec').addEventListener('click', () => {
   const btn = document.getElementById('rec');
@@ -3421,12 +3418,20 @@ document.getElementById('link').addEventListener('click', () => {
   toastTimer = setTimeout(() => toastEl.classList.remove('on'), 3000);
 });
 
-document.getElementById('psave').addEventListener('click', () => {
-  try { localStorage.setItem('powder-scene', pack()); } catch (e) { /* storage blocked */ }
-});
-document.getElementById('pload').addEventListener('click', () => {
-  try { const s2 = localStorage.getItem('powder-scene'); if (s2) unpack(s2); } catch (e) { /* storage blocked */ }
-});
+function keepScene(){
+  try { localStorage.setItem('powder-scene', pack()); return true; }
+  catch (e) { toastMsg('could not save: storage is blocked'); return false; }
+}
+function recallScene(){
+  let s = null;
+  try { s = localStorage.getItem('powder-scene'); } catch (e) {}
+  if (!s) return false;
+  snapshot();
+  if (!unpack(s)){ toastMsg('that scene was kept at a different window size'); return false; }
+  return true;
+}
+document.getElementById('psave').addEventListener('click', () => keepScene());
+document.getElementById('pload').addEventListener('click', () => recallScene());
 document.getElementById('shot').addEventListener('click', () => {
   cvs.toBlob(blob => {
     const a = document.createElement('a');
@@ -4424,6 +4429,12 @@ const GOALS = [
 const toastEl = document.getElementById('toast');
 const gstatEl = document.getElementById('gstat');
 let goalsDone = 0, toastTimer = 0;
+function toastMsg(text, ms = 2500){
+  toastEl.textContent = text;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), ms);
+}
 function saveGoals(){
   try { localStorage.setItem('powder-goals', JSON.stringify(GOALS.filter(g => g.done).map(g => g.label))); }
   catch (e) { /* storage blocked */ }
@@ -6033,6 +6044,32 @@ function selfTest(){
     typeof parseChronicle === 'function' &&
     parseChronicle('{"x":1}').length === 0 &&
     parseChronicle('[{"d":1,"t":"ok"},{"d":"x","t":2}]').length === 1);
+
+  // a manual Keep is not overwritten by a later tab close
+  let keepWas = null;
+  try { keepWas = localStorage.getItem('powder-scene'); } catch (e) {}
+  try { localStorage.setItem('powder-scene', 'MARKER'); } catch (e) {}
+  dispatchEvent(new Event('beforeunload'));
+  let keepNow = null;
+  try { keepNow = localStorage.getItem('powder-scene'); } catch (e) {}
+  ok('Keep is not overwritten on unload', keepNow === 'MARKER');
+  try { keepWas === null ? localStorage.removeItem('powder-scene') : localStorage.setItem('powder-scene', keepWas); } catch (e) {}
+
+  // Recall restores the kept world and leaves an undo step
+  chamber(20,20); set(20,20,SAND); undoStack.length = 0;
+  let sceneWas = null;
+  try { sceneWas = localStorage.getItem('powder-scene'); } catch (e) {}
+  const kept = typeof keepScene === 'function' && keepScene();
+  grid.fill(0); life.fill(0); rowLive.fill(0);
+  const recalled = typeof recallScene === 'function' && recallScene();
+  ok('Recall is undoable and restores the kept world', kept && recalled && count(SAND) === 1 && undoStack.length > 0);
+
+  // a save from another window size is reported, not silently ignored
+  try { localStorage.setItem('powder-scene', '999x999|0:1'); } catch (e) {}
+  const toastBefore = toastEl.textContent;
+  const sizeFailed = typeof recallScene === 'function' ? recallScene() : true;
+  ok('a wrong-size save reports an error', sizeFailed === false && toastEl.textContent !== toastBefore && /window/.test(toastEl.textContent));
+  try { sceneWas === null ? localStorage.removeItem('powder-scene') : localStorage.setItem('powder-scene', sceneWas); } catch (e) {}
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
