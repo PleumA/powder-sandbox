@@ -731,9 +731,6 @@ function step(x,y,dir){
   if (v === IRON) return tickIron(x,y,i);
   if (v === SPRING) return tickSpring(x,y,i);
   if (v === VENT) return tickVent(x,y,i);
-  if (v === ANT) return tickAnt(x,y,i);
-  if (v === CRAB) return tickCrab(x,y,i);
-  if (v === OCTOPUS) return tickOctopus(x,y,i);
   if (v === TREE) return tickTree(x,y,i);
   if (v === FRUIT) return tickFruit(x,y,dir,i);
   if (v === MOSS) return tickMoss(x,y,i);
@@ -743,16 +740,19 @@ function step(x,y,dir){
   if (v === BONE) return tickBone(x,y,i);
   if (v === ASH) return tickAsh(x,y,dir,i);
   if (v === REED) return tickReed(x,y,i);
+  if (v === FROST) return tickFrost(x,y,dir,i);
+  if (v === COAL) return false;                                  // coal sits where it is
+  if (v === WOOD) return tickWood(x,y,i);
+
+  if (!moved[i] && IS_CREATURE.has(v) && ++hunger[i] > STARVE){ set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY); tally.starved++; return true; }   // starved: carrion
+  if (v === ANT) return tickAnt(x,y,i);
+  if (v === CRAB) return tickCrab(x,y,i);
+  if (v === OCTOPUS) return tickOctopus(x,y,i);
   if (v === HERON) return tickHeron(x,y,i);
   if (v === GULL) return tickGull(x,y,i);
   if (v === HUMAN) return tickHuman(x,y,i);
   if (v === DEER) return tickDeer(x,y,i);
-  if (v === FROST) return tickFrost(x,y,dir,i);
-  if (v === COAL) return false;                                  // coal sits where it is
   if (v === TERMITE) return tickTermite(x,y,i);
-  if (v === WOOD) return tickWood(x,y,i);
-
-  if (IS_CREATURE.has(v) && ++hunger[i] > STARVE){ set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY); tally.starved++; return true; }   // starved: carrion
   if (v === FIRE)  return tickFire(x,y,i);
   if (v === ICE)   return tickIce(x,y,i);
   if (v === LIFE)  return tickLife(x,y,i);
@@ -1356,7 +1356,7 @@ function tickFrog(x,y,i){
   for (const [nx,ny] of nb){
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
-    if (t === LIFE || t === FISH){ set(nx,ny, EMPTY); break; }
+    if (t === LIFE || t === FISH){ set(nx,ny, EMPTY); hunger[i] = 0; break; }
   }
 
   if (age > 1200 && Math.random() < 0.01){ set(x,y, EMPTY); return true; }
@@ -1634,7 +1634,6 @@ function tickGull(x,y,i){
 function tickHuman(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  hunger[i] = Math.min(900, hunger[i] + 1);                          // a person gets hungry too
   if (age > 6000 && Math.random() < 0.005){ set(x,y, EMPTY); return true; }
   if (Math.sin(sun) > 0 && Math.sin(sun) < 0.25 && get(x,y+1) === STONE){
     heat[idx(x,y)] = Math.max(heat[idx(x,y)], 0.25);                 // a warm start off the hearth at first light
@@ -1784,7 +1783,6 @@ function tickDeer(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
   if (age > 5000 && Math.random() < 0.005){ set(x,y, EMPTY); return true; }
-  hunger[i] = Math.min(600, hunger[i] + 1);                            // a deer gets hungry too
   for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
@@ -1842,7 +1840,6 @@ function tickHeron(x,y,i){
     }
   }
   if (get(x, y+1) === EMPTY && hop(x,y,x,y+1)) return true;      // wade down to the water
-  hunger[i] = Math.min(600, hunger[i] + 1);                     // how long since the last catch
   const prey = shallowFish(x,y);
   if (prey >= 0){ set(x, prey, BONE); hunger[i] = 0; return true; }   // spear it out of the shallows; the scraps stay
   let chick = false;                                             // a chick on the nest makes it bold
@@ -4679,6 +4676,16 @@ function selfTest(){
   shaft(20,6);
   set(20,6,LIFE); set(20,7,FROG); run(5);
   ok('frog eats bug', count(LIFE) === 0);
+  // a frog that eats resets its hunger and survives
+  chamber(20,20); moved.fill(0);
+  set(20,20,FROG); set(21,20,LIFE);
+  hunger[idx(20,20)] = 899;
+  tickFrog(20,20,idx(20,20));                       // it eats now, deterministically
+  let frogAt = -1;
+  for (let i=0;i<grid.length;i++) if (grid[i] === FROG) frogAt = i;
+  ok('a feeding frog resets its hunger', frogAt >= 0 && hunger[frogAt] < 200);
+  run(2);
+  ok('a fed frog does not starve', count(FROG) > 0);
   // a frog in the air falls instead of leaping across open sky
   grid.fill(0); life.fill(0); moved.fill(0);
   set(20,10,FROG);
@@ -4749,6 +4756,11 @@ function selfTest(){
   chamber(30,20);
   set(30,20,LIFE); run(1000);
   ok('creatures starve', count(LIFE) === 0);
+  // the rule applies to species that used to return before it
+  chamber(20,20); set(20,20,CRAB); hunger[idx(20,20)] = 899; run(2);
+  ok('a crab starves when it cannot feed', count(CRAB) === 0);
+  chamber(20,20); set(20,20,HUMAN); hunger[idx(20,20)] = 899; run(2);
+  ok('a person starves when they cannot feed', count(HUMAN) === 0);
 
   // bees head for the hive at night
   grid.fill(0); life.fill(0); heat.fill(0);
@@ -5055,7 +5067,8 @@ function selfTest(){
   grid.fill(0); facing.fill(0); alarmT.fill(0);
   for (let x=5;x<35;x++) grid[idx(x,30)] = STONE;
   set(18,29,HERON);
-  run(1600);
+  life[idx(18,29)] = 1250;                     // already settled: it has to lay before it starves (STARVE is 900)
+  run(600);
   ok('a settled heron lays an egg', count(EGG) + count(HERON) > 1);
 
   chamber(8,20);
