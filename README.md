@@ -25,7 +25,7 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `space` | pause / resume |
 | `[` `]` | brush size |
 | `0`–`9` | pick a material by number |
-| `f` `w` `b` `l` `i` `g` `t` `s` `m` `o` | Fish, Wood, Birds, Bugs, Ice, Glass, TNT, Smoke, Mercury, Worms |
+| `f` `w` `b` `l` `Shift`+`I` `g` `t` `s` `m` `o` | Fish, Wood, Birds, Bugs, Ice, Glass, TNT, Smoke, Mercury, Worms |
 | `y` | mirror painting |
 | `h` | hide all panels (press again to bring them back) |
 | `/` | focus the material filter |

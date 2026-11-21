@@ -211,7 +211,7 @@
 
 <div id="tools">
   <input id="filter" type="search" placeholder="filter materials…" aria-label="Filter materials">
-  <label>Brush <b id="brushval">6</b></label>
+  <label for="brush">Brush <b id="brushval">6</b></label>
   <input id="brush" type="range" min="1" max="24" value="6">
   <div class="row">
     <button class="btn" id="pause" aria-pressed="false">Pause</button>
@@ -3769,7 +3769,6 @@ function loadScene(name){
 }
 sceneEl.addEventListener('change', () => {
   loadScene(sceneEl.value);
-  sceneEl.blur();
 });
 
 function terrain(){
@@ -4275,6 +4274,7 @@ addEventListener('keydown', e => {
   if (!helpEl.hidden && e.key !== 'Escape' && !(e.key === '?' || (e.key === '/' && e.shiftKey))) return;   // the help dialog is modal
   if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;   // let the filter and sliders type
   if (e.key === '/'){ e.preventDefault(); if (toolsEl.hidden){ toolsEl.hidden = false; syncTools(); } filterEl.focus(); return; }   // jump to the palette filter
+  if (e.code === 'Space' && e.target && /^(BUTTON|A)$/.test(e.target.tagName)) return;   // let the control activate
   if (e.code === 'Space'){ e.preventDefault(); togglePause(); return; }
   if ((e.key === 'z' || e.key === 'Z')){ undo(); return; }
   if (e.key === 'c' || e.key === 'C'){ snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); draw(); return; }
@@ -4288,7 +4288,8 @@ addEventListener('keydown', e => {
   if (e.key === 'j' || e.key === 'J'){ setCast(!castOn); return; }          // broadcast captions
   if (e.key === 'v' || e.key === 'V'){ setCine(!cineOn); return; }         // camera drift
   if (e.key === 'p' || e.key === 'P'){ setPlaylist(!playlistOn); return; }  // scene loop
-  if (e.key === 'i' || e.key === 'I'){
+  if (e.shiftKey && (e.key === 'i' || e.key === 'I')){ select(ICE); return; }
+  if (!e.shiftKey && (e.key === 'i' || e.key === 'I')){
     censusOn = !censusOn;
     document.getElementById('census').classList.toggle('on', censusOn);
     return;
@@ -4303,7 +4304,6 @@ addEventListener('keydown', e => {
   if (e.key === 'f' || e.key === 'F'){ select(FISH); return; }
   if (e.key === 'b' || e.key === 'B'){ select(BIRD); return; }
   if (e.key === 'w' || e.key === 'W'){ select(WOOD); return; }
-  if (e.key === 'i' || e.key === 'I'){ select(ICE); return; }
   if (e.key === 'g' || e.key === 'G'){ select(GLASS); return; }
   if (e.key === 't' || e.key === 'T'){ select(TNT); return; }
   if (e.key === 's' || e.key === 'S'){ select(SMOKE); return; }
@@ -6141,6 +6141,34 @@ function selfTest(){
   }
   ok('ecosystem fish live in the pond', wetFish > 0);
   ok('the ecosystem spring feeds the pond', wetSpring > 0);
+
+  // Space on a focused button is not a global pause
+  const testBtn = document.createElement('button');
+  document.body.appendChild(testBtn); testBtn.focus();
+  const pausedWas2 = paused;
+  testBtn.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }));
+  const stayedPaused = paused === pausedWas2;
+  if (!stayedPaused) togglePause();
+  ok('space on a focused button does not pause', stayedPaused);
+  testBtn.remove();
+
+  // Shift+I selects Ice; plain i still toggles the census
+  const matWas = current, censusWas = censusOn;
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'I', shiftKey: true }));
+  ok('shift+I selects ice', current === ICE);
+  current = matWas;
+  censusOn = censusWas;
+  document.getElementById('census').classList.toggle('on', censusOn);
+
+  // the brush slider has an accessible label
+  ok('the brush slider has a label', !!document.querySelector('label[for="brush"]'));
+
+  // choosing a scene does not drop keyboard focus
+  const scenePick = document.getElementById('scene');
+  scenePick.focus();
+  scenePick.value = Object.keys(SCENES)[0];
+  scenePick.dispatchEvent(new Event('change'));
+  ok('the scene picker keeps focus', document.activeElement === scenePick);
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
