@@ -4304,10 +4304,22 @@ function buildHelp(){
     .map(k => '<div class="hfoodrow"><b>' + MAT[k].name + '</b> eat' +
       (String(MAT[k].name).endsWith('s') ? '' : 's') + ' ' + names(DIET[k]) + '</div>')
     .join('');
+  const storyEl = helpEl.querySelector('.hstory');
+  storyEl.textContent = '';
   const story = chronicleLog.slice(-12).reverse();
-  helpEl.querySelector('.hstory').innerHTML = story.length
-    ? story.map(e => '<span class="hl"><b>day ' + e.d + '</b> · ' + e.t + '</span>').join('')
-    : '<span class="hl"><i>nothing yet — light a fire, plant a seed</i></span>';
+  if (!story.length){
+    const s = document.createElement('span'); s.className = 'hl';
+    const i = document.createElement('i'); i.textContent = 'nothing yet — light a fire, plant a seed';
+    s.appendChild(i); storyEl.appendChild(s);
+  } else {
+    for (const e of story){
+      const s = document.createElement('span'); s.className = 'hl';
+      const b = document.createElement('b'); b.textContent = 'day ' + e.d;
+      s.appendChild(b);
+      s.appendChild(document.createTextNode(' · ' + e.t));
+      storyEl.appendChild(s);
+    }
+  }
   helpEl.querySelector('.hmats').innerHTML = MATS.map(k =>
     '<div class="hrow"><i style="background:' + MAT[k].glow + '"></i><b>' + MAT[k].name +
     '</b><span>' + (DESC[k] || '') + '</span></div>').join('');
@@ -4365,8 +4377,14 @@ function drawSpark(){
 
 const logEl = document.getElementById('log');
 const logLines = [];
+function parseChronicle(raw){
+  try {
+    const v = JSON.parse(raw || '[]');
+    return Array.isArray(v) ? v.filter(e => e && typeof e.d === 'number' && typeof e.t === 'string') : [];
+  } catch (e) { return []; }
+}
 let chronicleLog = [];
-try { chronicleLog = JSON.parse(localStorage.getItem('powder-chronicle') || '[]') || []; } catch (e) { chronicleLog = []; }
+try { chronicleLog = parseChronicle(localStorage.getItem('powder-chronicle')); } catch (e) { chronicleLog = []; }
 function chronicle(text){
   const day = 1 + Math.floor(sun / 6.2832);
   const last = chronicleLog[chronicleLog.length - 1];
@@ -6001,6 +6019,20 @@ function selfTest(){
   dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
   ok('h hides all panels', document.body.classList.contains('clean') !== wasClean);
   dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
+
+  // persisted chronicle text cannot become markup
+  const storyWas = chronicleLog;
+  chronicleLog = [{ d: 1, t: '</span><b id="pwn">x</b><span>' }];
+  buildHelp();
+  ok('the chronicle cannot inject markup',
+    helpEl.querySelector('#pwn') === null &&
+    helpEl.querySelector('.hstory').textContent.includes('<b id="pwn">'));
+  chronicleLog = storyWas;
+  buildHelp();
+  ok('a malformed chronicle is ignored',
+    typeof parseChronicle === 'function' &&
+    parseChronicle('{"x":1}').length === 0 &&
+    parseChronicle('[{"d":1,"t":"ok"},{"d":"x","t":2}]').length === 1);
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
