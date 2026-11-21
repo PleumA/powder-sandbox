@@ -590,6 +590,7 @@ function swap(a,b){
   const av = grid[a], al = life[a], af = facing[a], ah2 = home[a];
   grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b];
   grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;
+  moved[b] = 1;
 }
 
 /* ---------- physics ---------- */
@@ -726,6 +727,7 @@ function spreadHeat(){
 
 function step(x,y,dir){
   const i = idx(x,y);
+  if (moved[i]) return false;
   const v = grid[i];
   if (v === EMPTY || v === STONE || v === GLASS || v === WEB || v === NEST) return false;
   if (v === IRON) return tickIron(x,y,i);
@@ -4535,6 +4537,12 @@ function selfTest(){
   shaft(20,6);
   set(20,6,WATER); set(20,7,OIL); run(20);
   ok('water sinks through oil', grid[idx(20,8)] === WATER);
+
+  // a gas rises one cell per tick, not one cell per row of the sweep
+  shaft(20,6);
+  set(20,8,STEAM);
+  run(1);
+  ok('steam rises one cell per tick', grid[idx(20,7)] === STEAM && grid[idx(20,6)] === EMPTY);
 
   // water quenches fire, producing steam
   chamber(32,8);
