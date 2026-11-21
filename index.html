@@ -897,6 +897,15 @@ function tryMove(x,y,tx,ty,v){
   return false;
 }
 
+// place mat in the first empty neighbour; never overwrite the caller
+function settleBeside(x,y,mat){
+  if (!MAT[mat]) return false;
+  for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
+    if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){ set(nx,ny, mat); return true; }
+  }
+  return false;
+}
+
 function tickFire(x,y,i){
   if (Math.sin(season) > 0.45 && Math.random() < 0.03){    // the wet season drowns fires as they burn
     set(x,y, SMOKE); return true;
@@ -1087,7 +1096,7 @@ function tickBird(x,y,i){
     return false;                                             // roosting
   }
   const perched = get(x, y+1) !== EMPTY;                     // standing on something
-  if (perched && Math.random() < 0.02 && get(x,y) === EMPTY) set(x,y, NEST);
+  if (perched && Math.random() < 0.02) settleBeside(x,y,NEST);
   if (perched && Math.random() < 0.002){
     for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y]]){        // lay an egg beside the nest
       if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){ set(nx,ny, EGG); break; }
@@ -1460,7 +1469,7 @@ function tickBee(x,y,i){
   }
   if (Math.random() < 0.0006){                       // now and then a colony settles
     for (const [nx,ny] of [[x,y+1],[x-1,y],[x+1,y],[x,y-1]]){
-      if (inB(nx,ny) && grid[idx(nx,ny)] === WOOD && get(x,y) === EMPTY){ set(x,y, HIVE); return true; }
+      if (inB(nx,ny) && grid[idx(nx,ny)] === WOOD && settleBeside(x,y,HIVE)) return true;
     }
   }
   const bloom = sense(x,y,PLANT,4);                  // bees make for the nearest plant
@@ -4764,6 +4773,28 @@ function selfTest(){
   let sweet = false;
   for (let k=0;k<800 && !sweet;k++){ run(1); sweet = count(HONEY) > 0; }
   ok('bees fill hives', sweet);
+
+  // a bird settles a nest in an adjacent cell, never on itself
+  chamber(20,20); moved.fill(0);
+  set(20,20,BIRD);
+  const birdNest = typeof settleBeside === 'function' && settleBeside(20,20,NEST);
+  ok('a bird settles a nest beside itself', birdNest && grid[idx(20,20)] === BIRD && count(NEST) === 1);
+
+  // a bee founds a hive in an adjacent cell, never on itself
+  chamber(20,20);
+  set(20,20,BEE);
+  const beeHive = typeof settleBeside === 'function' && settleBeside(20,20,HIVE);
+  ok('a bee settles a hive beside itself', beeHive && grid[idx(20,20)] === BEE && count(HIVE) === 1);
+
+  // the same call at the grid edge stays in bounds
+  grid.fill(0); life.fill(0);
+  set(0,0,BIRD);
+  ok('settling respects the grid edge', typeof settleBeside === 'function' && settleBeside(0,0,HIVE) && grid[idx(0,0)] === BIRD && count(HIVE) === 1);
+
+  // no empty neighbour: nothing is placed and the caller is untouched
+  chamber(20,20); set(20,20,BIRD);
+  for (const [nx,ny] of [[20,19],[19,20],[21,20],[20,21]]) set(nx,ny,STONE);
+  ok('settling with no empty neighbour does nothing', typeof settleBeside === 'function' && settleBeside(20,20,NEST) === false && grid[idx(20,20)] === BIRD && count(NEST) === 0);
 
   // a termite chews the timber
   grid.fill(0); facing.fill(0); alarmT.fill(0);
