@@ -22,6 +22,7 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | drag | pour the selected material |
 | right-click | erase |
 | middle-click | pick a material under the cursor |
+| arrows, `Enter`, `Delete`, `X` (canvas focused) | move the keyboard cursor, pour, erase, pick |
 | `space` | pause / resume |
 | `[` `]` | brush size |
 | `0`–`9` | pick a material by number |
@@ -77,17 +78,17 @@ sandbox.chronicle()      // what happened, as [{ d, t }]
 sandbox.bench(80)         // { ms, drawMs, ticks } — simulation and draw cost
 ```
 
-Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`, `music`, `lofi`, `auto`, `audio`, `zap`, `heading`, `flash`, `star`.
+Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`, `music`, `lofi`, `auto`, `audio`, `zap`, `heading`, `star`.
 
 ## Verification
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **189 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **231 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - A headless Chromium/Playwright pass is used during development (scripts are not shipped); the current build measures about **0.56 ms per simulation tick and 0.4 ms per draw** on the ecosystem scene.
 
 ## Notes
 
-- One file, ~247 KB, zero dependencies, zero network requests.
+- One file, ~286 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
