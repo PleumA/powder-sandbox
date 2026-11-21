@@ -3486,7 +3486,7 @@ const SCENES = {
       const d = (x - cx) / r;
       const depth = Math.max(1, Math.round(9 * Math.cos(d * Math.PI / 2)));
       const top = (topsHint[x] || H-5);
-      for (let y=top; y<Math.min(H, top+depth); y++) if (get(x,y) !== STONE) set(x,y, WATER);
+      for (let y=top; y<Math.min(H, top+depth); y++) set(x,y, WATER);
     }
     for (let k=0;k<150;k++){                                      // a meadow, not a lawn
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
@@ -3508,7 +3508,6 @@ const SCENES = {
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
       if (t > 3) set(x, t-1, Math.random() < 0.6 ? MOSS : FUNGUS);
     }
-    if (cx > 1 && cx < W-2 && H > 3) set(cx, H-2, SPRING);        // the pond keeps its own level
 
     const scar = Math.min(W - 3, (W * 0.85) | 0);                 // an old burn on the far bank
     for (let k=0;k<22;k++){
@@ -3521,7 +3520,13 @@ const SCENES = {
     for (let k=0;k<4;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>7) set(x,t-6,HIVE); }
     for (let k=0;k<10;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-1,WORM); }
     for (let k=0;k<16;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-2,LIFE); }
-    for (let k=0;k<14;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-1-((Math.random()*3)|0), FISH); }
+    for (let k=0;k<14;k++){                                       // fish swim in the pond water
+      const x = cx - r + 1 + ((Math.random()*(2*r - 1))|0);     // skip the depth-1 edge columns
+      const top = topsHint[x] || H-5;
+      for (let y=top; y<Math.min(H, top+12); y++){
+        if (grid[idx(x,y)] === WATER){ set(x,y,FISH); break; }
+      }
+    }
     for (let k=0;k<12;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-3,BEE); }
     for (let k=0;k<6;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-3, FROG); }
     for (let k=0;k<3;k++){ const x=Math.max(2, Math.min(W-3, cx - r - 2 - k*4)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, HERON); }
@@ -3537,6 +3542,11 @@ const SCENES = {
     set((Math.random()*W*0.6 + W*0.2)|0, H-6, BAT);
     for (let k=0;k<2;k++){ const sx = (Math.random()*W*0.6 + W*0.2)|0; set(sx, (topsHint[sx]||H-5)-1, SPIDER); }
     for (let k=0;k<12;k++) set((Math.random()*W)|0, (Math.random()*H*0.4)|0, FIREFLY);
+    const bot = Math.min(H-2, (topsHint[cx] || H-5) + 8);          // the pond keeps its own level, at the bottom
+    if (cx > 1 && cx < W-2 && H > 3){
+      set(cx, bot, SPRING);
+      set(cx, bot-1, WATER);          // the pond above the spring survives the fauna
+    }
   },
   beach(){
     clearAll(); topsHint = new Int16Array(W); bed(SAND, 0.18, true);
@@ -6109,6 +6119,28 @@ function selfTest(){
   // links are absolute even from file://
   ok('scene links are absolute',
     typeof sceneUrl === 'function' && sceneUrl().startsWith(location.href.split('#')[0] + '#'));
+
+  // the ecosystem scene carves its pond and puts the fauna in it
+  SCENES.ecosystem();
+  const px = (W*0.42)|0, ptop = topsHint[px] || H-5;
+  let deep = 0;
+  for (let y=ptop; y<H; y++){
+    const v = grid[idx(px,y)];
+    if (v !== WATER && v !== FISH) break;
+    deep++;
+  }
+  ok('the ecosystem pond is deeper than one cell', deep > 1);
+  let wetFish = 0, wetSpring = 0;
+  for (let i=0;i<grid.length;i++){
+    if (grid[i] !== FISH && grid[i] !== SPRING) continue;
+    const x = i % W, y = (i / W) | 0;
+    let wet = false;
+    for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]) if (inB(nx,ny) && grid[idx(nx,ny)] === WATER) wet = true;
+    if (wet && grid[i] === FISH) wetFish++;
+    if (wet && grid[i] === SPRING) wetSpring++;
+  }
+  ok('ecosystem fish live in the pond', wetFish > 0);
+  ok('the ecosystem spring feeds the pond', wetSpring > 0);
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
