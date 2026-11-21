@@ -1544,6 +1544,7 @@ function raiseAlarm(x,y,who,esc){
       if (xx < 0 || xx >= W) continue;
       const j = yy*W + xx;
       if (grid[j] !== who) continue;
+      if (alarmT[j] > update.t) continue;     // a live alarm is not extended
       facing[j] = d;                           // the crowd turns with the first one to bolt
       alarmDir[j] = d;
       const far = Math.max(Math.abs(dx), Math.abs(dy));     // and fades with distance
@@ -4887,6 +4888,18 @@ function selfTest(){
   for (let x=5;x<=15;x++){ set(x,10,STONE); set(x,12,STONE); }   // a corridor
   set(10,11,LIFE); set(13,11,BIRD); run(1);
   ok('prey flees hunters', grid[idx(9,11)] === LIFE);            // it bolts away from the bird
+
+  // re-raising does not push the caller's own deadline forward
+  chamber(20,20); moved.fill(0);
+  alarmT.fill(0); alarmDir.fill(0);
+  set(20,20,LIFE);
+  update.t = (update.t|0) + 1;
+  raiseAlarm(20,20,LIFE,1);
+  const alarm0 = alarmT[idx(20,20)];
+  update.t = (update.t|0) + 1;
+  raiseAlarm(20,20,LIFE,1);
+  ok('an alarm does not refresh itself', alarmT[idx(20,20)] === alarm0);
+  alarmT.fill(0); alarmDir.fill(0);
 
   // a bird with a bug in sight closes the distance
   chamber(30,32);
