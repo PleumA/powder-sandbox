@@ -84,8 +84,8 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **231 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
-- A headless Chromium/Playwright pass is used during development (scripts are not shipped); the current build measures about **0.56 ms per simulation tick and 0.4 ms per draw** on the ecosystem scene.
+- `index.html?selftest` runs **236 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 

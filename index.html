@@ -2570,6 +2570,7 @@ function kbShow(){
 cvs.addEventListener('focus', kbShow);
 cvs.addEventListener('blur', () => { cursor.on = false; dirty = true; });
 cvs.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;   // leave browser shortcuts alone
   const k = e.key;
   const d = k === 'ArrowLeft' ? [-1,0] : k === 'ArrowRight' ? [1,0] : k === 'ArrowUp' ? [0,-1] : k === 'ArrowDown' ? [0,1] : null;
   if (d){ e.preventDefault(); e.stopPropagation(); kb.x += d[0]; kb.y += d[1]; kbShow(); return; }
@@ -3404,9 +3405,9 @@ function unpack(str){
     cells.push([v, n]);
   }
   if (total !== grid.length) return false;
-  grid.fill(0); life.fill(0); rowLive.fill(0);
+  clearAll(); alarmDir.fill(0);     // a restored world starts with no stale hunger, scent or alarms
   let i = 0;
-  for (const [v, n] of cells) for (let k=0;k<n;k++) grid[i++] = v;
+  for (const [v, n] of cells) for (let k=0;k<n;k++){ hunger[i] = 200; grid[i++] = v; }   // same start as set()
   reindexRows();
   draw();
   return true;
@@ -6253,6 +6254,29 @@ function selfTest(){
   ok('x picks the material under the keyboard cursor', hasKb && current === WOOD);
 
   current = matWas2; cursor.on = false; chamber(20,20);
+
+  chamber(20,20); set(20,20,LIFE); hunger[idx(20,20)] = 899;
+  const packedCreature = pack();
+  chamber(20,20); set(20,20,WATER); hunger[idx(20,20)] = 899;
+  unpack(packedCreature);
+  ok('a recalled creature starts fed', hunger[idx(20,20)] === 200);
+  run(2);
+  ok('a recalled creature survives two ticks', count(LIFE) > 0);
+
+  const cvsEl2 = document.getElementById('c');
+  cvsEl2.focus();
+  const kbWas2 = { x: kb.x, y: kb.y };
+  kb.x = 20; kb.y = 20;
+  cvsEl2.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+  ok('alt+arrow does not move the keyboard cursor', kb.x === 20);
+  const pickWas2 = current;
+  set(21,20,WOOD); current = EMPTY; kb.x = 21; kb.y = 20;
+  cvsEl2.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', ctrlKey: true, bubbles: true }));
+  ok('ctrl+x does not pick', current === EMPTY);
+  set(20,20,STONE); kb.x = 20; kb.y = 20;
+  cvsEl2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', metaKey: true, bubbles: true }));
+  ok('meta+delete does not erase', grid[idx(20,20)] === STONE);
+  current = pickWas2; kb.x = kbWas2.x; kb.y = kbWas2.y; cursor.on = false; chamber(20,20);
 
   testing = false;
   W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
