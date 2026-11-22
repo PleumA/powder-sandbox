@@ -84,11 +84,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **246 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **254 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~290 KB, zero dependencies, zero network requests.
+- One file, ~291 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.

@@ -2524,7 +2524,7 @@ cvs.addEventListener('pointermove', e => {
   const st = pointers.get(e.pointerId);
   if (st) strokeTo(x, y, st.erasing ? EMPTY : current, st);
 });
-cvs.addEventListener('pointerleave', () => cursor.on = false);
+cvs.addEventListener('pointerleave', () => { if (document.activeElement !== cvs) cursor.on = false; });
 cvs.addEventListener('contextmenu', e => e.preventDefault());
 const kb = { x: 0, y: 0 };
 let kbCentered = false;
@@ -2539,6 +2539,7 @@ cvs.addEventListener('blur', () => { cursor.on = false; dirty = true; });
 cvs.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;   // leave browser shortcuts alone
   const k = e.key;
+  if (e.repeat && (k === 'Enter' || k === 'Delete' || k === 'Backspace')) return;
   const d = k === 'ArrowLeft' ? [-1,0] : k === 'ArrowRight' ? [1,0] : k === 'ArrowUp' ? [0,-1] : k === 'ArrowDown' ? [0,1] : null;
   if (d){ e.preventDefault(); e.stopPropagation(); kb.x += d[0]; kb.y += d[1]; kbShow(); return; }
   if (k === 'Enter'){ e.preventDefault(); e.stopPropagation(); snapshot(); paintCircle(kb.x, kb.y, current); dirty = true; return; }
@@ -2669,7 +2670,7 @@ document.getElementById('clear').addEventListener('click', () => {
   }
   clearArm = 0;
   el.textContent = 'Clear'; el.classList.remove('arming');
-  snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0); draw();
+  snapshot(); clearAll(); draw();
 });
 
 function quake(){
@@ -3315,8 +3316,10 @@ function unpack(str){
   return true;
 }
 function restoreScene(str, what = 'scene'){
+  const m = /^(\d+)x(\d+)\|/.exec(String(str));
+  if (m && (+m[1] !== W || +m[2] !== H)){ toastMsg(what + ' was made at a different window size'); return false; }
   if (unpack(str)) return true;
-  toastMsg(what + ' was made at a different window size');
+  toastMsg(what + ' could not be loaded');
   return false;
 }
 function sceneUrl(){ return location.href.split('#')[0] + '#' + encodeURIComponent(pack()); }
@@ -3370,7 +3373,7 @@ function recallScene(){
   try { s = localStorage.getItem('powder-scene'); } catch (e) {}
   if (!s) return false;
   snapshot();
-  if (!restoreScene(s, 'that scene')) return false;
+  if (!restoreScene(s, 'that scene')){ undoStack.pop(); return false; }
   return true;
 }
 document.getElementById('psave').addEventListener('click', () => keepScene());
@@ -3387,7 +3390,7 @@ document.getElementById('shot').addEventListener('click', () => {
 
 function clearAll(){
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
-  facing.fill(0); hunger.fill(0); alarmT.fill(0); scent.fill(0); home.fill(0);   // no stale state
+  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0);   // no stale state
 }
 
 // § SCENES — beds, SCENES, experiments, terrain
@@ -3700,7 +3703,7 @@ sceneEl.addEventListener('change', () => {
 });
 
 function terrain(){
-  snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
+  snapshot(); clearAll();
   const tops = new Int16Array(W);
   const kind = (Math.random()*3)|0;                        // 0 hills, 1 mesa, 2 caverns
   let h = (H*(0.3 + Math.random()*0.15))|0;
@@ -4211,7 +4214,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Space' && e.target && /^(BUTTON|A)$/.test(e.target.tagName)) return;   // let the control activate
   if (e.code === 'Space'){ e.preventDefault(); togglePause(); return; }
   if ((e.key === 'z' || e.key === 'Z')){ undo(); return; }
-  if (e.key === 'c' || e.key === 'C'){ snapshot(); grid.fill(0); life.fill(0); rowLive.fill(0); draw(); return; }
+  if (e.key === 'c' || e.key === 'C'){ snapshot(); clearAll(); draw(); return; }
   if (e.key === '?' || (e.key === '/' && e.shiftKey)){ e.preventDefault(); toggleHelp(); return; }
   if (e.key === 'Escape' && !helpEl.hidden){ toggleHelp(false); return; }
   if (e.key === 'F3'){ e.preventDefault(); showPerf = !showPerf; return; }
@@ -6203,6 +6206,40 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
 
   current = matWas2; cursor.on = false; chamber(20,20);
 
+// § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
+grid.fill(0); life.fill(0); rowLive.fill(0);
+set(20,20,LIFE); hunger[idx(20,20)] = 899; heat[idx(20,20)] = 1;
+dispatchEvent(new KeyboardEvent('keydown', { key: 'c' }));
+ok('clear resets per-cell state', count(LIFE) === 0 && hunger[idx(20,20)] === 0 && heat[idx(20,20)] === 0);
+
+chamber(20,20); set(20,20,STONE);
+ok('unknown numeric ids are rejected', typeof matId === 'function' && matId(999) === undefined);
+SANDBOX_API.put(20,20,999);
+ok('put ignores an unknown id', grid[idx(20,20)] === STONE);
+SANDBOX_API.fill(20,20,999);
+ok('fill ignores an unknown id', count(999) === 0);
+
+toastEl.textContent = '';
+ok('a malformed scene reports a load failure',
+  typeof restoreScene === 'function' && restoreScene('garbage') === false && /could not/.test(toastEl.textContent));
+
+let keptWas = null; try { keptWas = localStorage.getItem('powder-scene'); } catch (e) {}
+try { localStorage.setItem('powder-scene', '999x999|0:1'); } catch (e) {}
+const undoBefore = undoStack.length;
+if (typeof recallScene === 'function') recallScene();
+ok('a failed recall leaves no undo step', undoStack.length === undoBefore);
+try { keptWas === null ? localStorage.removeItem('powder-scene') : localStorage.setItem('powder-scene', keptWas); } catch (e) {}
+
+const cvsEl3 = document.getElementById('c');
+cvsEl3.focus(); kb.x = 20; kb.y = 20;
+const undoR = undoStack.length;
+cvsEl3.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', repeat: true, bubbles: true }));
+ok('held keys do not flood undo', undoStack.length === undoR);
+cursor.on = true;
+cvsEl3.dispatchEvent(new Event('pointerleave'));
+ok('pointerleave keeps the keyboard ring', cursor.on === true);
+cvsEl3.blur(); cursor.on = false; chamber(20,20);
+
 // § TEST: STATE RESTORE — unpack resets aux state
   chamber(20,20); set(20,20,LIFE); hunger[idx(20,20)] = 899;
   const packedCreature = pack();
@@ -6241,7 +6278,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
 // § API — window.sandbox
 /* ---------- scripting API ---------- */
 function matId(m){
-  if (typeof m === 'number') return m;
+  if (typeof m === 'number') return MAT[m] ? m : undefined;
   const want = String(m).toLowerCase();
   return MATS.find(k => {
     const n = MAT[k].name.toLowerCase();
@@ -6314,7 +6351,10 @@ booting = false;
 if (/[?&]calm\b/.test(location.search)) setCalm(true);        // ?calm: no flashes, shake or flicker
 syncVolRows();
 if (location.hash && location.hash.length > 1){
-  try { restoreScene(decodeURIComponent(location.hash.slice(1)), 'scene link'); } catch (e) { /* not our scene */ }
+  try {
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (/^\d+x\d+\|/.test(hash)) restoreScene(hash, 'scene link');
+  } catch (e) { /* not our scene */ }
 }
 if (location.search.includes('selftest')) selfTest();
 requestAnimationFrame(frame);
