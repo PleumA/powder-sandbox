@@ -43,7 +43,7 @@ Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath
 
 **Cast** swaps the panels for a stream overlay: the latest chronicle line as a caption, and the current day and track in the corner. **Cine** adds a slow camera drift, **Loop** rotates scenes every 20 minutes through a fade, and **Calm** removes flashes, screen shake and flicker (it starts on when the OS asks for reduced motion). The same are available as `?broadcast`, `?cine`, `?playlist` and `?calm`.
 
-Lo-fi is twenty procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. When a track ends it fades out, the vinyl keeps playing, and a random track from a random mood group fades in. The music follows the sky (darker at night, faster in a storm).
+Lo-fi is twenty-one procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. The late-night set leans on descending maj9/min9 changes, a sparse rim and a warm pad. When a track ends it fades out, the vinyl keeps playing, and a random track from a random mood group fades in. The music follows the sky (darker at night, faster in a storm).
 
 ## Autoplay
 
