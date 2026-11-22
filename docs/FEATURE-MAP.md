@@ -32,7 +32,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Save / Keep / Recall / share | `pack`, `unpack`, `keepScene`, `recallScene` | `function unpack` |
 | A scene (the ecosystem pond, swamp, snow) | `SCENES`, `loadScene`, `bed`, `terrain` | `SCENES.ecosystem` |
 | Autopilot | `autopilot`, the `plan*` helpers, `liveCare` | `function autopilot` |
-| Music / lo-fi | `TRACKS`, `musicStep`, `ac` | `TRACKS`, `function ac` |
+| Music / lo-fi, picker, vinyl | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick` |
 | Help, goals, chronicle | `buildHelp`, `GOALS`, `chronicle` | `buildHelp` |
 | Tests | the matching `// § TEST:` group | `ok('` |
 | Scripting API | `SANDBOX_API` | `SANDBOX_API` |

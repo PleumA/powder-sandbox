@@ -23,8 +23,14 @@
   /* readings: an instrument margin, not a card */
   #hud{position:fixed;left:0;top:0;z-index:5;max-width:min(430px,calc(100vw - 210px));
     padding:16px 20px 18px 20px;pointer-events:none;
+    display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:10px;align-items:start;
     background:linear-gradient(100deg,#0a1119d9 0%,#0a111999 68%,transparent 100%);
     border-left:1px solid #e2a25a66}
+  #vinyl{grid-column:1;grid-row:1;width:44px;height:44px;cursor:default;
+    image-rendering:pixelated;opacity:.9;visibility:hidden}
+  #vinyl.on{visibility:visible}
+  #hudhead{grid-column:2;grid-row:1;min-width:0}
+  #hud>*:not(#vinyl):not(#hudhead){grid-column:1/-1}
   #hud h1{margin:0 0 8px;font:400 18px/1.2 var(--serif);letter-spacing:.01em;color:var(--txt)}
   #stats{color:var(--dim);font:11px/1.7 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.01em}
   #stats b{color:var(--txt);font-weight:500}
@@ -169,7 +175,9 @@
   @media (max-width:760px){
     #hint{display:none}
     #spark,#sparklabel{display:none}
-    #hud{max-width:calc(100vw - 180px);padding:12px 14px}
+    #hud{max-width:calc(100vw - 180px);padding:12px 14px;
+      grid-template-columns:32px minmax(0,1fr);column-gap:8px}
+    #vinyl{width:32px;height:32px}
     #stats{font-size:10px}
     #sel,#spark{max-width:100%}
     #toolstoggle{display:block;position:fixed;right:8px;top:8px;z-index:6;width:84px;padding:8px 0;
@@ -200,8 +208,11 @@
 <div id="stage"><canvas id="c" tabindex="0" aria-label="World canvas. Arrow keys move the cursor; Enter pours the selected material; Delete erases; X picks the material under the cursor."></canvas></div>
 
 <div id="hud">
-  <h1>Powder Sandbox</h1>
-  <div id="stats"><b id="fps">0</b> fps<span class="statsep"></span><b id="count">0</b> cells<span class="statsep"></span><b id="bugs">0</b> alive<span class="statsep"></span><b id="clock">day</b><span class="statsep"></span><b id="wind" title="wind">-</b><span class="statsep"></span><b id="season" title="season">-</b><span class="statsep"></span><b id="gstat">0/17</b></div>
+  <canvas id="vinyl" width="24" height="24" aria-hidden="true"></canvas>
+  <div id="hudhead">
+    <h1>Powder Sandbox</h1>
+    <div id="stats"><b id="fps">0</b> fps<span class="statsep"></span><b id="count">0</b> cells<span class="statsep"></span><b id="bugs">0</b> alive<span class="statsep"></span><b id="clock">day</b><span class="statsep"></span><b id="wind" title="wind">-</b><span class="statsep"></span><b id="season" title="season">-</b><span class="statsep"></span><b id="gstat">0/17</b></div>
+  </div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
   <canvas id="spark" width="150" height="34" aria-label="population history"></canvas>
@@ -263,6 +274,9 @@
     <button class="btn" id="sound" aria-pressed="false" title="sound effects on or off">Sound</button>
     <button class="btn" id="music" aria-pressed="false" title="procedural lo-fi, no files">Lo-fi</button>
     <button class="btn" id="fill" aria-pressed="false" title="keep filling with the selected material">Fill</button>
+  </div>
+  <div class="row">
+    <select id="musicpick" class="btn" aria-label="Music or playlist" style="flex:1"></select>
   </div>
   <div class="sep" id="volsep" hidden></div>
   <div class="volrow" id="sfxvolrow" hidden><label for="sfxvol">Sound</label><input id="sfxvol" type="range" min="0" max="100" value="80" aria-label="Sound volume"><b id="sfxval">80</b></div>
@@ -3814,12 +3828,12 @@ weatherEl.addEventListener('click', () => setWeather(weatherOff));
 let booting = true;
 function savePrefs(){
   if (booting) return;
-  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel, calm: calmOn })); }
+  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel, calm: calmOn, pick: musicPick })); }
   catch (e) { /* storage blocked */ }
 }
 
 // § MUSIC — tracks, chords, scheduler, toggles
-/* ---------- procedural lo-fi: twenty-one tracks, four moods plus jazz, every note is synthesised ---------- */
+/* ---------- procedural lo-fi: twenty-six tracks, four moods plus jazz, every note is synthesised ---------- */
 const NOTE_IX = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
 function noteHz(name){                             // 'A4' -> 440, 'Bb3' -> 233.08
   const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
@@ -3948,7 +3962,57 @@ const TRACKS = [                                   // five moods; each plays 3�
     padType:'sine', pluckType:'triangle', bassType:'sine', chordBars:2, bassSteps:[0,10],
     motif:[-1,0,-1,2,-1,-1,1,-1],
     kick:[0,10], snare:[8], rim:[12], hat:4, swing:0.08, ghost:0.05 },
+  { name:'Tunnel Lights', group:'focus', bpm:66, minutes:4.4, prog:['Am9','Gmaj7','Fmaj9','Em7'],
+    scale:['A4','C5','D5','E5','G5','A5'], density:0.16,
+    padType:'sine', pluckType:'triangle', bassType:'sine', chordBars:2, bassSteps:[0,10],
+    motif:[-1,0,-1,2,-1,-1,1,-1],
+    kick:[0,10], snare:[8], rim:[12], hat:4, swing:0.07, ghost:0.04 },
+  { name:'Wet Asphalt', group:'focus', bpm:64, minutes:4.6, prog:['Dm9','Cmaj9','Bb7','Am9'],
+    scale:['D4','E4','F4','G4','A4','B4','C5','D5'], density:0.18,
+    padType:'triangle', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0],
+    motif:[2,-1,1,-1,0,-1,2,-1],
+    kick:[0,10], snare:[8], rim:[14], hat:4, swing:0.08, ghost:0.05 },
+  { name:'Last Exit', group:'focus', bpm:70, minutes:4.1, prog:['Cmaj9','Bm7','Am9','Gmaj7'],
+    scale:['C5','D5','E5','G5','A5','C6'], density:0.20,
+    padType:'sine', pluckType:'triangle', bassType:'triangle', chordBars:1, bassSteps:[0,8],
+    motif:[0,-1,2,-1,1,-1,3,-1],
+    kick:[0,10], snare:[8], rim:[12], hat:4, swing:0.09, ghost:0.05 },
+  { name:'Dashboard Glow', group:'focus', bpm:62, minutes:4.8, prog:['Gmaj7','Fmaj9','Em7','Dm9'],
+    scale:['G4','A4','B4','D5','E5','G5'], density:0.14,
+    padType:'sine', pluckType:'sine', bassType:'sine', chordBars:2, bassSteps:[0,10],
+    motif:[-1,-1,1,-1,-1,2,-1,-1],
+    kick:[0,10], snare:[8], rim:[12], hat:4, swing:0.06, ghost:0.03 },
+  { name:'Passenger Seat', group:'focus', bpm:72, minutes:4.0, prog:['Fmaj9','Ebmaj7','Dm9','Cmaj9'],
+    scale:['F4','G4','A4','C5','D5','E5'], density:0.18,
+    padType:'triangle', pluckType:'sine', bassType:'sine', chordBars:1, bassSteps:[0,10],
+    motif:[1,-1,0,-1,2,-1,1,-1],
+    kick:[0,10], snare:[8], rim:[14], hat:4, swing:0.08, ghost:0.04 },
 ];
+
+// the picker is generated from TRACKS: auto, every mood, every track
+const musicPickEl = document.getElementById('musicpick');
+let musicPick = 'auto';                            // 'auto', 'group:<mood>' or 'track:<n>'
+musicPickEl.add(new Option('Auto (random)', 'auto'));
+const moodOpts = document.createElement('optgroup'); moodOpts.label = 'Moods'; musicPickEl.add(moodOpts);
+for (const g of new Set(TRACKS.map(t => t.group))) moodOpts.append(new Option(g[0].toUpperCase() + g.slice(1), 'group:' + g));
+const trackOpts = document.createElement('optgroup'); trackOpts.label = 'Tracks'; musicPickEl.add(trackOpts);
+TRACKS.forEach((tr, i) => trackOpts.append(new Option(tr.name, 'track:' + i)));
+function validPick(v){                             // localStorage is untrusted; TRACKS can change
+  if (v === 'auto') return true;
+  if (typeof v !== 'string') return false;
+  if (v.startsWith('group:')) return TRACKS.some(t => t.group === v.slice(6));
+  if (v.startsWith('track:')){
+    const i = Number(v.slice(6));
+    return Number.isInteger(i) && i >= 0 && i < TRACKS.length;
+  }
+  return false;
+}
+musicPickEl.addEventListener('change', () => {
+  musicPick = validPick(musicPickEl.value) ? musicPickEl.value : 'auto';
+  musicPickEl.value = musicPick;
+  savePrefs();
+  if (musicOn && musicIn) beginFade(ac(), selectedTrackIx());   // crossfade through the engine
+});
 
 let musicOn = false, musicWanted = false, skipMusicClick = false, skipMusicAt = 0, armBound = false, musicTimer = 0, hissSrc = null;
 let musicBeat = 0, lofiCutoff = 1500;              // low by night, open by day
@@ -3956,6 +4020,42 @@ let trackIx = 0, trackStep = 0, trackSteps = 1440, nextNoteTime = 0;
 let musicIn = null, musicFilter = null, noiseBuf = null;
 let fadeNext = -1, fadeUntil = 0;                  // a track change waits for the old one to fade
 const LOOKAHEAD = 0.12;                            // seconds of notes queued ahead of the audio clock
+
+const vinylEl = document.getElementById('vinyl');
+const vinylCtx = vinylEl && vinylEl.getContext ? vinylEl.getContext('2d') : null;
+let vinylSpin = 0, vinylAt = 0;
+function drawVinyl(t){                             // a 24x24 pixel turntable, drawn cheaply each frame
+  if (!vinylEl) return;
+  vinylEl.classList.toggle('on', musicOn);         // the grid column stays reserved when hidden
+  if (!musicOn || !vinylCtx){ vinylAt = 0; return; }
+  if (vinylAt && !calmOn) vinylSpin += (t - vinylAt) * 0.0034907;   // 33⅓ rpm
+  vinylAt = t;
+  const g = vinylCtx, cx = 11, cy = 11, ang = vinylSpin;
+  const sx = cx + Math.cos(ang) * 5.8, sy = cy + Math.sin(ang) * 5.8;
+  g.fillStyle = '#10161c'; g.fillRect(0, 0, 24, 24);            // dark plinth
+  g.fillStyle = '#1c242d'; g.fillRect(0, 0, 24, 1);             // top bevel
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++){
+    const dx = x - cx, dy = y - cy, r = Math.sqrt(dx * dx + dy * dy);
+    let c = null;
+    if (r <= 8.2) c = '#232c35';                               // rim
+    if (r <= 7.6) c = '#161d25';                               // disc
+    if (r <= 6.8 && r > 6.3) c = '#2a3440';                    // groove
+    if (r <= 5.4 && r > 4.9) c = '#2a3440';                    // groove
+    if (r <= 3.4) c = '#c8894a';                               // label edge
+    if (r <= 3.0) c = '#e2a25a';                               // amber label
+    if (r <= 0.9) c = '#0a1119';                               // centre hole
+    if (Math.abs(x - sx) <= 0.6 && Math.abs(y - sy) <= 0.6) c = '#f3e3c0';   // rotating shine
+    if (c){ g.fillStyle = c; g.fillRect(x, y, 1, 1); }
+  }
+  g.fillStyle = '#e7dfce';                                     // static cream tonearm
+  g.fillRect(20, 2, 3, 2);
+  g.fillRect(21, 4, 1, 2);
+  g.fillRect(20, 6, 1, 2);
+  g.fillRect(19, 8, 1, 2);
+  g.fillRect(18, 10, 1, 2);
+  g.fillRect(15, 12, 4, 1);
+  g.fillStyle = '#6f7a72'; g.fillRect(15, 13, 1, 1);           // needle
+}
 
 function bpmNow(){ const t = TRACKS[trackIx]; return t.bpm * (storm && !weatherOff ? 1.1 : 1); }
 function stepDur(){ return 15 / bpmNow(); }        // one sixteenth, in seconds
@@ -3993,8 +4093,8 @@ function fadeIn(a, when){                          // the new track rises out of
   g.setValueAtTime(0.0001, when);
   g.exponentialRampToValueAtTime(0.85, when + 1.2);
 }
-function beginFade(a){                             // let the old track exhale before the next one starts
-  fadeNext = nextTrackIx(trackIx);
+function beginFade(a, ix){                         // let the old track exhale before the next one starts
+  fadeNext = ix === undefined ? nextTrackIx(trackIx) : ix;
   fadeUntil = a.currentTime + 1.35;
   const g = musicIn.gain;
   holdGain(g, a.currentTime);
@@ -4136,13 +4236,38 @@ function startTrack(i){
   }
 }
 function trackStepsFor(tr){ return Math.round(tr.minutes * 60 * tr.bpm / 15); }   // 16ths in the track
+function trackPool(group, from){
+  const pool = [];
+  for (let i = 0; i < TRACKS.length; i++) if (TRACKS[i].group === group && i !== from) pool.push(i);
+  return pool;
+}
 function nextTrackIx(from){
   if (TRACKS.length < 2) return 0;
+  let group = null;
+  if (musicPick.startsWith('group:')) group = musicPick.slice(6);
+  else if (musicPick.startsWith('track:')){
+    const tr = TRACKS[Number(musicPick.slice(6))];
+    if (tr) group = tr.group;
+  }
+  if (group){                                                 // a chosen mood stays in its group
+    const pool = trackPool(group, from);
+    return pool.length ? pool[(Math.random() * pool.length) | 0] : (from + 1) % TRACKS.length;
+  }
   const groups = [...new Set(TRACKS.map(t => t.group))];
-  const g = groups[(Math.random() * groups.length) | 0];       // a random mood, then a random pace inside it
-  const pool = [];
-  for (let i = 0; i < TRACKS.length; i++) if (TRACKS[i].group === g && i !== from) pool.push(i);
+  const g = groups[(Math.random() * groups.length) | 0];       // auto: a random mood, then a random pace inside it
+  const pool = trackPool(g, from);
   return pool.length ? pool[(Math.random() * pool.length) | 0] : (from + 1) % TRACKS.length;
+}
+function selectedTrackIx(){                         // the immediate start: a track, a mood, or auto
+  if (musicPick.startsWith('track:')){
+    const i = Number(musicPick.slice(6));
+    if (Number.isInteger(i) && i >= 0 && i < TRACKS.length) return i;
+  }
+  if (musicPick.startsWith('group:')){
+    const pool = trackPool(musicPick.slice(6), -1);
+    if (pool.length) return pool[(Math.random() * pool.length) | 0];
+  }
+  return (Math.random() * TRACKS.length) | 0;
 }
 function musicScheduler(){
   const a = ac(); if (!a || !musicOn) return;
@@ -4176,7 +4301,7 @@ function musicToggle(){
   if (musicOn){
     fadeNext = -1;
     musicBus(); hissStart();
-    startTrack((Math.random() * TRACKS.length) | 0);
+    startTrack(selectedTrackIx());
     nextNoteTime = a.currentTime + 0.08;
     fadeIn(a, nextNoteTime);
     musicTimer = setInterval(musicScheduler, 25);
@@ -4238,6 +4363,7 @@ function applyPrefs(p){
   if (prefersReducedMotion()){ calmOn = true; reflect(calmEl, true); }   // do not overwrite the stored pref
   else if (p.calm === true) setCalm(true);
   else if (p.calm === false) setCalm(false);
+  if (validPick(p.pick)){ musicPick = p.pick; musicPickEl.value = musicPick; }
   if (p.music) armMusic();                                 // music waits for a real gesture
 }
 
@@ -4478,6 +4604,7 @@ let acc = 0, fpsT = 0, frames = 0, perfMs = 0;
 
 function frame(t){
   requestAnimationFrame(frame);
+  drawVinyl(t);
   if (!paused){
     const dt = Math.min(50, t - (frame.last || t)); frame.last = t;
     acc += (dt / 33) * speed;             // target ~30 sim steps/sec, scaled by the speed button
@@ -6190,6 +6317,45 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   scenePick.value = Object.keys(SCENES)[0];
   scenePick.dispatchEvent(new Event('change'));
   ok('the scene picker keeps focus', document.activeElement === scenePick);
+
+  // the vinyl is shown only while the music is on
+  const vinylWas = musicOn;
+  musicOn = true; drawVinyl(0);
+  const vinylOn = !!vinylEl && vinylEl.classList.contains('on');
+  musicOn = false; drawVinyl(0);
+  ok('the vinyl shows while the music plays',
+    !!vinylEl && vinylOn && !vinylEl.classList.contains('on'));
+  musicOn = vinylWas; drawVinyl(0);
+
+  // the picker is generated from TRACKS: auto, every mood, every track
+  const pickEl = document.getElementById('musicpick');
+  const groupCount = new Set(TRACKS.map(t => t.group)).size;
+  ok('the music picker lists every mood and track',
+    !!pickEl && pickEl.options.length === 1 + groupCount + TRACKS.length);
+
+  // a mood pick stays in its group; a track pick starts it and then stays in its group
+  const pickWas = musicPick;
+  musicPick = 'group:focus';
+  let moodOk = true;
+  for (let k = 0; k < 30; k++) if (TRACKS[nextTrackIx(k % TRACKS.length)].group !== 'focus') moodOk = false;
+  ok('a mood pick keeps to its mood', moodOk);
+
+  const focusIx = TRACKS.findIndex(t => t.group === 'focus');
+  musicPick = 'track:' + focusIx;
+  let trackOk = selectedTrackIx() === focusIx;
+  for (let k = 0; k < 30; k++){
+    const nx = nextTrackIx(focusIx);
+    if (nx === focusIx || TRACKS[nx].group !== 'focus') trackOk = false;
+  }
+  ok('a track pick starts that track and follows its mood', trackOk);
+  musicPick = pickWas;
+
+  // a saved pick is restored through applyPrefs
+  const calmPickWas = calmOn;
+  applyPrefs({ pick: 'group:jazz' });
+  ok('applyPrefs restores the music pick', musicPick === 'group:jazz' && !!pickEl && pickEl.value === 'group:jazz');
+  musicPick = pickWas; if (pickEl) pickEl.value = pickWas;
+  calmOn = calmPickWas; reflect(calmEl, calmOn);
 
   // the OS setting wins over a stored calm:false
   const mmWas = window.matchMedia, calmWas = calmOn;

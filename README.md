@@ -39,11 +39,11 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `Ctrl`+`Z` | undo |
 | `?` | help panel — goals, creatures, food web, **the story so far** |
 
-Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, Autoplay, Cast, Cine, Loop, Calm, and a scene picker. The Sound and Music volume sliders appear only while that channel is on.
+Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, the music picker, Autoplay, Cast, Cine, Loop, Calm, and a scene picker. The Sound and Music volume sliders appear only while that channel is on.
 
 **Cast** swaps the panels for a stream overlay: the latest chronicle line as a caption, and the current day and track in the corner. **Cine** adds a slow camera drift, **Loop** rotates scenes every 20 minutes through a fade, and **Calm** removes flashes, screen shake and flicker (it starts on when the OS asks for reduced motion). The same are available as `?broadcast`, `?cine`, `?playlist` and `?calm`.
 
-Lo-fi is twenty-one procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. The late-night set leans on descending maj9/min9 changes, a sparse rim and a warm pad. When a track ends it fades out, the vinyl keeps playing, and a random track from a random mood group fades in. The music follows the sky (darker at night, faster in a storm).
+Lo-fi is twenty-six procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. The late-night set leans on descending maj9/min9 changes, a sparse rim and a warm pad. A small pixel vinyl spins in the HUD while the music plays. The picker beside Lo-fi chooses Auto (a random mood each time), a mood, or one track; the choice persists. When a track ends it fades out and the next one fades in. The music follows the sky (darker at night, faster in a storm).
 
 ## Autoplay
 
@@ -84,11 +84,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **254 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **259 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
 - One file, ~295 KB, zero dependencies, zero network requests.
-- Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather), and the chronicle.
+- Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
