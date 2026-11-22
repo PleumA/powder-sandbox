@@ -323,87 +323,35 @@
 */
 // § CONFIG — material ids, MAT properties, diet
 /* ---------- config ---------- */
-const EMPTY=0, SAND=1, WATER=2, OIL=3, FIRE=4, STEAM=5, ACID=6, PLANT=7, LAVA=8, STONE=9, LIFE=10,
-      WOOD=11, ICE=12, GLASS=13, FISH=14, BIRD=15, TNT=16, SMOKE=17, MERCURY=18, WORM=19, SALT=20;
-
-// density: lighter materials displace heavier ones downward
+// material ids: append only; saves, links and hotkeys store raw numbers
+const EMPTY = 0;
+const SAND = 1;
+const WATER = 2;
+const OIL = 3;
+const FIRE = 4;
+const STEAM = 5;
+const ACID = 6;
+const PLANT = 7;
+const LAVA = 8;
+const STONE = 9;
+const LIFE = 10;
+const WOOD = 11;
+const ICE = 12;
+const GLASS = 13;
+const FISH = 14;
+const BIRD = 15;
+const TNT = 16;
+const SMOKE = 17;
+const MERCURY = 18;
+const WORM = 19;
+const SALT = 20;
 const FUNGUS = 21;
 const SNOW = 22;
-const MUD = 24; // declared before MAT: its [MUD] key is evaluated at table build
-const FROG = 27;
-const MAT = {
-  [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0},
-  [SAND]:  {name:'Sand',   color:[212,180,120], glow:'#d4b478', density:3},
-  [WATER]: {name:'Water',  color:[58,132,214], glow:'#3a84d6', density:1, liquid:true},
-  [OIL]:   {name:'Oil',    color:[120,92,52], glow:'#785c34', density:0.7, liquid:true},
-  [FIRE]:  {name:'Fire',   color:[255,140,40], glow:'#ff8c28', density:-1, life:60},
-  [STEAM]: {name:'Steam',  color:[176,196,216], glow:'#b0c4d8', density:-2, life:220},
-  [ACID]:  {name:'Acid',   color:[140,255,70], glow:'#8cff46', density:1.1, liquid:true},
-  [PLANT]: {name:'Plant',  color:[60,170,90], glow:'#3caa5a', density:9},
-  [LAVA]:  {name:'Lava',   color:[255,70,0], glow:'#ff4600', density:2, liquid:true},
-  [STONE]: {name:'Stone',  color:[110,112,124], glow:'#6e707c', density:9},
-  [LIFE]:  {name:'Bugs',   color:[255,46,136],  glow:'#ff2e88', density:2},
-  [WOOD]:  {name:'Wood',   color:[124,86,44],   glow:'#7c562c', density:9},
-  [ICE]:   {name:'Ice',    color:[170,225,255], glow:'#aae1ff', density:9},
-  [GLASS]: {name:'Glass',  color:[150,184,196], glow:'#96b8c4', density:9},
-  [FISH]:  {name:'Fish',   color:[80,220,190],  glow:'#50dcbe', density:1.2},
-  [BIRD]:  {name:'Birds',  color:[196,164,255], glow:'#c4a4ff', density:-3},
-  [TNT]:   {name:'TNT',    color:[220,58,66],   glow:'#dc3a42', density:3},
-  [SMOKE]: {name:'Smoke',  color:[74,78,90],    glow:'#4a4e5a', density:-2, life:200},
-  [MERCURY]:{name:'Mercury',color:[200,208,218],glow:'#c8d0da', density:4, liquid:true},
-  [WORM]:  {name:'Worms',  color:[196,120,84],  glow:'#c47854', density:5},
-  29:      {name:'Bats',   color:[130,120,160], glow:'#8278a0', density:-2}, // literal id: MAT is built before const BAT exists
-  30:      {name:'Eggs',   color:[240,232,200], glow:'#f0e8c8', density:2},   // literal id, same reason
-  31:      {name:'Fireflies', color:[255,246,120], glow:'#fff678', density:-3},
-  32:      {name:'Flowers', color:[240,120,200], glow:'#f078c8', density:9, life:1500},
-  33:      {name:'Bees',    color:[255,200,60],  glow:'#ffc83c', density:-3},
-  34:      {name:'Brine',   color:[120,176,178], glow:'#78b0b2', density:1.3, liquid:true},
-  35:      {name:'Webs',    color:[236,236,246], glow:'#ececf6', density:9},
-  36:      {name:'Nests',   color:[138,104,66],  glow:'#8a6842', density:9},
-  37:      {name:'Seeds',   color:[204,186,110], glow:'#ccba6e', density:2},
-  38:      {name:'Iron',    color:[150,158,172], glow:'#969eac', density:9},
-  39:      {name:'Springs', color:[86,170,196],  glow:'#56aac4', density:9},
-  40:      {name:'Vents',   color:[92,84,74],    glow:'#5c544a', density:9},
-  41:      {name:'Ants',    color:[180,96,60],   glow:'#b4603c', density:2},
-  42:      {name:'Anthills',color:[128,96,70],   glow:'#806046', density:9},
-  43:      {name:'Crabs',   color:[214,84,72],   glow:'#d65448', density:2},
-  44:      {name:'Saplings',color:[96,148,80],   glow:'#609450', density:9},
-  45:      {name:'Fruit',   color:[214,72,96],   glow:'#d64860', density:2},
-  46:      {name:'Moss',    color:[78,138,74],   glow:'#4e8a4a', density:9},
-  47:      {name:'Coral',   color:[240,120,138], glow:'#f0788a', density:9},
-  48:      {name:'Compost', color:[96,80,54],    glow:'#605036', density:3},
-  49:      {name:'Hives',   color:[176,132,54],  glow:'#b08436', density:9},
-  50:      {name:'Honey',   color:[236,168,42],  glow:'#eca82a', density:1.5, liquid:true},
-  51:      {name:'Bones',   color:[228,224,208], glow:'#e4e0d0', density:9},
-  52:      {name:'Ash',     color:[150,144,136], glow:'#969088', density:1.4},
-  53:      {name:'Reeds',   color:[126,168,88],  glow:'#7ea858', density:9},
-  54:      {name:'Herons',  color:[188,196,206], glow:'#bcc4ce', density:2},
-  55:      {name:'Gulls',   color:[236,240,246], glow:'#ecf0f6', density:-3},
-  56:      {name:'Humans',  color:[232,196,160], glow:'#e8c4a0', density:2},
-  57:      {name:'Deer',    color:[176,132,92],  glow:'#b0845c', density:2},
-  58:      {name:'Coal',    color:[44,44,50],    glow:'#2c2c32', density:3},
-  59:      {name:'Frost',   color:[196,232,255], glow:'#c4e8ff', density:1},
-  60:      {name:'Termites', color:[214,196,150], glow:'#d6c496', density:2},
-  [SALT]:  {name:'Salt',   color:[236,232,220], glow:'#ece8dc', density:3},
-  [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9},
-  [SNOW]: {name:'Snow', color:[238,246,255], glow:'#eef6ff', density:1},
-  23:      {name:'Slime', color:[120,200,90], glow:'#78c85a', density:1.2, liquid:true},
-  [MUD]:   {name:'Mud',    color:[126,96,66],  glow:'#7e6042', density:3.5},
-  25: {name:'Firework', color:[255,214,90], glow:'#ffd65a', density:3},
-  26: {name:'Spiders', color:[176,110,220], glow:'#b06edc', density:2},  // SPIDER; literal key since the const is declared after MAT
-  [FROG]: {name:'Frogs', color:[120,220,110], glow:'#78dc6e', density:1.5},
-  28:       {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2},
-  61:       {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2},
-  62:       {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true},
-};
-const MATS = Object.keys(MAT).map(Number);
-const MAT_SLOTS = 256;   // census capacity: room for material growth
-const HOT = {[FIRE]:1, [LAVA]:1};
-const LIQUID = {[WATER]:1,[OIL]:1,[ACID]:1,[LAVA]:1,[MERCURY]:1};
 const SLIME = 23;
-LIQUID[SLIME] = 1;
+const MUD = 24;
 const FIREWORK = 25;
 const SPIDER = 26;
+const FROG = 27;
 const SNAIL = 28;
 const BAT = 29;
 const EGG = 30;
@@ -439,32 +387,86 @@ const FROST = 59;
 const TERMITE = 60;
 const OCTOPUS = 61;
 const INK = 62;
+
+const MAT = {
+  [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
+  [SAND]: {name:'Sand', color:[212,180,120], glow:'#d4b478', density:3, cat:'powder', desc:'falls and piles; lava fuses it into glass'},
+  [WATER]: {name:'Water', color:[58,132,214], glow:'#3a84d6', density:1, liquid:true, cat:'liquid', desc:'flows downhill, quenches fire, feeds plants'},
+  [OIL]: {name:'Oil', color:[120,92,52], glow:'#785c34', density:0.7, liquid:true, cat:'liquid', desc:'floats on water and burns fiercely'},
+  [FIRE]: {name:'Fire', color:[255,140,40], glow:'#ff8c28', density:-1, life:60, hot:1, cat:'energy', tick:tickFire, desc:'spreads through oil, wood, plants and bugs'},
+  [STEAM]: {name:'Steam', color:[176,196,216], glow:'#b0c4d8', density:-2, life:220, cat:'energy', tick:tickSteam, desc:'rises, condenses at the sky and falls as rain'},
+  [ACID]: {name:'Acid', color:[140,255,70], glow:'#8cff46', density:1.1, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickAcid(x,y,dir,i), desc:'eats everything except stone'},
+  [PLANT]: {name:'Plant', color:[60,170,90], glow:'#3caa5a', density:9, cat:'solid', tick:tickPlant, desc:'grows into water by day, sleeps at night'},
+  [LAVA]: {name:'Lava', color:[255,70,0], glow:'#ff4600', density:2, liquid:true, hot:1, cat:'liquid', tick:(x,y,i,dir)=>tickLava(x,y,dir,i), desc:'melts ice, makes glass from sand, cools to stone in water'},
+  [STONE]: {name:'Stone', color:[110,112,124], glow:'#6e707c', density:9, cat:'solid', desc:'immovable ground'},
+  [LIFE]: {name:'Bugs', color:[255,46,136], glow:'#ff2e88', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, HONEY, REED], tick:tickLife, desc:'bugs walk, climb, eat plants and lay eggs'},
+  [WOOD]: {name:'Wood', color:[124,86,44], glow:'#7c562c', density:9, cat:'solid', tick:tickWood, desc:'solid, and it burns'},
+  [ICE]: {name:'Ice', color:[170,225,255], glow:'#aae1ff', density:9, cat:'solid', tick:tickIce, desc:'melts beside fire, lava or salt; steam condenses on it'},
+  [GLASS]: {name:'Glass', color:[150,184,196], glow:'#96b8c4', density:9, cat:'solid', desc:'inert; made where lava meets sand'},
+  [FISH]: {name:'Fish', color:[80,220,190], glow:'#50dcbe', density:1.2, migrant:1, cat:'life', diet:[PLANT, CORAL], tick:tickFish, desc:'swim in schools, graze plants, and die on dry land'},
+  [BIRD]: {name:'Birds', color:[196,164,255], glow:'#c4a4ff', density:-3, migrant:1, cat:'life', diet:[LIFE, BEE, FIREFLY, WORM, SPIDER, FROG, SNAIL, ANT, CRAB, FRUIT, HONEY, TERMITE], tick:tickBird, desc:'flocks up and hunts bugs'},
+  [TNT]: {name:'TNT', color:[220,58,66], glow:'#dc3a42', density:3, cat:'energy', tick:(x,y,i,dir)=>tickTnt(x,y,dir,i), desc:'blows a crater when fire touches it'},
+  [SMOKE]: {name:'Smoke', color:[74,78,90], glow:'#4a4e5a', density:-2, life:200, cat:'energy', tick:tickSmoke, desc:'rises, thins out, and drifts with the wind'},
+  [MERCURY]: {name:'Mercury', color:[200,208,218], glow:'#c8d0da', density:4, liquid:true, cat:'liquid', desc:'heavier than sand; gives off fumes near fire'},
+  [WORM]: {name:'Worms', color:[196,120,84], glow:'#c47854', density:5, migrant:1, cat:'life', diet:[PLANT, SEED], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
+  [SALT]: {name:'Salt', color:[236,232,220], glow:'#ece8dc', density:3, cat:'powder', tick:(x,y,i,dir)=>tickSalt(x,y,dir,i), desc:'melts ice and dissolves in water'},
+  [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9, cat:'solid', tick:tickFungus, desc:'eats wood, spreads into plants, burns'},
+  [SNOW]: {name:'Snow', color:[238,246,255], glow:'#eef6ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickSnow(x,y,dir,i), desc:'falls like sand and melts near heat'},
+  [SLIME]: {name:'Slime', color:[120,200,90], glow:'#78c85a', density:1.2, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickSlime(x,y,dir,i), desc:'thick goo that spreads slowly and swallows plants'},
+  [MUD]: {name:'Mud', color:[126,96,66], glow:'#7e6042', density:3.5, cat:'powder', tick:(x,y,i,dir)=>tickMud(x,y,dir,i), desc:'wet sand that dries back to sand near heat'},
+  [FIREWORK]: {name:'Firework', color:[255,214,90], glow:'#ffd65a', density:3, cat:'energy', tick:(x,y,i,dir)=>tickFirework(x,y,dir,i), desc:'climbs when lit, then bursts into fire'},
+  [SPIDER]: {name:'Spiders', color:[176,110,220], glow:'#b06edc', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickSpider, desc:'climbs walls and hunts bugs'},
+  [FROG]: {name:'Frogs', color:[120,220,110], glow:'#78dc6e', density:1.5, migrant:1, cat:'life', diet:[LIFE, FISH, FIREFLY, ANT, BEE], tick:tickFrog, desc:'leaps two cells, hunts bugs and fish'},
+  [SNAIL]: {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED], tick:tickSnail, desc:'a slow grazer that eats plants'},
+  [BAT]: {name:'Bats', color:[130,120,160], glow:'#8278a0', density:-2, migrant:1, cat:'life', diet:[LIFE, BEE, FIREFLY, ANT], tick:tickBat, desc:'flutters erratically and hunts bugs'},
+  [EGG]: {name:'Eggs', color:[240,232,200], glow:'#f0e8c8', density:2, cat:'life', tick:(x,y,i,dir)=>tickEgg(x,y,dir,i), desc:'hatches a bird near a nest, a fish in water, a bug anywhere else'},
+  [FIREFLY]: {name:'Fireflies', color:[255,246,120], glow:'#fff678', density:-3, cat:'life', tick:tickFirefly, desc:'comes out at dusk and is gone by morning'},
+  [FLOWER]: {name:'Flowers', color:[240,120,200], glow:'#f078c8', density:9, life:1500, cat:'solid', tick:tickFlower, desc:'bees make them; they seed new plants when wet'},
+  [BEE]: {name:'Bees', color:[255,200,60], glow:'#ffc83c', density:-3, migrant:1, cat:'life', diet:[], tick:tickBee, desc:'pollinates plants into flowers by day'},
+  [BRINE]: {name:'Brine', color:[120,176,178], glow:'#78b0b2', density:1.3, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickBrine(x,y,dir,i), desc:'salt water; heat boils it back down to salt'},
+  [WEB]: {name:'Webs', color:[236,236,246], glow:'#ececf6', density:9, cat:'solid', desc:'spun by spiders; prey that touches it gets tangled'},
+  [NEST]: {name:'Nests', color:[138,104,66], glow:'#8a6842', density:9, cat:'solid', desc:'birds build them on solid ground; eggs hatched beside one become birds'},
+  [SEED]: {name:'Seeds', color:[204,186,110], glow:'#ccba6e', density:2, cat:'powder', tick:(x,y,i,dir)=>tickSeed(x,y,dir,i), desc:'falls until it finds water, then sprouts into a plant'},
+  [IRON]: {name:'Iron', color:[150,158,172], glow:'#969eac', density:9, cat:'solid', tick:tickIron, desc:'pipes heat along itself, melts white-hot, and draws lightning'},
+  [SPRING]: {name:'Springs', color:[86,170,196], glow:'#56aac4', density:9, cat:'source', tick:tickSpring, desc:'a source: keeps pouring water out of its faces'},
+  [VENT]: {name:'Vents', color:[92,84,74], glow:'#5c544a', density:9, cat:'source', tick:tickVent, desc:'a source: keeps pushing smoke out of its top'},
+  [ANT]: {name:'Ants', color:[180,96,60], glow:'#b4603c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
+  [ANTHILL]: {name:'Anthills', color:[128,96,70], glow:'#806046', density:9, cat:'powder', desc:'packed sand; ants raise it under themselves'},
+  [CRAB]: {name:'Crabs', color:[214,84,72], glow:'#d65448', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE], tick:tickCrab, desc:'sidles sideways along the sand and scavenges scraps'},
+  [TREE]: {name:'Saplings', color:[96,148,80], glow:'#609450', density:9, cat:'life', tick:tickTree, desc:'a sapling: grows a trunk and a crown from a seed in soil'},
+  [FRUIT]: {name:'Fruit', color:[214,72,96], glow:'#d64860', density:2, cat:'life', tick:(x,y,i,dir)=>tickFruit(x,y,dir,i), desc:'bears in the crown; falls, feeds, and sometimes takes root'},
+  [MOSS]: {name:'Moss', color:[78,138,74], glow:'#4e8a4a', density:9, cat:'solid', tick:tickMoss, desc:'creeps over wet stone; snails graze it'},
+  [CORAL]: {name:'Coral', color:[240,120,138], glow:'#f0788a', density:9, cat:'solid', tick:tickCoral, desc:'builds on rock below water; fish and crabs graze it'},
+  [COMPOST]: {name:'Compost', color:[96,80,54], glow:'#605036', density:3, cat:'solid', tick:(x,y,i,dir)=>tickCompost(x,y,dir,i), desc:'carrion: it feeds the plants beside it, then turns back to soil'},
+  [HIVE]: {name:'Hives', color:[176,132,54], glow:'#b08436', density:9, cat:'solid', tick:tickHive, desc:'bees that settle on wood raise one; it fills with honey'},
+  [HONEY]: {name:'Honey', color:[236,168,42], glow:'#eca82a', density:1.5, liquid:true, cat:'liquid', desc:'drips from a busy hive; everything with a sweet tooth wants it'},
+  [BONE]: {name:'Bones', color:[228,224,208], glow:'#e4e0d0', density:9, cat:'solid', tick:tickBone, desc:'a kill leaves it behind; it weathers into compost'},
+  [ASH]: {name:'Ash', color:[150,144,136], glow:'#969088', density:1.4, cat:'powder', tick:(x,y,i,dir)=>tickAsh(x,y,dir,i), desc:'what a fire leaves behind; water washes it into mud, and old ash feeds the soil'},
+  [REED]: {name:'Reeds', color:[126,168,88], glow:'#7ea858', density:9, cat:'solid', tick:tickReed, desc:'the grass of the shallows: grows up through water, burns like straw'},
+  [HERON]: {name:'Herons', color:[188,196,206], glow:'#bcc4ce', density:2, migrant:1, cat:'life', tick:tickHeron, desc:'wades the shallows and spears any fish it can see under two cells of water'},
+  [GULL]: {name:'Gulls', color:[236,240,246], glow:'#ecf0f6', density:-3, migrant:1, cat:'life', diet:[LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST], tick:tickGull, desc:'shadows a heron and robs its patch rather than fishing for itself'},
+  [HUMAN]: {name:'Humans', color:[232,196,160], glow:'#e8c4a0', density:2, migrant:1, cat:'life', diet:[LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE], tick:tickHuman, desc:'hunts, sows seed, raises planks, and keeps a fire going at night'},
+  [DEER]: {name:'Deer', color:[176,132,92], glow:'#b0845c', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, REED, MOSS, FRUIT, SEED], tick:tickDeer, desc:'grazes the green things and bolts from people'},
+  [COAL]: {name:'Coal', color:[44,44,50], glow:'#2c2c32', density:3, cat:'solid', desc:'a dark lump that smoulders far longer than wood'},
+  [FROST]: {name:'Frost', color:[196,232,255], glow:'#c4e8ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickFrost(x,y,dir,i), desc:'cold dust: chills the water it touches to ice, melts near heat'},
+  [TERMITE]: {name:'Termites', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
+  [OCTOPUS]: {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2, migrant:1, cat:'life', diet:[CRAB, FISH, SNAIL, WORM], tick:tickOctopus, desc:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes'},
+  [INK]: {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickInk(x,y,dir,i), desc:'a dark cloud that spreads through water and thins away'},
+};
+
+const MATS = Object.keys(MAT).map(Number);
+const MAT_SLOTS = 256;   // census capacity: room for material growth
+const HOT = {};
+for (const k of MATS) if (MAT[k].hot) HOT[k] = 1;
+const LIQUID = {};
+for (const k of MATS) if (MAT[k].liquid) LIQUID[k] = 1;
 // who eats whom: one table drives predation, fear and breeding
 const STARVE = 900;                                  // ticks a creature can go without a meal
-const DIET = {
-  [LIFE]:   [PLANT, FLOWER, SEED, FRUIT, HONEY, REED],
-  [FISH]:   [PLANT, CORAL],
-  [BIRD]:   [LIFE, BEE, FIREFLY, WORM, SPIDER, FROG, SNAIL, ANT, CRAB, FRUIT, HONEY, TERMITE],
-  [BAT]:    [LIFE, BEE, FIREFLY, ANT],
-  [SPIDER]: [LIFE, BEE, ANT, FIREFLY],
-  [FROG]:   [LIFE, FISH, FIREFLY, ANT, BEE],
-  [SNAIL]:  [PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED],
-  [WORM]:   [PLANT, SEED],
-  [ANT]:    [PLANT, SEED, FLOWER, FRUIT, HONEY, REED],
-  [CRAB]:   [PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE],
-  [BEE]:    [],
-  [GULL]:   [LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST],
-  [HUMAN]:  [LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE],
-  [DEER]:   [PLANT, FLOWER, REED, MOSS, FRUIT, SEED],
-  [TERMITE]:[WOOD],
-  [OCTOPUS]:[CRAB, FISH, SNAIL, WORM],
-};
+const DIET = {};
+for (const k of MATS) if (MAT[k].diet) DIET[k] = MAT[k].diet;
 const FEARED = {};                                   // prey -> its predators
 for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).push(+p);
 
-LIQUID[BRINE] = 1;
-LIQUID[HONEY] = 1;
-LIQUID[INK] = 1;
 
 // § STATE — world arrays and scalar state
 /* ---------- state ---------- */
@@ -745,62 +747,11 @@ function step(x,y,dir){
   const i = idx(x,y);
   if (moved[i]) return false;
   const v = grid[i];
-  if (v === EMPTY || v === STONE || v === GLASS || v === WEB || v === NEST) return false;
-  if (v === IRON) return tickIron(x,y,i);
-  if (v === SPRING) return tickSpring(x,y,i);
-  if (v === VENT) return tickVent(x,y,i);
-  if (v === TREE) return tickTree(x,y,i);
-  if (v === FRUIT) return tickFruit(x,y,dir,i);
-  if (v === MOSS) return tickMoss(x,y,i);
-  if (v === CORAL) return tickCoral(x,y,i);
-  if (v === COMPOST) return tickCompost(x,y,dir,i);
-  if (v === HIVE) return tickHive(x,y,i);
-  if (v === BONE) return tickBone(x,y,i);
-  if (v === ASH) return tickAsh(x,y,dir,i);
-  if (v === REED) return tickReed(x,y,i);
-  if (v === FROST) return tickFrost(x,y,dir,i);
-  if (v === COAL) return false;                                  // coal sits where it is
-  if (v === WOOD) return tickWood(x,y,i);
-
-  if (!moved[i] && IS_CREATURE.has(v) && ++hunger[i] > STARVE){ set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY); tally.starved++; return true; }   // starved: carrion
-  if (v === ANT) return tickAnt(x,y,i);
-  if (v === CRAB) return tickCrab(x,y,i);
-  if (v === OCTOPUS) return tickOctopus(x,y,i);
-  if (v === HERON) return tickHeron(x,y,i);
-  if (v === GULL) return tickGull(x,y,i);
-  if (v === HUMAN) return tickHuman(x,y,i);
-  if (v === DEER) return tickDeer(x,y,i);
-  if (v === TERMITE) return tickTermite(x,y,i);
-  if (v === FIRE)  return tickFire(x,y,i);
-  if (v === ICE)   return tickIce(x,y,i);
-  if (v === LIFE)  return tickLife(x,y,i);
-  if (v === FISH)  return tickFish(x,y,i);
-  if (v === BIRD)  return tickBird(x,y,i);
-  if (v === WORM)  return tickWorm(x,y,i);
-  if (v === TNT)   return tickTnt(x,y,dir,i);
-  if (v === SMOKE) return tickSmoke(x,y,i);
-  if (v === STEAM) return tickSteam(x,y,i);
-  if (v === PLANT) return tickPlant(x,y,i);
-  if (v === ACID)  return tickAcid(x,y,dir,i);
-  if (v === LAVA)  return tickLava(x,y,dir,i);
-  if (v === SALT)  return tickSalt(x,y,dir,i);
-  if (v === FUNGUS) return tickFungus(x,y,i);
-  if (v === SNOW)  return tickSnow(x,y,dir,i);
-  if (v === SLIME) return tickSlime(x,y,dir,i);
-  if (v === MUD)   return tickMud(x,y,dir,i);
-  if (v === FIREWORK) return tickFirework(x,y,dir,i);
-  if (v === SPIDER) return tickSpider(x,y,i);
-  if (v === FROG)  return tickFrog(x,y,i);
-  if (v === SNAIL) return tickSnail(x,y,i);
-  if (v === BAT)   return tickBat(x,y,i);
-  if (v === EGG)   return tickEgg(x,y,dir,i);
-  if (v === SEED)  return tickSeed(x,y,dir,i);
-  if (v === FIREFLY) return tickFirefly(x,y,i);
-  if (v === FLOWER) return tickFlower(x,y,i);
-  if (v === BEE)    return tickBee(x,y,i);
-  if (v === BRINE)  return tickBrine(x,y,dir,i);
-  if (v === INK)    return tickInk(x,y,dir,i);
-  if (LIQUID[v])   return tickLiquid(x,y,dir,v);
+  if (v === EMPTY || v === STONE || v === GLASS || v === WEB || v === NEST || v === COAL) return false;
+  if (IS_CREATURE.has(v) && ++hunger[i] > STARVE){ set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY); tally.starved++; return true; }   // starved: carrion
+  const fn = MAT[v] && MAT[v].tick;
+  if (fn) return fn(x,y,i,dir);
+  if (LIQUID[v]) return tickLiquid(x,y,dir,v);
   return tickPowder(x,y,dir,v);
 }
 
@@ -2598,89 +2549,17 @@ addEventListener('pointerup', e => pointers.delete(e.pointerId));
 addEventListener('pointercancel', e => pointers.delete(e.pointerId));
 
 // what each material is for, shown under the HUD
-const DESC = {
-  [EMPTY]:'erases whatever you drag over',
-  [SAND]:'falls and piles; lava fuses it into glass',
-  [WATER]:'flows downhill, quenches fire, feeds plants',
-  [OIL]:'floats on water and burns fiercely',
-  [FIRE]:'spreads through oil, wood, plants and bugs',
-  [STEAM]:'rises, condenses at the sky and falls as rain',
-  [ACID]:'eats everything except stone',
-  [PLANT]:'grows into water by day, sleeps at night',
-  [LAVA]:'melts ice, makes glass from sand, cools to stone in water',
-  [STONE]:'immovable ground',
-  [LIFE]:'bugs walk, climb, eat plants and lay eggs',
-  [WOOD]:'solid, and it burns',
-  [ICE]:'melts beside fire, lava or salt; steam condenses on it',
-  [GLASS]:'inert; made where lava meets sand',
-  [FISH]:'swim in schools, graze plants, and die on dry land',
-  [BIRD]:'flocks up and hunts bugs',
-  [TNT]:'blows a crater when fire touches it',
-  [SMOKE]:'rises, thins out, and drifts with the wind',
-  [MERCURY]:'heavier than sand; gives off fumes near fire',
-  [WORM]:'tunnels through sand and mud, eats roots',
-  [SALT]:'melts ice and dissolves in water',
-  [FUNGUS]:'eats wood, spreads into plants, burns',
-  [SNOW]:'falls like sand and melts near heat',
-  [SLIME]:'thick goo that spreads slowly and swallows plants',
-  [MUD]:'wet sand that dries back to sand near heat',
-  [FIREWORK]:'climbs when lit, then bursts into fire',
-  [SPIDER]:'climbs walls and hunts bugs',
-  [FROG]:'leaps two cells, hunts bugs and fish',
-  [SNAIL]:'a slow grazer that eats plants',
-  [BAT]:'flutters erratically and hunts bugs',
-  [FIREFLY]:'comes out at dusk and is gone by morning',
-  [FLOWER]:'bees make them; they seed new plants when wet',
-  [BEE]:'pollinates plants into flowers by day',
-  [BRINE]:'salt water; heat boils it back down to salt',
-  [WEB]:'spun by spiders; prey that touches it gets tangled',
-  [NEST]:'birds build them on solid ground; eggs hatched beside one become birds',
-  [EGG]:'hatches a bird near a nest, a fish in water, a bug anywhere else',
-  [SEED]:'falls until it finds water, then sprouts into a plant',
-  [IRON]:'pipes heat along itself, melts white-hot, and draws lightning',
-  [SPRING]:'a source: keeps pouring water out of its faces',
-  [VENT]:'a source: keeps pushing smoke out of its top',
-  [ANT]:'marches in a column, forages seeds, and builds a mound underfoot',
-  [ANTHILL]:'packed sand; ants raise it under themselves',
-  [CRAB]:'sidles sideways along the sand and scavenges scraps',
-  [TREE]:'a sapling: grows a trunk and a crown from a seed in soil',
-  [FRUIT]:'bears in the crown; falls, feeds, and sometimes takes root',
-  [MOSS]:'creeps over wet stone; snails graze it',
-  [CORAL]:'builds on rock below water; fish and crabs graze it',
-  [COMPOST]:'carrion: it feeds the plants beside it, then turns back to soil',
-  [HIVE]:'bees that settle on wood raise one; it fills with honey',
-  [HONEY]:'drips from a busy hive; everything with a sweet tooth wants it',
-  [BONE]:'a kill leaves it behind; it weathers into compost',
-  [ASH]:'what a fire leaves behind; water washes it into mud, and old ash feeds the soil',
-  [REED]:'the grass of the shallows: grows up through water, burns like straw',
-  [HERON]:'wades the shallows and spears any fish it can see under two cells of water',
-  [GULL]:'shadows a heron and robs its patch rather than fishing for itself',
-  [HUMAN]:'hunts, sows seed, raises planks, and keeps a fire going at night',
-  [DEER]:'grazes the green things and bolts from people',
-  [COAL]:'a dark lump that smoulders far longer than wood',
-  [FROST]:'cold dust: chills the water it touches to ice, melts near heat',
-  [TERMITE]:'chews timber: the only thing that keeps a wooden world in check',
-  [OCTOPUS]:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes',
-  [INK]:'a dark cloud that spreads through water and thins away',
-};
+const DESC = {};
+for (const k of MATS) DESC[k] = MAT[k].desc;
 const selEl = document.getElementById('sel');
 
 // § PALETTE — materials, DESC, CATS, buttons
 /* ---------- palette UI ---------- */
 const paletteEl = document.getElementById('palette');
 const buttons = {};
-const CATS = [
-  ['tool',    [EMPTY]],
-  ['powder',  [SAND, SNOW, SALT, SEED, MUD, ANTHILL, ASH, FROST]],
-  ['solid',   [STONE, WOOD, COAL, ICE, GLASS, IRON, FUNGUS, MOSS, CORAL, COMPOST, BONE, HIVE, PLANT, REED, FLOWER, WEB, NEST]],
-  ['liquid',  [WATER, OIL, ACID, LAVA, MERCURY, BRINE, HONEY, SLIME, INK]],
-  ['energy',  [FIRE, STEAM, SMOKE, TNT, FIREWORK]],
-  ['source',  [SPRING, VENT]],
-  ['life',    [LIFE, EGG, FISH, FROG, BIRD, BAT, WORM, SPIDER, SNAIL, BEE, FIREFLY, ANT, CRAB, OCTOPUS, HERON, GULL, HUMAN, DEER, TERMITE, TREE, FRUIT]],
-];
-const listed = new Set(CATS.flatMap(c => c[1]));
-const leftovers = MATS.filter(k => !listed.has(k));
-if (leftovers.length) CATS.push(['other', leftovers]);
+const CAT_ORDER = ['tool','powder','solid','liquid','energy','source','life'];
+const CATS = CAT_ORDER.map(name => [name, MATS.filter(k => MAT[k].cat === name)]).filter(([, ids]) => ids.length);
+
 
 function addButton(k){
   const m = MAT[k];
@@ -3333,7 +3212,7 @@ function liveCare(){                                 // keeps a long stream from
 }
 
 const tally = { born: 0, eaten: 0, starved: 0 };               // ticks of acid weather left, and the dawn chorus
-const MIGRANTS = [LIFE, FISH, BIRD, WORM, SPIDER, FROG, SNAIL, BAT, BEE, ANT, CRAB, OCTOPUS, HERON, GULL, HUMAN, DEER, TERMITE];
+const MIGRANTS = MATS.filter(k => MAT[k].migrant);
 const IS_CREATURE = new Set(MIGRANTS);
 const DISASTERS = [
   ['meteor', () => {

@@ -20,11 +20,11 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 
 | I want to change… | Start at | Search for |
 |---|---|---|
-| A material's name / colour / glow / density | its `MAT` row | `[SAND]:` |
-| A material's physics | its tick handler | `tickSteam` |
+| A material's name / colour / glow / density / description | its `MAT` row | `[SAND]:` |
+| A material's physics | its `tick` field / handler | `tickSteam` |
 | The powder or liquid fallback | `tickPowder` / `tickLiquid` | `function tickLiquid` |
-| A creature's behaviour | its tick handler | `tickBird` |
-| Diet, predators, fear | `DIET`, `FEARED`, the per-species `sense()` calls | `const DIET`, `sense(` |
+| A creature's behaviour | its `MAT` row's `tick` | `tickBird` |
+| Diet, predators, fear | the `diet:` field; the derived `DIET`; the per-species `sense()` calls | `diet:`, `sense(` |
 | Weather, storm, seasons | the weather block in `update`, `setWeather` | `setWeather`, `raining` |
 | Rendering, clouds, heat view | `draw`, `drawClouds`, the palette LUT | `function draw` |
 | A UI button or panel | its DOM id and listener | `#clear`, `getElementById('clear')` |
@@ -38,34 +38,34 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Scripting API | `SANDBOX_API` | `SANDBOX_API` |
 | Boot and URL flags | the bottom section | `// § BOOT` |
 
-## Add a material (before the registry refactor)
+## Add a material
 
-1. **ID constant** — append only. The census is `MAT_SLOTS` (256) and the palette is
-   sized by `maxId+1`, so new IDs have room. Never renumber: saves and links store raw IDs.
-2. **`MAT` row** — name, `color`, `glow`, `density`; `liquid:true` for a liquid;
-   `life:n` only for an age-limited material.
-3. **`LIQUID` / `HOT`** — only if liquid / ignitable, and they must agree with the
-   `MAT` flags.
-4. **`step()` branch + `tick<Name>`** for custom physics; otherwise the
-   `tickPowder` / `tickLiquid` fallback.
-5. **`DESC`** text and a **`CATS`** palette category.
-6. **`DIET`** if edible; the hardcoded fire / acid / lightning / egg lists only for
-   the interactions you want.
-7. One **`selfTest`** check and the README material list.
+The registries are one row now (merged 2026-11-22). Append:
 
-Silent failures to watch: a missing `DESC` is a blank tooltip; a missing `CATS`
-entry becomes "other"; a missing `LIQUID` entry falls through to powder.
+1. **ID constant** — in the id block, append only. Saves and links store raw IDs;
+   never renumber. The census and palette size themselves from `MAT_SLOTS` and `maxId+1`.
+2. **`MAT` row** — `[NAME]: {name, color:[r,g,b], glow:'#rrggbb', density:n, cat:'…', desc:'…'}`.
+   Add `liquid:true`, `life:n`, `hot:1`, `diet:[…]`, `migrant:1`, and/or `tick:…` only as needed.
+3. **`tick`** — a handler for custom physics. Use `tick: tickName` when it takes
+   `(x,y,i,dir)`; wrap a `(x,y,dir,i)` handler as `tick:(x,y,i,dir)=>tickOld(x,y,dir,i)`.
+   No tick means the `tickLiquid`/`tickPowder` fallback.
+4. **One `selfTest` check** — the registry checks catch a missing `desc`/`cat`/flag and
+   non-dense IDs.
+
+Do not edit `MATS`, `DESC`, `CATS`, `LIQUID`, `HOT`, `DIET`, `FEARED`, `MIGRANTS`, or
+the `step()` chain: they are all derived from the `MAT` rows.
 
 ## Add a creature
 
-1. **ID + `MAT` row**; do not set `life` unless it is age-limited.
-2. **`MIGRANTS` + `IS_CREATURE`**; **`DIET` / `FEARED`** if it eats or is hunted.
-3. **`tick<Name>` + a `step()` branch after the generic starvation rule.**
-4. The **`sense()` lists** of every species that should see it — those lists are
-   hardcoded per species, not derived from `DIET`.
-5. A **scene / seed spawn** and the autopilot species lists if it should appear on
+1. **ID + `MAT` row** with `migrant:1`, `diet:[…]` if it eats, and `tick:…`.
+2. The **`sense()` lists** of every species that should see it — the one remaining
+   cross-species edit, because predator sight is hardcoded per species.
+3. A **scene / seed spawn** and the autopilot species lists if it should appear on
    its own.
-6. **`DESC`**, **`CATS`**, and one **`selfTest`** check.
+4. One **`selfTest`** check.
+
+The starvation rule runs before the tick table for every creature, so there is no
+branch-order edit and no way to put a creature above it.
 
 ## Add a weather, UI, or audio mode
 
@@ -77,10 +77,8 @@ These are cross-cutting today, not registries: expect ~10–12 sites each (state
 - One shipping file: `index.html`; no build, dependencies, or network; it must run
   from `file://`.
 - Material IDs are append-only; saves, links and number hotkeys persist raw IDs.
-- `hist`/`prevHist` are `MAT_SLOTS` (256); the palette is `maxId+1`; IDs are append-only.
-- The starvation rule stays before every creature branch.
+- `hist`/`prevHist` are `MAT_SLOTS` (256); the palette is `maxId+1`.
+- The starvation rule stays before the tick table.
+- The registries are derived from `MAT`; do not reintroduce parallel tables.
 - `sh scripts/selftest.sh` must print `selftest: all N passed` after every change.
 - `sh scripts/check-map.sh` keeps the anchors unique and this map honest.
-
-After the registry refactor, the "add a material" checklist shrinks to one `MAT` row
-plus one test; update this file then.

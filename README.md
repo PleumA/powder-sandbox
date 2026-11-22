@@ -89,6 +89,6 @@ The world carries its own test suite:
 
 ## Notes
 
-- One file, ~291 KB, zero dependencies, zero network requests.
+- One file, ~290 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
