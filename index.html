@@ -15,10 +15,10 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--ink);color:var(--txt);
-    font:13px/1.45 var(--sans);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
+    font:13px/1.45 var(--sans);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation}
   #stage{position:fixed;inset:0}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair}
-  #c{transform-origin:50% 50%}
+  #c{transform-origin:50% 50%;touch-action:none}
 
   /* readings: an instrument margin, not a card */
   #hud{position:fixed;left:0;top:0;z-index:5;max-width:min(430px,calc(100vw - 210px));
@@ -449,7 +449,7 @@ const MAT = {
   [DEER]: {name:'Deer', color:[176,132,92], glow:'#b0845c', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, REED, MOSS, FRUIT, SEED], tick:tickDeer, desc:'grazes the green things and bolts from people'},
   [COAL]: {name:'Coal', color:[44,44,50], glow:'#2c2c32', density:3, cat:'solid', desc:'a dark lump that smoulders far longer than wood'},
   [FROST]: {name:'Frost', color:[196,232,255], glow:'#c4e8ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickFrost(x,y,dir,i), desc:'cold dust: chills the water it touches to ice, melts near heat'},
-  [TERMITE]: {name:'Termites', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
+  [TERMITE]: {name:'Termites', color:[184,144,98], glow:'#b89062', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
   [OCTOPUS]: {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2, migrant:1, cat:'life', diet:[CRAB, FISH, SNAIL, WORM], tick:tickOctopus, desc:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes'},
   [INK]: {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickInk(x,y,dir,i), desc:'a dark cloud that spreads through water and thins away'},
 };
@@ -462,6 +462,7 @@ const LIQUID = {};
 for (const k of MATS) if (MAT[k].liquid) LIQUID[k] = 1;
 // who eats whom: one table drives predation, fear and breeding
 const STARVE = 900;                                  // ticks a creature can go without a meal
+const REED_BURN = 25, COAL_BURN = 240;               // how long a catching reed / coal fire lives
 const DIET = {};
 for (const k of MATS) if (MAT[k].diet) DIET[k] = MAT[k].diet;
 const FEARED = {};                                   // prey -> its predators
@@ -503,7 +504,7 @@ function resize(){
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
   const oldGrid = grid, oldLife = life, oldFacing = facing, oldHunger = hunger, oldHeat = heat;
-  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir;
+  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldStars = stars;
   W = nW; H = nH;
   cvs.width = W; cvs.height = H;
   cvs.style.width = cw+'px'; cvs.style.height = ch+'px';
@@ -517,8 +518,8 @@ function resize(){
   alarmDir = new Int8Array(W*H);  // which way the warning is running
   scent = new Uint32Array(W*H);   // when an ant last walked here
   home = new Int16Array(W*H);     // where a heron was hatched
-  stars = new Uint8Array(W*H);
-  for (let i=0;i<stars.length;i++) stars[i] = Math.random() < 0.0018 ? 1 + ((Math.random()*2)|0) : 0;
+  stars = new Uint8Array(W*H);                   // a resize keeps the sky; only the first call rolls it
+  if (!hadWorld) for (let i=0;i<stars.length;i++) stars[i] = Math.random() < 0.0018 ? 1 + ((Math.random()*2)|0) : 0;
   facing = new Int8Array(W*H);   // which way each bug is walking
   img = ctx.createImageData(W, H);
   if (hadWorld){
@@ -536,6 +537,7 @@ function resize(){
       scent.set(oldScent.subarray(src, src + cw2), dst);
       alarmT.set(oldAlarmT.subarray(src, src + cw2), dst);
       alarmDir.set(oldAlarmDir.subarray(src, src + cw2), dst);
+      stars.set(oldStars.subarray(src, src + cw2), dst);
     }
     reindexRows();
   } else {
@@ -631,7 +633,8 @@ function update(){
     flash = Math.max(flash, 0.18);
   }
   if (!testing && !weatherOff && Math.sin(sun) < -0.35 && Math.random() < 0.05){   // dusk: a few fireflies come out
-    set((Math.random()*W)|0, (Math.random()*H*0.6)|0, FIREFLY);
+    const fx = (Math.random()*W)|0, fy = (Math.random()*H*0.6)|0;
+    if (grid[idx(fx,fy)] === EMPTY) set(fx,fy,FIREFLY);                            // never punch a hole in terrain
   }
   if (storm && !weatherOff && Math.random() < 0.05) wind = Math.max(-0.35, Math.min(0.35, wind + (Math.random()-0.5)*0.12));
   if (gust > 0){ gust--; wind = 0.35 * gustDir;      // a gust pins the wind until it spends itself
@@ -658,7 +661,10 @@ function update(){
     const missing = MIGRANTS.filter(sp => !seen.has(sp));
     if (missing.length){
       const sp = missing[(Math.random()*missing.length)|0];
-      for (let k=0;k<5;k++) set((Math.random()*W)|0, ((Math.random()*H*0.7)|0), sp);
+      for (let k=0;k<5;k++){
+        const mx = (Math.random()*W)|0, my = (Math.random()*H*0.7)|0;
+        if (grid[idx(mx,my)] === EMPTY) set(mx,my,sp);                             // arrivals land in open air
+      }
       logEvent('\u21bb ' + MAT[sp].name + ' moved back in');
     }
   }
@@ -844,7 +850,6 @@ function tickLiquid(x,y,dir,v){
   }
   if (v === WATER && Math.random() < 0.10 && mudHere(x,y)) return true;
   if (v === WATER && Math.random() < 0.6 && reedHere(x,y)) return true;   // reeds drag at the current
-  const d = MAT[v].density;
   // fall / sink through lighter stuff
   if (tryMove(x,y,x,y+1,v) || tryMove(x,y,x+dir,y+1,v) || tryMove(x,y,x-dir,y+1,v)) return true;
   // spread sideways
@@ -866,6 +871,10 @@ function tryMove(x,y,tx,ty,v){
   return false;
 }
 
+// shared neighbour deltas: the hot loops must not allocate a fresh list per cell per tick
+const NB4 = [[0,-1],[-1,0],[1,0],[0,1]];            // up, left, right, down
+const NB4_ACID = [[0,1],[0,-1],[-1,0],[1,0]];       // acid bites downward first
+
 // place mat in the first empty neighbour; never overwrite the caller
 function settleBeside(x,y,mat){
   if (!MAT[mat]) return false;
@@ -886,8 +895,8 @@ function tickFire(x,y,i){
     set(x,y, hearth ? ASH : r < 0.3 ? STEAM : r < 0.55 ? SMOKE : r < 0.78 ? ASH : EMPTY);
     return true;
   }
-  const neighbours = [[x,y-1],[x-1,y],[x+1,y],[x,y+1]];
-  for (const [nx,ny] of neighbours){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const j = idx(nx,ny), t = grid[j];
     if (t === WATER){ set(nx,ny, STEAM); if (Math.random()<0.5) set(x,y, STEAM); return true; }
@@ -897,9 +906,9 @@ function tickFire(x,y,i){
       set(nx,ny, FIRE);
     }
     if (t === REED && (Math.sin(season) < -0.45 || Math.random() < 0.05)){   // dry straw catches, damp straw resists
-      set(nx,ny, FIRE); life[j] = 25;
+      set(nx,ny, FIRE); life[j] = REED_BURN;
     }
-    if (t === COAL){ set(nx,ny, FIRE); life[j] = 240; }            // coal smoulders four times as long
+    if (t === COAL){ set(nx,ny, FIRE); life[j] = COAL_BURN; }      // coal smoulders four times as long
     // (fire does not ignite empty air — otherwise a single spark breeds faster than it burns out)
   }
   // flicker upward
@@ -921,8 +930,8 @@ function tickSteam(x,y,i){
 }
 
 function tickAcid(x,y,dir,i){
-  const neighbours = [[x,y+1],[x,y-1],[x-1,y],[x+1,y]];
-  for (const [nx,ny] of neighbours){
+  for (const [dx,dy] of NB4_ACID){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t && t !== ACID && t !== STONE && t !== EMPTY){
@@ -949,15 +958,16 @@ function airborne(x,y){ return y + 1 < H && grid[idx(x,y+1)] === EMPTY; }
 function tickLife(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  const nb = [[x,y-1],[x-1,y],[x+1,y],[x,y+1]];
 
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
   }
 
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (inB(nx,ny) && grid[idx(nx,ny)] === WEB && Math.random() < 0.5) return true;   // tangled
   }
   eatAround(x, y, LIFE);
@@ -1008,10 +1018,10 @@ function swim(x,y,tx,ty){
 function tickFish(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  const nb = [[x,y-1],[x-1,y],[x+1,y],[x,y+1]];
 
   let wet = false;
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t === FIRE || t === LAVA){ set(x,y, STEAM); return true; }
@@ -1155,7 +1165,7 @@ function fulgurite(cx,cy){
 // lightning: a bolt walks down from the sky until it hits something
 function strike(){
   let x = (Math.random()*W)|0;
-  outer: for (let y=H-1; y>=0; y--){                 // aim for the nearest iron first
+  outer: for (let y=0; y<H; y++){                    // aim for the nearest iron first (highest, closest to the sky)
     for (let x2=0; x2<W; x2++){
       if (grid[y*W + x2] === IRON){ x = x2; heat[y*W + x2] = 3; break outer; }
     }
@@ -1279,9 +1289,9 @@ function crawl(x,y,tx,ty){
 function tickSpider(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  const nb = [[x,y-1],[x-1,y],[x+1,y],[x,y+1]];
 
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
@@ -1314,15 +1324,16 @@ function tickSpider(x,y,i){
 function tickFrog(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  const nb = [[x,y-1],[x-1,y],[x+1,y],[x,y+1]];
 
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
   }
 
-  for (const [nx,ny] of nb){
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
     if (t === LIFE || t === FISH){ set(nx,ny, EMPTY); hunger[i] = 0; break; }
@@ -1776,7 +1787,6 @@ function tickDeer(x,y,i){
     const kin = sense(x,y,DEER,8);                                     // once the scare passes, back to the herd
     if (kin && hop(x,y,x + kin[0], y + kin[1])) return true;
   }
-  if (get(x,y+1) === EMPTY && hop(x,y,x,y+1)) return true;               // get down to the grass
   const green = sense(x,y,PLANT,5) || sense(x,y,FLOWER,5);              // they drift toward the greener patch
   if (green && hop(x,y,x + green[0], y + green[1])) return true;
   const herd = crowd(x,y,DEER,3);                                       // deer keep together
@@ -1803,7 +1813,7 @@ function tickHeron(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
   if (age > 4000 && Math.random() < 0.01){ set(x,y, EMPTY); return true; }
-  for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y]]){
+  for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
     if (inB(nx,ny)){
       const t = grid[idx(nx,ny)];
       if (t === FIRE || t === LAVA){ set(x,y, EMPTY); return true; }
@@ -2195,12 +2205,13 @@ function tickWood(x,y,i){
   return false;
 }
 
-// fruit rolls, and a fallen one can take root
+// fruit rolls, and a fallen one can take root — but only on real soil, as a seed does
+const isSoil = v => v === SAND || v === MUD || v === COMPOST || v === ASH || v === ANTHILL;
 function tickFruit(x,y,dir,i){
   const age = life[i] = Math.min(65535, life[i] + 1);
   if (age > 200){
     const below = get(x, y+1);
-    if (below !== EMPTY && below !== WATER && Math.random() < 0.004){ set(x,y, TREE); return true; }
+    if (isSoil(below) && Math.random() < 0.004){ set(x,y, TREE); return true; }
   }
   return tickPowder(x,y,dir,FRUIT);
 }
@@ -2236,7 +2247,7 @@ function tickSeed(x,y,dir,i){
       if (inB(nx,ny) && grid[idx(nx,ny)] === WATER) wet = true;
     }
     const below = get(x, y+1);
-    const onSoil = below === SAND || below === MUD || below === COMPOST || below === ASH || below === ANTHILL;   // real ground only: no trees on planks
+    const onSoil = isSoil(below);   // real ground only: no trees on planks
     const fertile = below === COMPOST || below === ASH;      // burnt or composted ground takes seed fastest
     if (onSoil && Math.random() < (fertile ? 0.04 : wet ? 0.015 : 0.006)){ set(x,y, TREE); return true; }   // a sapling
     if (!onSoil && wet && Math.random() < (reedHere(x,y) ? 0.12 : 0.05)){ set(x,y, REED); return true; }   // reeds in the shallows
@@ -2433,12 +2444,12 @@ let lastCount = 0, lastBugs = 0;
 const hist = new Uint32Array(MAT_SLOTS);
 const prevHist = new Uint32Array(MAT_SLOTS);
 
-function paintAt(cx, cy, v = current){
-  paintCircle(cx, cy, v);
-  if (mirror) paintCircle(W - 1 - cx, cy, v);
+function paintAt(cx, cy, v = current, rad = brush){
+  paintCircle(cx, cy, v, rad);
+  if (mirror) paintCircle(W - 1 - cx, cy, v, rad);
 }
-function paintCircle(cx, cy, v){
-  const r = brush;
+function paintCircle(cx, cy, v, rad = brush){
+  const r = Math.max(0, Math.min(64, rad | 0));
   const x0 = Math.floor(cx), y0 = Math.floor(cy);
   for (let dy=-r; dy<=r; dy++) for (let dx=-r; dx<=r; dx++){
     if (dx*dx + dy*dy > r*r) continue;
@@ -2470,7 +2481,7 @@ function floodFill(x0, y0, v){
   if (target === v) return;
   const stack = [idx(x0, y0)];
   let guard = 0;
-  while (stack.length && guard++ < 200000){
+  while (stack.length && guard++ < grid.length * 4 + 1){   // the exact worst case: every cell, four pushes each
     const i = stack.pop();
     if (grid[i] !== target) continue;
     grid[i] = v;
@@ -2502,8 +2513,8 @@ cvs.addEventListener('pointerdown', e => {
     if (inB(cx, cy)) select(grid[idx(Math.floor(cx), Math.floor(cy))]);
     return;
   }
-  if (fillMode && e.button === 0){ floodFill(Math.floor(cx), Math.floor(cy), current); return; }
   snapshot();                                     // one undo step per stroke
+  if (fillMode && e.button === 0){ floodFill(Math.floor(cx), Math.floor(cy), current); return; }
   const st = { last: null, erasing: e.button === 2 };
   pointers.set(e.pointerId, st);
   cvs.setPointerCapture(e.pointerId);
@@ -2674,18 +2685,27 @@ document.getElementById('clear').addEventListener('click', () => {
 });
 
 function quake(){
+  snapshot();                                      // a shift is undoable, like every other world change
   const tmp = new Uint8Array(W), tmpLife = new Uint16Array(W);
+  const tmpHunger = new Uint16Array(W), tmpFacing = new Int8Array(W), tmpHome = new Int16Array(W);
   for (let y=0; y<H; y++){
     const d = ((Math.random()*5)|0) - 2;           // each row slips a little
     if (!d) continue;
     tmp.set(grid.subarray(y*W, y*W + W));
     tmpLife.set(life.subarray(y*W, y*W + W));
+    tmpHunger.set(hunger.subarray(y*W, y*W + W));
+    tmpFacing.set(facing.subarray(y*W, y*W + W));
+    tmpHome.set(home.subarray(y*W, y*W + W));
     for (let x=0; x<W; x++){
       const sx = x - d, ok = sx >= 0 && sx < W;
       grid[y*W + x] = ok ? tmp[sx] : EMPTY;
       life[y*W + x] = ok ? tmpLife[sx] : 0;
+      hunger[y*W + x] = ok ? tmpHunger[sx] : 0;     // a moved creature keeps its own state
+      facing[y*W + x] = ok ? tmpFacing[sx] : 0;
+      home[y*W + x] = ok ? tmpHome[sx] : 0;
     }
   }
+  alarmT.fill(0); alarmDir.fill(0); scent.fill(0); // transient fields do not survive a shift
   reindexRows();
   flash = 0.5;
   draw();
@@ -2878,6 +2898,7 @@ function playlistTick(){
   playlistIx = (playlistIx + 1) % PLAYLIST.length;
   fadeEl.classList.add('on');
   setTimeout(() => {
+    if (!playlistOn){ fadeEl.classList.remove('on'); playlistFading = false; return; }   // switched off mid-fade
     loadScene(PLAYLIST[playlistIx]);
     fadeEl.classList.remove('on');
     playlistFading = false;
@@ -2920,12 +2941,13 @@ function settleCamp(){                               // a household, a hearth, a
     draw();
     return;
   }
-  const cx2 = 8 + ((Math.random()*(W-16))|0), cy2 = Math.min(H - 3, Math.round(H*0.7 + Math.random()*H*0.25));
-  set(cx2, cy2 + 1, STONE);                          // the hearth stone
-  set(cx2, cy2, HUMAN);
-  set(Math.min(W-2, cx2 + 1), cy2, HUMAN);
-  for (let k=0;k<3;k++) set(Math.min(W-2, cx2 - 1 + k*2), cy2 + 2, WOOD);
-  for (let k=0;k<2;k++) set(Math.min(W-2, cx2 + 3 + k*2), cy2 + 1, DEER);
+  const cx2 = 8 + ((Math.random()*(W-16))|0), cy2 = autoSurface(cx2) - 1;
+  const place = (x,y,v) => { if (inB(x,y) && grid[idx(x,y)] === EMPTY) set(x,y,v); };   // never stamp through terrain
+  place(cx2, cy2 + 1, STONE);                        // the hearth stone
+  place(cx2, cy2, HUMAN);
+  place(Math.min(W-2, cx2 + 1), cy2, HUMAN);
+  for (let k=0;k<3;k++) place(Math.min(W-2, cx2 - 1 + k*2), cy2 + 2, WOOD);
+  for (let k=0;k<2;k++) place(Math.min(W-2, cx2 + 3 + k*2), cy2 + 1, DEER);
   draw();
 }
 function driveHerd(){                                // a herd runs through the settled strip
@@ -2934,7 +2956,8 @@ function driveHerd(){                                // a herd runs through the 
   const cx3 = homes.length ? homes[(Math.random()*homes.length)|0] % W : (W/2)|0;
   for (let k=0;k<5;k++){
     const x = Math.max(1, Math.min(W-2, cx3 - 8 + k*4));
-    set(x, Math.round(H*0.6 + Math.random()*H*0.3), DEER);
+    const y = autoSurface(x) - 1;
+    if (grid[idx(x,y)] === EMPTY) set(x,y,DEER);
   }
   draw();
 }
@@ -3127,13 +3150,13 @@ function autopilot(t){
     return;
   }
   if (autoHideAt && t > autoHideAt){ cursor.on = false; autoHideAt = 0; }
+  if (activeExp) return;                              // let an experiment finish undisturbed
   if (maybeNewScene(t)) return;
   if (t - (autopilot.careAt || 0) > 90000){          // live maintenance: keep the world alive, never empty
     autopilot.careAt = t;
     liveCare();
     return;
   }
-  if (activeExp) return;                              // let an experiment finish undisturbed
   if (autoQueue.length){                              // a project is in progress
     if (t < autoQueue[0].at) return;
     autoQueue.shift().run(t);
@@ -3205,7 +3228,7 @@ function liveCare(){                                 // keeps a long stream from
     }
     draw();
   }
-  if ((hist[WATER] || 0) < W * 0.01) running(true);   // a dry world gets a little rain
+  if ((hist[WATER] || 0) < W * H * 0.01) running(true);   // a dry world gets a little rain
   if (lastCount > W*H*0.74 && Math.random() < 0.5){
     const names = PLAYLIST.filter(n => n !== sceneEl.value);
     loadScene(names[(Math.random()*names.length)|0]);
@@ -3353,6 +3376,7 @@ document.getElementById('rec').addEventListener('click', () => {
 
 document.getElementById('link').addEventListener('click', () => {
   const url = sceneUrl();
+  if (url.length > 32000){ toastMsg('this world is too big for a link — use Keep or a screenshot'); return; }   // past shared-URL budgets
   let inBar = false;
   try { history.replaceState(null, '', url); inBar = true; } catch (e) { /* file:// may refuse */ }
   if (navigator.clipboard){
@@ -3391,6 +3415,7 @@ document.getElementById('shot').addEventListener('click', () => {
 function clearAll(){
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
   facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0);   // no stale state
+  activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
 }
 
 // § SCENES — beds, SCENES, experiments, terrain
@@ -3459,7 +3484,7 @@ const SCENES = {
       }
     }
     for (let k=0;k<12;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>3) set(x,t-3,BEE); }
-    for (let k=0;k<6;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-3, FROG); }
+    for (let k=0;k<6;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, (topsHint[x]||H-5)-1, FROG); }
     for (let k=0;k<3;k++){ const x=Math.max(2, Math.min(W-3, cx - r - 2 - k*4)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, HERON); }
     for (let k=0;k<3;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 3 + k*3)); const t=topsHint[x]||H-4; if (t>4) set(x, t-4, GULL); }
     for (let k=0;k<4;k++){ const x=Math.max(2, Math.min(W-3, cx + r + 8 + k*6)); const t=topsHint[x]||H-4; if (t>3) set(x, t-1, DEER); }
@@ -3481,7 +3506,7 @@ const SCENES = {
   },
   beach(){
     clearAll(); topsHint = new Int16Array(W); bed(SAND, 0.18, true);
-    for (let y=H-6;y<H;y++) for (let x=0;x<(W*0.45)|0;x++) if (get(x,y) !== SAND) set(x,y,WATER);
+    for (let y=H-6;y<H;y++) for (let x=0;x<(W*0.45)|0;x++) set(x,y,WATER);   // carve the sea, as forest does
     for (let k=0;k<5;k++){                                  // palms: a wooden trunk with a crown
       const x = (W*0.55 + Math.random()*W*0.35)|0, base = topsHint[x] || H-4;
       for (let y=base-1;y>base-9 && y>1;y--) set(x,y,WOOD);
@@ -3545,8 +3570,8 @@ const SCENES = {
     }
     for (let k=0;k<30;k++){ const x=(Math.random()*W)|0; set(x, tops[x]-1, CORAL); }   // a reef on the rock
     for (let k=0;k<26;k++) set((Math.random()*W)|0, tops[(Math.random()*W)|0] - 1 - ((Math.random()*8)|0), FISH);
-    for (let k=0;k<8;k++) set((Math.random()*W)|0, H-3, CRAB);
-    for (let k=0;k<3;k++) set((Math.random()*W)|0, H-6-((Math.random()*4)|0), OCTOPUS);
+    for (let k=0;k<8;k++){ const x=(Math.random()*W)|0; set(x, tops[x]-1, CRAB); }
+    for (let k=0;k<3;k++){ const x=(Math.random()*W)|0; set(x, tops[x]-2-((Math.random()*3)|0), OCTOPUS); }
     for (let k=0;k<5;k++) set((Math.random()*W)|0, (Math.random()*H*0.5)|0, FROG);
     for (let k=0;k<3;k++) set(2 + k*3, H-2, SPRING);                  // springs feed the sea
     for (let k=0;k<2;k++) set((Math.random()*W)|0, 2, BIRD);
@@ -3606,14 +3631,19 @@ const SCENES = {
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
       if (t > 3) set(x, t-1, Math.random() < 0.4 ? WOOD : Math.random() < 0.5 ? FUNGUS : COMPOST);
     }
-    for (let k=0;k<10;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, H-2-((Math.random()*3)|0), FROG); }
+    for (let k=0;k<10;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, (topsHint[x]||H-4)-1, FROG); }
     for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-1,SNAIL); }
     for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-2,WORM); }
     for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-1,LIFE); }
     for (let k=0;k<3;k++){ const x=Math.max(2,Math.min(W-3, cx-r-4+k*4)); const t=topsHint[x]||H-4; if (t>3) set(x,t-1,HERON); }
     for (let k=0;k<3;k++){ const x=Math.max(2,Math.min(W-3, cx+r+3+k*4)); const t=topsHint[x]||H-4; if (t>3) set(x,t-1,DEER); }
     for (let k=0;k<14;k++) set((Math.random()*W)|0, (Math.random()*H*0.35)|0, FIREFLY);
-    for (let k=0;k<8;k++) set(cx-r+((Math.random()*(2*r))|0), H-1-((Math.random()*2)|0), FISH);
+    for (let k=0;k<8;k++){                                          // fish in the basin water, not the mud
+      const x = cx-r+((Math.random()*(2*r))|0), top = topsHint[x] || H-5;
+      for (let y=top; y<Math.min(H, top+8); y++){
+        if (grid[idx(x,y)] === WATER){ set(x,y,FISH); break; }
+      }
+    }
   },
   exp_heat(){
     clearAll();
@@ -3680,12 +3710,12 @@ function loadScene(name){
   if (!f) return false;
   snapshot(); f();
   draw();
-  if (EXPERIMENTS[name]){
-    activeExp = name; expDone = false; expBase = {};
-    for (const m of [ICE, SAND, STONE, WOOD, WATER]) expBase[m] = hist[m];
-  } else activeExp = null;
   for (let i = 0; i < 24; i++) update();   // settle the new scene before the first frame
   draw();
+  if (EXPERIMENTS[name]){
+    activeExp = name; expDone = false; expBase = {};
+    for (const m of [ICE, SAND, STONE, WOOD, WATER]) expBase[m] = hist[m];   // baseline after the settle, not before
+  } else activeExp = null;
   sceneEl.value = name;
   autoSceneAt = performance.now();
   autoStroke = null; autoHideAt = 0; cursor.on = false;
@@ -4206,10 +4236,10 @@ function applyPrefs(p){
 }
 
 addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')){ undo(); return; }
-  if (e.ctrlKey || e.metaKey || e.altKey) return;    // leave other browser shortcuts alone
   if (!helpEl.hidden && e.key !== 'Escape' && !(e.key === '?' || (e.key === '/' && e.shiftKey))) return;   // the help dialog is modal
   if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;   // let the filter and sliders type
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')){ undo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;    // leave other browser shortcuts alone
   if (e.key === '/'){ e.preventDefault(); if (toolsEl.hidden){ toolsEl.hidden = false; syncTools(); } filterEl.focus(); return; }   // jump to the palette filter
   if (e.code === 'Space' && e.target && /^(BUTTON|A)$/.test(e.target.tagName)) return;   // let the control activate
   if (e.code === 'Space'){ e.preventDefault(); togglePause(); return; }
@@ -4228,6 +4258,7 @@ addEventListener('keydown', e => {
   if (e.shiftKey && (e.key === 'i' || e.key === 'I')){ select(ICE); return; }
   if (!e.shiftKey && (e.key === 'i' || e.key === 'I')){
     censusOn = !censusOn;
+    if (censusOn) prevHist.set(hist);               // compare against the counts at the moment of enabling
     document.getElementById('census').classList.toggle('on', censusOn);
     return;
   }
@@ -4503,6 +4534,8 @@ function mulberry32(a){
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
   const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveR=rowLive, saveSc=scent, saveHm=home;
+  const saveHeat=heat.slice(), saveStars=stars, saveTally={...tally}, saveTick=update.t|0;   // the suite mutates all of these
+  const saveWO=weatherOff; weatherOff=false;   // the suite needs rain; do not call setWeather (it would save the pref)
   moved=new Uint8Array(1600); facing=new Int8Array(1600); hunger=new Uint16Array(1600);
   alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); rowLive=new Uint16Array(64);
   scent=new Uint32Array(1600); home=new Int16Array(1600);
@@ -4535,6 +4568,8 @@ function selfTest(){
   const fillInterior = (cx,cy,v) => {
     for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++) set(x,y,v);
   };
+
+  try {   // a thrown assertion must never leave the app in test mode
 
 // § TEST: MATERIAL REGISTRY — ids, MAT/DESC/CATS, flags
 const regMax = Math.max(...MATS);
@@ -5218,7 +5253,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   season = -2;                                                // dry straw catches at a touch
   moved.fill(0);
   tickFire(8,8,idx(8,8));
-  ok('reeds burn out fast', grid[idx(9,8)] === FIRE && life[idx(9,8)] === 25);
+  ok('reeds burn out fast', grid[idx(9,8)] === FIRE && life[idx(9,8)] === REED_BURN);
   season = 0;
 
   // reeds grow up out of the shallows
@@ -5705,7 +5740,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   // a person takes the deer over the bug beside it
   grid.fill(0); facing.fill(0); alarmT.fill(0);
   for (let x=5;x<35;x++) set(x,30,GLASS);
-  set(19,29,LIFE); set(21,29,DEER); set(20,29,HUMAN);
+  set(19,29,LIFE); set(21,29,DEER); set(20,29,HUMAN); hist[DEER] = 6;
   moved.fill(0);
   tickHuman(20,29,idx(20,29));
   ok('a person takes the deer first', count(DEER) === 0 && count(LIFE) === 1);
@@ -5909,8 +5944,8 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
 
   // ice creeps at night, holds by day, and melts in the high sun
   const iceCreep = night => {
-    grid.fill(0); facing.fill(0); heat.fill(0);
-    set(12,12,ICE); set(13,12,WATER);
+    chamber(13,12);
+    fillInterior(13,12,WATER); set(12,12,ICE);   // the ticked water cell is walled in, so it stays put
     sun = night ? 4.7 : 0.5;
     let froze = false;
     for (let k=0;k<900 && !froze;k++){ moved.fill(0); tickLiquid(13,12,1,WATER); froze = grid[idx(13,12)] === ICE; }
@@ -5929,8 +5964,8 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('a frozen reed snaps when the ice thaws', grid[idx(12,12)] === WATER && grid[idx(13,12)] === PLANT);
 
   // a snowfield chills the water beside it, and night rain falls as snow
-  grid.fill(0); facing.fill(0); heat.fill(0);
-  set(12,12,SNOW); set(13,12,WATER); sun = 4.7;
+  chamber(12,12);
+  fillInterior(12,12,WATER); set(12,12,SNOW); sun = 4.7;   // snow floats on water, so it stays on the ticked cell
   let frozen = false;
   for (let k=0;k<600 && !frozen;k++){ moved.fill(0); tickSnow(12,12,1,idx(12,12)); frozen = grid[idx(13,12)] === ICE; }
   sun = 0.5;
@@ -5943,7 +5978,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   // a person hunts, sows, builds and lights a fire
   grid.fill(0); facing.fill(0); alarmT.fill(0);
   for (let x=5;x<35;x++) grid[idx(x,30)] = STONE;
-  set(20,29,HUMAN); set(21,29,DEER);
+  set(20,29,HUMAN); set(21,29,DEER); hist[DEER] = 6;   // the test supplies its own census, not an earlier test's
   moved.fill(0); tickHuman(20,29,idx(20,29));
   ok('people hunt', count(DEER) === 0 && count(BONE) === 1);
 
@@ -5969,7 +6004,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   grid.fill(0); heat.fill(0);
   set(20,29,COAL); set(19,29,FIRE); life[idx(19,29)] = 500;
   moved.fill(0); tickFire(19,29,idx(19,29));
-  ok('coal burns long', grid[idx(20,29)] === FIRE && life[idx(20,29)] === 240);
+  ok('coal burns long', grid[idx(20,29)] === FIRE && life[idx(20,29)] === COAL_BURN);
 
   // frost chills the water it touches
   grid.fill(0); facing.fill(0); heat.fill(0);
@@ -6264,10 +6299,14 @@ cvsEl3.blur(); cursor.on = false; chamber(20,20);
   ok('meta+delete does not erase', grid[idx(20,20)] === STONE);
   current = pickWas2; kb.x = kbWas2.x; kb.y = kbWas2.y; cursor.on = false; chamber(20,20);
 
-  Math.random = realRandom;
-  testing = false;
-  W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
-  moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm;
+  } finally {
+    Math.random = realRandom;
+    testing = false;
+    W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
+    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm;
+    heat=saveHeat; stars=saveStars; Object.assign(tally, saveTally); update.t=saveTick;
+    weatherOff=saveWO;
+  }
   const msg = errs.length ? `${errs.length} FAILED: ${errs.join(', ')}` : `all ${total} passed`;
   console[errs.length ? 'error' : 'log']('selftest:', msg);
   document.getElementById('hud').insertAdjacentHTML('beforeend',
@@ -6287,7 +6326,11 @@ function matId(m){
 }
 const SANDBOX_API = {
   version: 1,
-  paint(x, y, r, m){ paintAt(x, y, matId(m) === undefined ? current : matId(m)); draw(); },  // holds a brush
+  paint(x, y, r, m){
+    const v = m === undefined ? current : matId(m);
+    if (v === undefined) return;                  // a typo'd material is a no-op, like put and fill
+    paintAt(x, y, v, r); draw();
+  },  // holds a brush
   put(x, y, m){ const v = matId(m); if (v !== undefined) set(x|0, y|0, v); draw(); },
   fill(x, y, m){ const v = matId(m); if (v !== undefined) floodFill(x|0, y|0, v); },
   get(x, y){ const v = inB(x|0,y|0) ? grid[idx(x|0,y|0)] : EMPTY; return v ? MAT[v].name : 'Empty'; },
@@ -6347,8 +6390,8 @@ if (/[?&]broadcast\b/.test(location.search)) setCast(true);   // ?broadcast: cap
 if (/[?&]cine\b/.test(location.search)) setCine(true);        // ?cine: slow camera drift
 if (/[?&]playlist\b/.test(location.search)) setPlaylist(true);// ?playlist: rotate scenes
 loadPrefs();
+if (/[?&]calm\b/.test(location.search)) setCalm(true);        // ?calm: applies for this visit, does not persist
 booting = false;
-if (/[?&]calm\b/.test(location.search)) setCalm(true);        // ?calm: no flashes, shake or flicker
 syncVolRows();
 if (location.hash && location.hash.length > 1){
   try {
@@ -6356,7 +6399,7 @@ if (location.hash && location.hash.length > 1){
     if (/^\d+x\d+\|/.test(hash)) restoreScene(hash, 'scene link');
   } catch (e) { /* not our scene */ }
 }
-if (location.search.includes('selftest')) selfTest();
+if (/[?&]selftest\b/.test(location.search)) selfTest();
 requestAnimationFrame(frame);
 </script>
 </body>
