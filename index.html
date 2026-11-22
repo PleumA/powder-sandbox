@@ -6153,10 +6153,10 @@ function selfTest(){
   SCENES.ecosystem();
   const px = (W*0.42)|0, ptop = topsHint[px] || H-5;
   let deep = 0;
-  for (let y=ptop; y<H; y++){
+  for (let y=ptop+1; y<H; y++){
     const v = grid[idx(px,y)];
-    if (v !== WATER && v !== FISH) break;
-    deep++;
+    if (v === STONE) break;
+    if (v === WATER) deep++;
   }
   ok('the ecosystem pond is deeper than one cell', deep > 1);
   let wetFish = 0, wetSpring = 0;
