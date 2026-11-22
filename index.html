@@ -312,6 +312,16 @@
 </div>
 
 <script>
+/* ---------- map ----------
+   Sections: grep -n '^// §' index.html  ·  Features: sh scripts/where.sh <word>
+   CONFIG  STATE  GRID  PHYSICS  RENDER  INPUT  PALETTE  PALETTE: DRAWER
+   CONTROLS  PRESENTATION  AUTOPILOT  PERSISTENCE  SCENES  WEATHER  AUDIO
+   MUSIC  HELP  CHRONICLE  GOALS  LOOP  SELFTEST  API  BOOT
+   Tests: PHYSICS  ECOLOGY  WEATHER  PEOPLE & HERDS  AUDIO  PERSISTENCE
+          SCENES  UI & INPUT  STATE RESTORE
+   Feature map: docs/FEATURE-MAP.md
+*/
+// § CONFIG — material ids, MAT properties, diet
 /* ---------- config ---------- */
 const EMPTY=0, SAND=1, WATER=2, OIL=3, FIRE=4, STEAM=5, ACID=6, PLANT=7, LAVA=8, STONE=9, LIFE=10,
       WOOD=11, ICE=12, GLASS=13, FISH=14, BIRD=15, TNT=16, SMOKE=17, MERCURY=18, WORM=19, SALT=20;
@@ -455,6 +465,7 @@ LIQUID[BRINE] = 1;
 LIQUID[HONEY] = 1;
 LIQUID[INK] = 1;
 
+// § STATE — world arrays and scalar state
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
@@ -472,6 +483,7 @@ let brush = 6;
 let paused = false, stepOnce = false;
 let dirty = true;      // something changed since the last draw (a paused world redraws only then)
 
+// § GRID — resize, set/swap, occupancy
 /* ---------- grid ---------- */
 function resize(){
   const pal = document.getElementById('palette');
@@ -595,6 +607,7 @@ function swap(a,b){
   moved[b] = 1;
 }
 
+// § PHYSICS — update, heat, step, tick handlers
 /* ---------- physics ---------- */
 function update(){
   let count = 0;
@@ -2310,6 +2323,7 @@ function tickLava(x,y,dir,i){
   return tickLiquid(x,y,dir,LAVA);
 }
 
+// § RENDER — palette LUT, clouds, draw
 /* ---------- render ---------- */
 const palette = new Uint8ClampedArray(MATS.length*3); // precomputed material colours
 for (const k of MATS){ const c = MAT[k].color; palette[k*3]=c[0]; palette[k*3+1]=c[1]; palette[k*3+2]=c[2]; }
@@ -2461,6 +2475,7 @@ function draw(){
   lastBugs = bugs;
 }
 
+// § INPUT — painting, pointer, keyboard cursor
 /* ---------- input ---------- */
 let lastCount = 0, lastBugs = 0;
 const hist = new Uint32Array(64);
@@ -2649,6 +2664,7 @@ const DESC = {
 };
 const selEl = document.getElementById('sel');
 
+// § PALETTE — materials, DESC, CATS, buttons
 /* ---------- palette UI ---------- */
 const paletteEl = document.getElementById('palette');
 const buttons = {};
@@ -2726,6 +2742,7 @@ function select(k){
 }
 select(current);
 
+// § PALETTE: DRAWER — narrow-screen tools
 /* ---------- narrow-screen tools drawer ---------- */
 const toolsEl = document.getElementById('tools');
 const toolsToggleEl = document.getElementById('toolstoggle');
@@ -2745,6 +2762,7 @@ function syncTools(){
 toolsToggleEl.addEventListener('click', () => { toolsEl.hidden = !toolsEl.hidden; syncTools(); });
 syncTools();
 
+// § CONTROLS — buttons, volumes, autoplay
 /* ---------- controls ---------- */
 const brushEl = document.getElementById('brush');
 brushEl.addEventListener('input', () => {
@@ -2793,6 +2811,7 @@ function quake(){
 }
 document.getElementById('quake').addEventListener('click', quake);
 
+// § AUDIO — SFX, volume, noise
 let audio = null, soundOn = false, sfxOut = null, musicOut = null;
 let sfxLevel = 0.8, musicLevel = 0.7;
 function volClamp(v){ return Math.max(0, Math.min(1, v)); }
@@ -2905,6 +2924,7 @@ autoEl.addEventListener('click', () => {
   if (!autoPlay){ autoStroke = null; cursor.on = false; autoQueue.length = 0; clearTimeout(autopilot.rainTimer); }
   autoNext = 0;
 });
+// § PRESENTATION — cast, cine, playlist, calm
 /* ---------- live presentation: broadcast captions, camera drift, scene loop, calm ---------- */
 const castEl = document.getElementById('cast');
 const cineEl = document.getElementById('cine');
@@ -3134,7 +3154,8 @@ function autoPick(pool){                             // spread the palette; do n
   }
   return pool[(Math.random() * pool.length) | 0];
 }
-/* ---------- the autopilot's projects: small, deliberate compositions ---------- */
+// § AUTOPILOT — strokes, plans, live care
+/* ---------- autopilot: strokes, plans, live care ---------- */
 const AUTO_SPECIES_WET = [FISH, FROG, HERON, CRAB, GULL];
 const AUTO_SPECIES_LAND = [DEER, ANT, BIRD, WORM, SNAIL];
 const AUTO_SPECIES_COLD = [DEER, WORM, BIRD];
@@ -3371,6 +3392,7 @@ function garden(){
 }
 document.getElementById('garden').addEventListener('click', garden);
 
+// § PERSISTENCE — undo, pack/unpack, save/share/record
 const undoStack = [];
 function snapshot(){
   try { undoStack.push(pack()); if (undoStack.length > 12) undoStack.shift(); } catch (e) {}
@@ -3488,6 +3510,7 @@ function clearAll(){
   facing.fill(0); hunger.fill(0); alarmT.fill(0); scent.fill(0); home.fill(0);   // no stale state
 }
 
+// § SCENES — beds, SCENES, experiments, terrain
 // a wavy bed of one material covering the given fraction of the height
 function bed(mat, top, jitter){
   let h = (H*top)|0;
@@ -3859,7 +3882,8 @@ rainEl.addEventListener('click', () => {
   rainEl.setAttribute('aria-pressed', rainWanted);
 });
 
-/* ---------- weather off ---------- */
+// § WEATHER — setWeather, storm, prefs
+/* ---------- weather ---------- */
 const weatherEl = document.getElementById('weather');
 function setWeather(on){
   weatherOff = !on;
@@ -3881,6 +3905,7 @@ function savePrefs(){
   catch (e) { /* storage blocked */ }
 }
 
+// § MUSIC — tracks, chords, scheduler, toggles
 /* ---------- procedural lo-fi: twenty tracks, four moods plus jazz, every note is synthesised ---------- */
 const NOTE_IX = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
 function noteHz(name){                             // 'A4' -> 440, 'Bb3' -> 233.08
@@ -4342,6 +4367,7 @@ addEventListener('keydown', e => {
   if (n >= 0 && n <= 9) select(MATS[n]);
 });
 
+// § HELP — buildHelp, food web, story
 /* ---------- help ---------- */
 const helpEl = document.getElementById('help');
 function buildHelp(){
@@ -4411,6 +4437,7 @@ helpEl.addEventListener('keydown', e => {
 document.getElementById('hclose').addEventListener('click', () => toggleHelp(false));
 helpEl.addEventListener('click', e => { if (e.target === helpEl) toggleHelp(false); });
 
+// § CHRONICLE — log, captions, sparkline
 /* ---------- event log ---------- */
 const sparkEl = document.getElementById('spark');
 const sparkCtx = sparkEl && sparkEl.getContext ? sparkEl.getContext('2d') : null;
@@ -4461,6 +4488,7 @@ function logEvent(text){
   showCaption(text);
 }
 
+// § GOALS — predicates and persistence
 /* ---------- little goals ---------- */
 const GOALS = [
   {label:'Glassmaker — 25 glass on the board', hit: h => h[GLASS] >= 25},
@@ -4518,6 +4546,7 @@ function checkGoals(){
   }
 }
 
+// § LOOP — RAF, HUD, goals
 /* ---------- loop ---------- */
 const fpsEl = document.getElementById('fps');
 const countEl = document.getElementById('count');
@@ -4577,6 +4606,7 @@ function frame(t){
 
 addEventListener('resize', () => { clearTimeout(resize._t); resize._t = setTimeout(() => { syncTools(); resize(); }, 120); });
 
+// § SELFTEST — in-page suite (?selftest)
 /* ---------- self-check (?selftest) ---------- */
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
@@ -4613,6 +4643,7 @@ function selfTest(){
     for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++) set(x,y,v);
   };
 
+// § TEST: PHYSICS — materials, heat, movement
   // sand falls to the floor and stacks
   chamber(8,8);
   set(8,7,SAND); run(10);
@@ -4656,6 +4687,7 @@ function selfTest(){
   for (let i=0;i<300 && !grew;i++){ run(1); grew = count(PLANT) > 1; }
   ok('plant grows into water', grew);
 
+// § TEST: ECOLOGY — creatures, food, fear
   // a bug falls to the floor of a chamber
   chamber(26,32);
   set(26,31,LIFE); run(10);
@@ -5301,6 +5333,7 @@ function selfTest(){
   for (let k=0;k<200 && !smothered;k++){ tickAsh(8,8,1,idx(8,8)); smothered = grid[idx(9,8)] !== FIRE; }
   ok('ash smothers a flame', smothered);
 
+// § TEST: WEATHER — seasons, lightning, ash
   // lightning burns in the dry season and hisses out in the wet
   grid.fill(0); facing.fill(0); alarmT.fill(0);
   for (let x=0;x<W;x++) grid[idx(x,30)] = STONE;
@@ -5395,6 +5428,7 @@ function selfTest(){
   update();
   ok('a spooked crab scuttles double-time', grid[idx(22,37)] === CRAB);
 
+// § TEST: PEOPLE & HERDS — camps, hearths, deer
   // a person hauls a load and raises a post
   let picked = false;
   for (let k=0;k<500 && !picked;k++){
@@ -6058,6 +6092,7 @@ function selfTest(){
   ok('the swamp exists', !!SCENES.swamp);
   ok('experiments exist', ['exp_heat','exp_acid','exp_freeze'].every(n => SCENES[n] && EXPERIMENTS[n]));
 
+// § TEST: AUDIO — lo-fi tracks and levels
   // lo-fi tracks: the playlist must stay musical and in range
   ok('lo-fi has 5-30 tracks', TRACKS.length >= 5 && TRACKS.length <= 30);
   ok('lo-fi moods are groups', new Set(TRACKS.map(t => t.group)).size >= 4 &&
@@ -6086,6 +6121,7 @@ function selfTest(){
   ok('h hides all panels', document.body.classList.contains('clean') !== wasClean);
   dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
 
+// § TEST: PERSISTENCE & SECURITY — chronicle, saves, links
   // persisted chronicle text cannot become markup
   const storyWas = chronicleLog;
   chronicleLog = [{ d: 1, t: '</span><b id="pwn">x</b><span>' }];
@@ -6149,6 +6185,7 @@ function selfTest(){
   ok('scene links are absolute',
     typeof sceneUrl === 'function' && sceneUrl().startsWith(location.href.split('#')[0] + '#'));
 
+// § TEST: SCENES — ecosystem pond, fish, spring
   // the ecosystem scene carves its pond and puts the fauna in it
   SCENES.ecosystem();
   const px = (W*0.42)|0, ptop = topsHint[px] || H-5;
@@ -6171,6 +6208,7 @@ function selfTest(){
   ok('ecosystem fish live in the pond', wetFish > 0);
   ok('the ecosystem spring feeds the pond', wetSpring > 0);
 
+// § TEST: UI & INPUT — focus, keys, canvas
   // Space on a focused button is not a global pause
   const testBtn = document.createElement('button');
   document.body.appendChild(testBtn); testBtn.focus();
@@ -6255,6 +6293,7 @@ function selfTest(){
 
   current = matWas2; cursor.on = false; chamber(20,20);
 
+// § TEST: STATE RESTORE — unpack resets aux state
   chamber(20,20); set(20,20,LIFE); hunger[idx(20,20)] = 899;
   const packedCreature = pack();
   chamber(20,20); set(20,20,WATER); hunger[idx(20,20)] = 899;
@@ -6288,6 +6327,7 @@ function selfTest(){
   return !errs.length;
 }
 
+// § API — window.sandbox
 /* ---------- scripting API ---------- */
 function matId(m){
   if (typeof m === 'number') return m;
@@ -6337,6 +6377,7 @@ const SANDBOX_API = {
 
 if (typeof window !== 'undefined') window.sandbox = SANDBOX_API;
 
+// § BOOT — resize, flags, start
 /* ---------- boot ---------- */
 resize();
 (() => {                                            // ?scene=forest picks the world

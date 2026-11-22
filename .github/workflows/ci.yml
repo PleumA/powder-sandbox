@@ -1,0 +1,15 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Map and anchors
+        run: sh scripts/check-map.sh
+      - name: In-page suite
+        run: sh scripts/selftest.sh
