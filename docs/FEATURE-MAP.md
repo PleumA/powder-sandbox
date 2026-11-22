@@ -12,7 +12,7 @@ How to find things:
 `CONTROLS` `PRESENTATION` `AUTOPILOT` `PERSISTENCE` `SCENES` `WEATHER`
 `AUDIO` `MUSIC` `HELP` `CHRONICLE` `GOALS` `LOOP` `SELFTEST` `API` `BOOT`
 
-Test groups inside `SELFTEST`: `TEST: PHYSICS` `TEST: ECOLOGY` `TEST: WEATHER`
+Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: ECOLOGY` `TEST: WEATHER`
 `TEST: PEOPLE & HERDS` `TEST: AUDIO` `TEST: PERSISTENCE & SECURITY`
 `TEST: SCENES` `TEST: UI & INPUT` `TEST: STATE RESTORE`
 
@@ -40,8 +40,8 @@ Test groups inside `SELFTEST`: `TEST: PHYSICS` `TEST: ECOLOGY` `TEST: WEATHER`
 
 ## Add a material (before the registry refactor)
 
-1. **ID constant** — append only. IDs 0–62 are in use; `hist`/`prevHist` are 64 long,
-   so ID 63 is the last safe one. Never renumber: saves and links store raw IDs.
+1. **ID constant** — append only. The census is `MAT_SLOTS` (256) and the palette is
+   sized by `maxId+1`, so new IDs have room. Never renumber: saves and links store raw IDs.
 2. **`MAT` row** — name, `color`, `glow`, `density`; `liquid:true` for a liquid;
    `life:n` only for an age-limited material.
 3. **`LIQUID` / `HOT`** — only if liquid / ignitable, and they must agree with the
@@ -54,8 +54,7 @@ Test groups inside `SELFTEST`: `TEST: PHYSICS` `TEST: ECOLOGY` `TEST: WEATHER`
 7. One **`selfTest`** check and the README material list.
 
 Silent failures to watch: a missing `DESC` is a blank tooltip; a missing `CATS`
-entry becomes "other"; a missing `LIQUID` entry falls through to powder; a material
-past the `hist` cap disappears from census, goals, Help and the API.
+entry becomes "other"; a missing `LIQUID` entry falls through to powder.
 
 ## Add a creature
 
@@ -78,8 +77,7 @@ These are cross-cutting today, not registries: expect ~10–12 sites each (state
 - One shipping file: `index.html`; no build, dependencies, or network; it must run
   from `file://`.
 - Material IDs are append-only; saves, links and number hotkeys persist raw IDs.
-- `hist`/`prevHist` and the palette are sized from the material count/max — raise
-  them before adding ID 63+.
+- `hist`/`prevHist` are `MAT_SLOTS` (256); the palette is `maxId+1`; IDs are append-only.
 - The starvation rule stays before every creature branch.
 - `sh scripts/selftest.sh` must print `selftest: all N passed` after every change.
 - `sh scripts/check-map.sh` keeps the anchors unique and this map honest.
