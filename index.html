@@ -34,6 +34,9 @@
   #hud h1{margin:0 0 8px;font:400 18px/1.2 var(--serif);letter-spacing:.01em;color:var(--txt)}
   #stats{color:var(--dim);font:11px/1.7 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.01em}
   #stats b{color:var(--txt);font-weight:500}
+  #nowplaying{margin-top:6px;color:var(--accent);font:11px/1.5 var(--sans);letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #nowplaying[hidden]{display:none}
   .statsep{display:inline-block;width:1px;height:9px;background:#39454f;margin:0 7px;vertical-align:-1px}
   #sel{margin-top:8px;max-width:320px;color:var(--dim);font-size:12px;line-height:1.5}
   #sel b{color:var(--accent);font-weight:500}
@@ -157,9 +160,10 @@
 
   #toolstoggle{display:none}
 
-  body.clean #hud,body.cast #hud,body.clean #tools,body.cast #tools,body.clean #palette,body.cast #palette,
+  body.clean #hud,body.clean #tools,body.cast #tools,body.clean #palette,body.cast #palette,
   body.clean #hint,body.cast #hint,body.clean #toast,body.cast #toast,
   body.clean #toolstoggle,body.cast #toolstoggle,body.clean #log,body.cast #log{display:none}
+  body.cast #sel,body.cast #sparklabel,body.cast #spark,body.cast #hover,body.cast #census{display:none}
 
   /* live presentation */
   #fade{position:fixed;inset:0;z-index:9;background:#080b0e;opacity:0;pointer-events:none;transition:opacity .8s ease}
@@ -212,6 +216,7 @@
   <div id="hudhead">
     <h1>Powder Sandbox</h1>
     <div id="stats"><b id="fps">0</b> fps<span class="statsep"></span><b id="count">0</b> cells<span class="statsep"></span><b id="bugs">0</b> alive<span class="statsep"></span><b id="clock">day</b><span class="statsep"></span><b id="wind" title="wind">-</b><span class="statsep"></span><b id="season" title="season">-</b><span class="statsep"></span><b id="gstat">0/17</b></div>
+    <div id="nowplaying" hidden></div>
   </div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
@@ -4229,6 +4234,8 @@ function startTrack(i){
   el.title = 'Track ' + (trackIx + 1) + '/' + TRACKS.length + ' — ' + tr.name + ' · ' + tr.minutes.toFixed(1) + ' min';
   const np = document.getElementById('np');
   if (np){ np.textContent = '♪ ' + tr.name; np.hidden = false; }
+  const npc = document.getElementById('nowplaying');
+  if (npc){ npc.textContent = '♪ ' + tr.name + ' · ' + tr.group; npc.hidden = false; }
   const toast = document.getElementById('toast');
   if (toast){
     toast.textContent = 'Lo-fi · ' + tr.name;
@@ -4318,6 +4325,7 @@ function musicToggle(){
     clearInterval(musicTimer); musicTimer = 0;
     if (hissSrc){ try { hissSrc.stop(); } catch (err) {} hissSrc = null; }
     const np = document.getElementById('np'); if (np) np.hidden = true;
+    const npc = document.getElementById('nowplaying'); if (npc) npc.hidden = true;
   }
   musicWanted = musicOn;
   syncVolRows();
@@ -4338,6 +4346,7 @@ function armMusic(){
   el.setAttribute('aria-pressed', 'false');
   el.textContent = 'Lo-fi';
   el.title = 'tap anywhere to start the music';
+  const npc = document.getElementById('nowplaying'); if (npc) npc.hidden = true;
   syncVolRows();
   if (!armBound){
     armBound = true;
@@ -6328,6 +6337,26 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('the vinyl shows while the music plays',
     !!vinylEl && vinylOn && !vinylEl.classList.contains('on'));
   musicOn = vinylWas; drawVinyl(0);
+
+  // cast keeps the HUD header but hides its detail rows
+  const castWas = document.body.classList.contains('cast');
+  document.body.classList.add('cast');
+  const hudShown = getComputedStyle(document.getElementById('hud')).display !== 'none';
+  const selHidden = getComputedStyle(document.getElementById('sel')).display === 'none';
+  document.body.classList.toggle('cast', castWas);
+  ok('cast keeps the HUD header but hides its details', hudShown && selHidden);
+
+  // the now-playing line names the playing track and its mood
+  const npcEl = document.getElementById('nowplaying');
+  const npWas2 = musicOn, npcTextWas = npcEl ? npcEl.textContent : '', npcHiddenWas = npcEl ? npcEl.hidden : true;
+  const npEl = document.getElementById('np');
+  const npElTextWas = npEl ? npEl.textContent : '', npElHiddenWas = npEl ? npEl.hidden : true;
+  musicOn = true; startTrack(0);
+  ok('the now-playing line names the track',
+    !!npcEl && !npcEl.hidden && npcEl.textContent.includes(TRACKS[0].name) && npcEl.textContent.includes(TRACKS[0].group));
+  musicOn = npWas2;
+  if (npcEl){ npcEl.textContent = npcTextWas; npcEl.hidden = npcHiddenWas; }
+  if (npEl){ npEl.textContent = npElTextWas; npEl.hidden = npElHiddenWas; }
 
   // the picker is generated from TRACKS: auto, every mood, every track
   const pickEl = document.getElementById('musicpick');
