@@ -2882,8 +2882,7 @@ function showCaption(text){
 function updateBroadcastMeta(){
   if (!castOn) return;
   const day = 1 + Math.floor(sun / 6.2832);
-  const tr = TRACKS[trackIx];
-  bmetaEl.textContent = 'day ' + day + '   /   ' + (musicOn ? '♪ ' + tr.name + ' / ' + tr.group : 'lo-fi off');
+  bmetaEl.textContent = 'day ' + day;
 }
 castEl.addEventListener('click', () => setCast(!castOn));
 
