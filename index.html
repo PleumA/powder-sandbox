@@ -4002,7 +4002,9 @@ function validPick(v){                             // localStorage is untrusted;
   if (typeof v !== 'string') return false;
   if (v.startsWith('group:')) return TRACKS.some(t => t.group === v.slice(6));
   if (v.startsWith('track:')){
-    const i = Number(v.slice(6));
+    const s = v.slice(6);
+    if (!/^\d+$/.test(s)) return false;
+    const i = Number(s);
     return Number.isInteger(i) && i >= 0 && i < TRACKS.length;
   }
   return false;
@@ -4011,7 +4013,7 @@ musicPickEl.addEventListener('change', () => {
   musicPick = validPick(musicPickEl.value) ? musicPickEl.value : 'auto';
   musicPickEl.value = musicPick;
   savePrefs();
-  if (musicOn && musicIn) beginFade(ac(), selectedTrackIx());   // crossfade through the engine
+  if (musicOn && musicIn && musicPick !== 'auto') beginFade(ac(), selectedTrackIx());   // Auto takes effect at the next track end
 });
 
 let musicOn = false, musicWanted = false, skipMusicClick = false, skipMusicAt = 0, armBound = false, musicTimer = 0, hissSrc = null;
