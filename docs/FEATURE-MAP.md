@@ -33,6 +33,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | A scene (the ecosystem pond, swamp, snow) | `SCENES`, `loadScene`, `bed`, `terrain` | `SCENES.ecosystem` |
 | Autopilot | `autopilot`, the `plan*` helpers, `liveCare` | `function autopilot` |
 | Music / lo-fi, picker, vinyl, now-playing | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick`, `#nowplaying` |
+| World sound (ambience) | `ambienceTargets`, `worldStart`, `worldTick` | `#worldvol`, `worldStart` |
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
 | Help, goals, chronicle | `buildHelp`, `GOALS`, `chronicle` | `buildHelp` |
 | Tests | the matching `// § TEST:` group | `ok('` |

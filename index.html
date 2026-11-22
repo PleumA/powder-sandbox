@@ -290,6 +290,7 @@
   </div>
   <div class="sep" id="volsep" hidden></div>
   <div class="volrow" id="sfxvolrow" hidden><label for="sfxvol">Sound</label><input id="sfxvol" type="range" min="0" max="100" value="80" aria-label="Sound volume"><b id="sfxval">80</b></div>
+  <div class="volrow" id="worldvolrow" hidden><label for="worldvol">World</label><input id="worldvol" type="range" min="0" max="100" value="55" aria-label="World volume"><b id="worldval">55</b></div>
   <div class="volrow" id="musicvolrow" hidden><label for="musicvol">Music</label><input id="musicvol" type="range" min="0" max="100" value="70" aria-label="Music volume"><b id="musicval">70</b></div>
   <div id="np" hidden></div>
 </div>
@@ -2737,14 +2738,15 @@ function quake(){
 document.getElementById('quake').addEventListener('click', quake);
 
 // § AUDIO — SFX, volume, noise
-let audio = null, soundOn = false, sfxOut = null, musicOut = null;
-let sfxLevel = 0.8, musicLevel = 0.7;
+let audio = null, soundOn = false, sfxOut = null, musicOut = null, worldOut = null;
+let sfxLevel = 0.8, musicLevel = 0.7, worldLevel = 0.55;
 function volClamp(v){ return Math.max(0, Math.min(1, v)); }
 function ac(){
   if (!audio && typeof AudioContext !== 'undefined') audio = new AudioContext();
   if (audio && !sfxOut){
     sfxOut = audio.createGain(); sfxOut.gain.value = sfxLevel; sfxOut.connect(audio.destination);
     musicOut = audio.createGain(); musicOut.gain.value = musicLevel; musicOut.connect(audio.destination);
+    worldOut = audio.createGain(); worldOut.gain.value = 0; worldOut.connect(audio.destination);
   }
   return audio;
 }
@@ -2783,6 +2785,7 @@ function noiseBurst(dur, gain){
   src.start();
 }
 const sfxVolEl = document.getElementById('sfxvol'), musicVolEl = document.getElementById('musicvol');
+const worldVolEl = document.getElementById('worldvol'), worldValEl = document.getElementById('worldval');
 const sfxValEl = document.getElementById('sfxval'), musicValEl = document.getElementById('musicval');
 function setSfxLevel(v){
   sfxLevel = volClamp(v);
@@ -2796,24 +2799,96 @@ function setMusicLevel(v){
   musicVolEl.value = n; musicValEl.textContent = n;
   if (musicOut) musicOut.gain.value = musicLevel;
 }
+function setWorldLevel(v){
+  worldLevel = volClamp(v);
+  const n = Math.round(worldLevel * 100);
+  worldVolEl.value = n; worldValEl.textContent = n;
+}
 sfxVolEl.addEventListener('input', () => setSfxLevel(sfxVolEl.value / 100));
 sfxVolEl.addEventListener('change', savePrefs);
 musicVolEl.addEventListener('input', () => setMusicLevel(musicVolEl.value / 100));
 musicVolEl.addEventListener('change', savePrefs);
+worldVolEl.addEventListener('input', () => setWorldLevel(worldVolEl.value / 100));
+worldVolEl.addEventListener('change', savePrefs);
 function syncVolRows(){                            // a silent channel needs no slider
   const s = document.getElementById('sfxvolrow'), m = document.getElementById('musicvolrow');
+  const w = document.getElementById('worldvolrow');
   const sep = document.getElementById('volsep');
   const musicShown = musicOn;                      // armed-but-waiting is not "on"
-  s.hidden = !soundOn; m.hidden = !musicShown; sep.hidden = !soundOn && !musicShown;
+  s.hidden = !soundOn; w.hidden = !soundOn; m.hidden = !musicShown; sep.hidden = !soundOn && !musicShown;
 }
 const soundEl = document.getElementById('sound');
 soundEl.addEventListener('click', () => {
   soundOn = !soundOn;
   soundEl.classList.toggle('on', soundOn);
   soundEl.setAttribute('aria-pressed', soundOn);
-  if (soundOn) blip(660, 0.08, 'sine', 0.05);
+  if (soundOn){ blip(660, 0.08, 'sine', 0.05); worldStart(); } else worldStop();
   syncVolRows();
 });
+
+/* ---------- world sound: procedural ambience from the live census ---------- */
+let worldTimer = 0, worldNodes = null, worldBirdAt = 0;
+function ambienceTargets(h, w){
+  const rain = (w.weatherOff || !w.raining) ? 0 : (w.storm ? 0.9 : 0.55);
+  const fire = Math.min(1, (h[FIRE] || 0) / 200) * 0.7;
+  const water = Math.min(1, (h[WATER] || 0) / 1200) * 0.5;
+  const wind = w.weatherOff ? 0 : Math.min(0.5, Math.abs(w.wind || 0) * 1.2) + 0.06;
+  const birds = (h[BIRD] || 0) + (h[GULL] || 0) + (h[HERON] || 0);
+  return { rain, fire, water, wind, birds: birds > 0 && Math.sin(w.sun || 0) > 0 ? 0.35 : 0 };
+}
+function worldStart(){
+  const a = ac(); if (!a || !worldOut) return;
+  if (!worldNodes){
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * 2), a.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i=0;i<d.length;i++){ last = (last + (Math.random()*2 - 1)*0.02) * 0.985; d[i] = last * 3; }
+    const channel = (type, freq, q) => {
+      const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = buf; src.loop = true;
+      f.type = type; f.frequency.value = freq; if (q) f.Q.value = q;
+      g.gain.value = 0;
+      src.connect(f); f.connect(g); g.connect(worldOut);
+      src.start();
+      return g;
+    };
+    worldNodes = {
+      rain: channel('highpass', 900),
+      water: channel('lowpass', 520),
+      wind: channel('bandpass', 300, 0.7),
+      fire: channel('bandpass', 1200, 0.6),
+    };
+  }
+  if (!worldTimer) worldTimer = setInterval(worldTick, 250);
+  worldTick();
+}
+function worldTick(){
+  const a = audio; if (!a || !worldNodes || !worldOut) return;
+  const master = (soundOn && !calmOn && !paused) ? worldLevel : 0;
+  worldOut.gain.setTargetAtTime(master, a.currentTime, 0.3);
+  const t = ambienceTargets(hist, { raining, weatherOff, storm, wind, sun });
+  for (const k of ['rain','fire','water','wind']) worldNodes[k].gain.setTargetAtTime(t[k], a.currentTime, 0.5);
+  if (master > 0 && t.birds > 0 && a.currentTime > worldBirdAt){
+    worldBirdAt = a.currentTime + 2.5 + Math.random() * 6;
+    birdChirp(a, a.currentTime + 0.02, t.birds);
+  }
+}
+function birdChirp(a, t, level){
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine';
+  const base = 1700 + Math.random() * 900;
+  o.frequency.setValueAtTime(base, t);
+  o.frequency.exponentialRampToValueAtTime(base * 1.5, t + 0.08);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.02 * level, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+  o.connect(g); g.connect(worldOut);
+  o.start(t); o.stop(t + 0.2);
+}
+function worldStop(){
+  if (worldTimer){ clearInterval(worldTimer); worldTimer = 0; }
+  if (worldOut && audio) worldOut.gain.setTargetAtTime(0, audio.currentTime, 0.3);
+}
 
 const SPEEDS = [0.5, 1, 2, 3];
 let speed = 1, speedIx = 1;
@@ -3851,7 +3926,7 @@ weatherEl.addEventListener('click', () => setWeather(weatherOff));
 let booting = true;
 function savePrefs(){
   if (booting) return;
-  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel, calm: calmOn, pick: musicPick })); }
+  try { localStorage.setItem('powder-prefs', JSON.stringify({ music: musicWanted || musicOn, weather: !weatherOff, sfx: sfxLevel, musicVol: musicLevel, world: worldLevel, calm: calmOn, pick: musicPick })); }
   catch (e) { /* storage blocked */ }
 }
 
@@ -4388,6 +4463,7 @@ function loadPrefs(){
 function applyPrefs(p){
   if (typeof p.sfx === 'number') setSfxLevel(p.sfx);
   if (typeof p.musicVol === 'number') setMusicLevel(p.musicVol);
+  if (typeof p.world === 'number') setWorldLevel(p.world);
   if (p.weather === false) setWeather(false);
   if (prefersReducedMotion()){ calmOn = true; reflect(calmEl, true); }   // do not overwrite the stored pref
   else if (p.calm === true) setCalm(true);
@@ -6344,6 +6420,22 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   }));
   ok('lo-fi A4 is 440 Hz', Math.abs(noteHz('A4') - 440) < 0.01);
   ok('volume clamps to 0..1', volClamp(-3) === 0 && volClamp(0.5) === 0.5 && volClamp(4) === 1);
+  const ambWet = ambienceTargets({ [FIRE]:200, [WATER]:1200, [BIRD]:3 }, { raining:true, storm:false, weatherOff:false, wind:0.2, sun:1 });
+  const ambDry = ambienceTargets({ [FIRE]:200, [WATER]:1200, [BIRD]:3 }, { raining:false, storm:false, weatherOff:true, wind:0.2, sun:1 });
+  ok('the world sound follows rain, fire, water and birds',
+    ambWet.rain > 0 && ambWet.fire > 0.6 && ambWet.water > 0.4 && ambWet.wind > 0 && ambWet.birds > 0 &&
+    ambDry.rain === 0 && ambDry.wind === 0 && ambDry.birds === ambWet.birds);
+  const worldWas = worldLevel;
+  setWorldLevel(-1);
+  const worldLow = worldLevel === 0 && document.getElementById('worldvol').value === '0';
+  setWorldLevel(2);
+  const worldHigh = worldLevel === 1 && document.getElementById('worldvol').value === '100';
+  setWorldLevel(worldWas);
+  ok('the world volume clamps and reaches its slider', worldLow && worldHigh);
+  applyPrefs({ world: 0.35 });
+  ok('applyPrefs restores the world volume',
+    Math.abs(worldLevel - 0.35) < 0.001 && document.getElementById('worldvol').value === '35');
+  setWorldLevel(worldWas);
   const wasClean = document.body.classList.contains('clean');
   dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
   ok('h hides all panels', document.body.classList.contains('clean') !== wasClean);
@@ -6695,7 +6787,7 @@ const SANDBOX_API = {
   clear(){ snapshot(); clearAll(); draw(); },
   music(){ return musicOn; },
   lofi(){ const tr = TRACKS[trackIx]; return { playing: musicOn, cutoff: lofiCutoff, beat: musicBeat, beatMs: Math.round(musicDelay()), track: tr.name, trackNo: trackIx + 1, tracks: TRACKS.length, minutes: tr.minutes }; },
-  audio(){ return { sound: soundOn, thunder: thunderCount, sfx: Math.round(sfxLevel * 100), music: Math.round(musicLevel * 100) }; },
+  audio(){ return { sound: soundOn, thunder: thunderCount, sfx: Math.round(sfxLevel * 100), world: Math.round(worldLevel * 100), music: Math.round(musicLevel * 100) }; },
   zap(){ return strike(); },
   sun(v){ if (typeof v === 'number'){ sun = v; draw(); } return sun; },
   season(v){ if (typeof v === 'number'){ season = v; draw(); } return season; },
