@@ -6236,7 +6236,7 @@ function selfTest(){
   const cvsEl = document.getElementById('c');
   cvsEl.focus();
   const hasKb = typeof kb === 'object' && kb !== null;
-  if (hasKb){ kb.x = 20; kb.y = 20; }
+  if (hasKb && typeof kbShow === 'function'){ kbShow(); kb.x = 20; kb.y = 20; }   // centre once so the arrow cannot recentre
   ok('the canvas is focusable and named', cvsEl.tabIndex === 0 && !!cvsEl.getAttribute('aria-label'));
   cvsEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
   ok('arrow keys move the keyboard cursor', hasKb && kb.x === 21);
