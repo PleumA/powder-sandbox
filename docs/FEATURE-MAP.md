@@ -34,6 +34,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Autopilot | `autopilot`, the `plan*` helpers, `liveCare` | `function autopilot` |
 | Music / lo-fi, picker, vinyl, now-playing | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick`, `#nowplaying` |
 | World sound (ambience) | `ambienceTargets`, `worldStart`, `worldTick` | `#worldvol`, `worldStart` |
+| Lineages (genes) | `gene`, `mutateGene`, `lineageCounts` | `gene`, `.hlineages` |
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
 | Help, goals, chronicle | `buildHelp`, `GOALS`, `chronicle` | `buildHelp` |
 | Tests | the matching `// § TEST:` group | `ok('` |

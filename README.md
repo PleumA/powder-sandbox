@@ -49,6 +49,8 @@ Lo-fi is twenty-six procedural tracks in five mood groups — cafe, cozy, study,
 
 With **Sound** on, a procedural ambience follows the world: rain and storms, fire, water, birds by day and the wind, mixed live from the census. The World slider balances it; Calm fades it out.
 
+Creatures carry a family line: hue and metabolism are inherited through births and eggs with small mutations. Slow lines last longer between meals; fast ones breed slightly more, so a population's colours and habits drift over days. The Help panel lists each species' dominant line. Lineages are live — scene links and saved scenes carry the world, not the family colours.
+
 ## Autoplay
 
 - **Autoplay button** turns the world's autopilot on mid-session and starts the music with the click.
@@ -88,11 +90,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **267 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **271 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~318 KB, zero dependencies, zero network requests.
+- One file, ~322 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
