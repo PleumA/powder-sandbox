@@ -39,7 +39,7 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `Ctrl`+`Z` | undo |
 | `?` | help panel — goals, creatures, food web, **the story so far** |
 
-Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, the music picker, Autoplay, Cast, Cine, Loop, Daily, Radio, Calm, and a scene picker. The Sound and Music volume sliders appear only while that channel is on; with Sound on, a World slider balances the ambience.
+Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, the music picker, Autoplay, Cast, Cine, Loop, Daily, Radio, Calm, the tool picker, Shutter, and a scene picker. The Sound and Music volume sliders appear only while that channel is on; with Sound on, a World slider balances the ambience.
 
 **Cast** swaps the panels for a stream overlay: the HUD header (vinyl, title, stats and the playing track), the latest chronicle line as a caption, and the current day in the corner. **Cine** adds a slow camera drift, **Loop** rotates scenes every 20 minutes through a fade, and **Calm** removes flashes, screen shake and flicker (it starts on when the OS asks for reduced motion). The same are available as `?broadcast`, `?cine`, `?playlist` and `?calm`.
 
@@ -52,6 +52,8 @@ With **Sound** on, a procedural ambience follows the world: rain and storms, fir
 **Radio** turns the lo-fi into a local station: between tracks it ducks the music and reads a bulletin about the actual world — the day, weather, census, fires and a call-in from a species — with a caption when speech is unavailable.
 
 **The Marked One** appears once a day: a gold ring settles on one ordinary creature with a name and a dusk deadline. Keep it alive and the sky clears; lose it and the world rings one bell and leaves a little ash.
+
+**Tools** sit beside the palette: **Bow** sweeps notes out of the terrain, **Bubble** dips into any liquid and floats it somewhere else, **Harp** strings the air for creatures to pluck, and **Shutter** accumulates a long exposure for the PNG export.
 
 Creatures carry a family line: hue and metabolism are inherited through births and eggs with small mutations. Slow lines last longer between meals; fast ones breed slightly more, so a population's colours and habits drift over days. The Help panel lists each species' dominant line. Lineages are live — scene links and saved scenes carry the world, not the family colours.
 
@@ -94,11 +96,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **289 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **293 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~346 KB, zero dependencies, zero network requests.
+- One file, ~353 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.

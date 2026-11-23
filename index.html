@@ -289,6 +289,15 @@
     <button class="btn" id="radiobtn" aria-pressed="false" title="local radio bulletins about this world">Radio</button>
     <button class="btn" id="calm" aria-pressed="false" title="reduce motion, flashes and flicker">Calm</button>
   </div>
+  <div class="row">
+    <select id="tool" class="btn" aria-label="Tool" style="flex:1">
+      <option value="paint">Paint</option>
+      <option value="bow">Bow</option>
+      <option value="bubble">Bubble</option>
+      <option value="harp">Harp</option>
+    </select>
+    <button class="btn" id="shutter" aria-pressed="false" title="long exposure for the PNG">Shutter</button>
+  </div>
   <div class="row audio">
     <button class="btn" id="speed" title="simulation speed">1&times;</button>
     <button class="btn" id="sound" aria-pressed="false" title="sound effects on or off">Sound</button>
@@ -430,6 +439,7 @@ const POD = 66;
 const GARDEN = 67;
 const BEAVER = 68;
 const DAM = 69;
+const BUBBLE = 70;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -502,6 +512,7 @@ const MAT = {
   [GARDEN]: {name:'Fungus gardens', color:[224,216,188], glow:'#e0d8bc', density:9, cat:'life', tick:tickGarden, desc:'a pale garden the ants raise on cut plants; it feeds the colony until it overshoots and crashes'},
   [BEAVER]: {name:'Beavers', color:[164,112,70], glow:'#a47046', density:2, migrant:1, cat:'life', diet:[WOOD, PLANT, REED, SEED, FRUIT], tick:tickBeaver, desc:'swims, fells soft plants, and packs a mud dam across a narrow channel'},
   [DAM]: {name:'Beaver dams', color:[122,94,60], glow:'#7a5e3c', density:9, cat:'solid', tick:tickDam, desc:'packed mud and sticks; it holds the stream until it weathers back to mud'},
+  [BUBBLE]: {name:'Bubbles', color:[214,232,246], glow:'#d6e8f6', density:-1, cat:'energy', tick:tickBubble, desc:'a thin film around a mouthful of liquid; it rides the wind and pops where it lands'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -598,6 +609,7 @@ function resize(){
     }
     reindexRows();
     marked = null; markIx = -1;   // a resized grid cannot follow the old index
+    threads.length = 0; harpPreview = null;
   } else {
     seed();
   }
@@ -1267,6 +1279,22 @@ function tickBeaver(x,y,i){
 function tickDam(x,y,i){
   const age = life[i] = Math.min(65535, life[i] + 1);
   if (age > 1200 + (gene[i] & 15) * 30){ set(x,y, MUD); return true; }
+  return false;
+}
+
+// a bubble: a film carrying a liquid; it rises, drifts, and pops on a wall or when old
+function popBubble(x,y,i){
+  const payload = life[i];
+  set(x,y, MAT[payload] && payload !== BUBBLE ? payload : EMPTY);
+  return true;
+}
+function tickBubble(x,y,i){
+  hunger[i] = Math.min(65535, hunger[i] + 1);
+  const above = get(x,y-1);
+  if (above !== EMPTY && above !== BUBBLE && !LIQUID[above]) return popBubble(x,y,i);
+  if (hunger[i] > 300) return popBubble(x,y,i);
+  if (tryMove(x,y,x,y-1,BUBBLE)) return true;
+  if (Math.abs(wind) > 0.05 && tryMove(x,y,x+Math.sign(wind),y,BUBBLE)) return true;
   return false;
 }
 
@@ -2717,10 +2745,26 @@ function draw(){
   }
   ctx.putImageData(img, 0, 0);
   drawClouds(day, nowMs);
+  if (shutterOn && expoCtx){
+    if (expoCanvas.width !== W || expoCanvas.height !== H){ expoCanvas.width = W; expoCanvas.height = H; expoCtx.clearRect(0,0,W,H); }
+    expoCtx.globalAlpha = 0.16; expoCtx.drawImage(cvs, 0, 0); expoCtx.globalAlpha = 1;
+    ctx.globalAlpha = 0.9; ctx.drawImage(expoCanvas, 0, 0); ctx.globalAlpha = 1;
+  }
   if (marked && markIx >= 0 && markIx < grid.length){
     const mx = markIx % W, my = (markIx / W) | 0;
     ctx.strokeStyle = '#ffd25a'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(mx + 0.5, my + 0.5, 2.5 + Math.sin(nowMs * 3) * 0.4, 0, TAU); ctx.stroke();
+  }
+  for (const th of threads){
+    const hot = th.flash > performance.now();
+    ctx.strokeStyle = hot ? '#ffd25a' : '#9fd6ffcc';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(th.x1 + 0.5, th.y1 + 0.5); ctx.lineTo(th.x2 + 0.5, th.y2 + 0.5); ctx.stroke();
+  }
+  if (harpPreview){
+    ctx.setLineDash([2,3]); ctx.strokeStyle = '#9fd6ff99'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(harpPreview.x1 + 0.5, harpPreview.y1 + 0.5); ctx.lineTo(harpPreview.x2 + 0.5, harpPreview.y2 + 0.5); ctx.stroke();
+    ctx.setLineDash([]);
   }
   if (!calmOn && shake > 0.3){
     cvs.style.transform = 'translate(' + ((Math.random()-0.5)*shake).toFixed(1) + 'px,' +
@@ -2784,6 +2828,83 @@ fillEl.addEventListener('click', () => {
   fillEl.setAttribute('aria-pressed', fillMode);
 });
 
+/* ---------- tools: bow, shutter, bubble, harp ---------- */
+let tool = 'paint';
+const toolEl = document.getElementById('tool');
+const shutterEl = document.getElementById('shutter');
+let shutterOn = false, expoCanvas = null, expoCtx = null;
+let threads = [], harpStart = null, harpPreview = null, bowAtMs = 0;
+toolEl.addEventListener('change', () => { tool = toolEl.value; });
+function setTool(v){ tool = v; if (toolEl) toolEl.value = v; }
+function setShutter(on){
+  shutterOn = on;
+  shutterEl.classList.toggle('on', on);
+  shutterEl.setAttribute('aria-pressed', on);
+  if (on){
+    if (!expoCanvas){ expoCanvas = document.createElement('canvas'); expoCtx = expoCanvas.getContext('2d'); }
+    expoCanvas.width = W; expoCanvas.height = H;
+    if (expoCtx) expoCtx.clearRect(0, 0, W, H);
+    dirty = true;
+  }
+}
+shutterEl.addEventListener('click', () => setShutter(!shutterOn));
+
+function bowNote(mat, heatV){
+  const d = Math.max(0, Math.min(9, Math.round(mat && mat.density || 2)));
+  const scale = [0,2,4,7,9,12,14,16,19,21];
+  const h = Math.max(-1, Math.min(1, heatV || 0));
+  return {
+    hz: noteHz('C3') * Math.pow(2, (scale[d] + h * 2) / 12),
+    type: mat && mat.cat === 'liquid' ? 'sine' : mat && mat.cat === 'solid' ? 'triangle' : 'square',
+  };
+}
+function bowAt(x,y){
+  const now = performance.now();
+  if (now - bowAtMs < 60) return;
+  const cx = Math.floor(x), cy = Math.floor(y);
+  if (!inB(cx,cy)) return;
+  const v = grid[idx(cx,cy)];
+  if (!v) return;
+  bowAtMs = now;
+  const n = bowNote(MAT[v], heat[idx(cx,cy)]);
+  if (soundOn) blip(n.hz, 0.28, n.type, 0.03);
+}
+function bubbleAt(x,y){
+  const cx = Math.floor(x), cy = Math.floor(y);
+  if (!inB(cx,cy)) return;
+  const v = grid[idx(cx,cy)];
+  if (!LIQUID[v] || v === BUBBLE) return;
+  const i = idx(cx,cy);
+  set(cx,cy, BUBBLE); life[i] = v; hunger[i] = 0;
+}
+function threadPitch(y){
+  const t = Math.max(0, Math.min(1, 1 - y / Math.max(1, H)));
+  return noteHz('C2') * Math.pow(2, (t * 24) / 12);
+}
+function addThread(x1,y1,x2,y2){
+  const steps = Math.max(2, Math.ceil(Math.hypot(x2-x1, y2-y1)));
+  const cells = [];
+  for (let k=0;k<=steps;k++){
+    const x = Math.round(x1 + (x2-x1)*k/steps), y = Math.round(y1 + (y2-y1)*k/steps);
+    if (inB(x,y)) cells.push(idx(x,y));
+  }
+  threads.push({ x1, y1, x2, y2, cells, pitch: threadPitch((y1+y2)/2), last: 0, flash: 0 });
+  while (threads.length > 12) threads.shift();
+}
+function harpTick(t){
+  for (const th of threads){
+    if (t - th.last < 450) continue;
+    let hit = false;
+    for (const i of th.cells) if (IS_CREATURE.has(grid[i])){ hit = true; break; }
+    if (hit){
+      th.last = t; th.flash = t + 350;
+      if (soundOn) blip(th.pitch, 0.35, 'sine', 0.03);
+      dirty = true;
+      break;
+    }
+  }
+}
+
 function floodFill(x0, y0, v){
   if (!inB(x0, y0)) return;
   const target = grid[idx(x0, y0)];
@@ -2820,7 +2941,18 @@ cvs.addEventListener('pointerdown', e => {
   if (e.button === 1){                            // middle-click picks the material under the cursor
     e.preventDefault();
     if (inB(cx, cy)) select(grid[idx(Math.floor(cx), Math.floor(cy))]);
+    setTool('paint');
     return;
+  }
+  if (tool !== 'paint'){
+    if (tool === 'harp' && e.button === 0){
+      harpStart = [cx, cy]; harpPreview = { x1:cx, y1:cy, x2:cx, y2:cy };
+      pointers.set(e.pointerId, { harp:true });
+      cvs.setPointerCapture(e.pointerId); dirty = true; return;
+    }
+    if (e.button !== 0) return;
+    if (tool === 'bow'){ bowAt(cx,cy); pointers.set(e.pointerId, { bow:true }); cvs.setPointerCapture(e.pointerId); return; }
+    if (tool === 'bubble'){ snapshot(); bubbleAt(cx,cy); pointers.set(e.pointerId, { bubble:true }); cvs.setPointerCapture(e.pointerId); return; }
   }
   snapshot();                                     // one undo step per stroke
   if (fillMode && e.button === 0){ floodFill(Math.floor(cx), Math.floor(cy), current); return; }
@@ -2842,7 +2974,12 @@ cvs.addEventListener('pointermove', e => {
   }
   document.getElementById('hover').textContent = hoverText;
   const st = pointers.get(e.pointerId);
-  if (st) strokeTo(x, y, st.erasing ? EMPTY : current, st);
+  if (st){
+    if (st.bow){ bowAt(x,y); return; }
+    if (st.bubble){ bubbleAt(x,y); return; }
+    if (st.harp){ harpPreview = { x1: harpStart[0], y1: harpStart[1], x2: x, y2: y }; dirty = true; return; }
+    strokeTo(x, y, st.erasing ? EMPTY : current, st);
+  }
 });
 cvs.addEventListener('pointerleave', () => { if (document.activeElement !== cvs) cursor.on = false; });
 cvs.addEventListener('contextmenu', e => e.preventDefault());
@@ -2866,7 +3003,15 @@ cvs.addEventListener('keydown', e => {
   if (k === 'Delete' || k === 'Backspace'){ e.preventDefault(); e.stopPropagation(); snapshot(); paintCircle(kb.x, kb.y, EMPTY); dirty = true; return; }
   if (k === 'x' || k === 'X'){ e.preventDefault(); e.stopPropagation(); if (inB(kb.x, kb.y)) select(grid[idx(kb.x, kb.y)]); return; }
 });
-addEventListener('pointerup', e => pointers.delete(e.pointerId));
+addEventListener('pointerup', e => {
+  const st = pointers.get(e.pointerId);
+  if (st && st.harp && harpStart){
+    const p = harpPreview;
+    if (p && Math.hypot(p.x2-p.x1, p.y2-p.y1) >= 2) addThread(p.x1, p.y1, p.x2, p.y2);
+    harpStart = null; harpPreview = null; dirty = true;
+  }
+  pointers.delete(e.pointerId);
+});
 addEventListener('pointercancel', e => pointers.delete(e.pointerId));
 
 // what each material is for, shown under the HUD
@@ -3799,6 +3944,7 @@ function clearAll(){
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
   facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0);   // no stale state
   marked = null; markIx = -1; lastMarkDay = 0;
+  threads.length = 0; harpPreview = null;
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
 }
 
@@ -5315,6 +5461,7 @@ function frame(t){
   checkGoals();
   maybeMark();
   checkMark();
+  harpTick(performance.now());
   frames++;
   if (t - fpsT > 500){
     fpsEl.textContent = Math.round(frames * 1000 / (t - fpsT));
@@ -7305,6 +7452,32 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('x picks the material under the keyboard cursor', hasKb && current === WOOD);
 
   current = matWas2; cursor.on = false; chamber(20,20);
+
+  // tools: bow, shutter, bubble, harp
+  const bowCold = bowNote(MAT[STONE], -0.8), bowHot = bowNote(MAT[STONE], 0.8);
+  ok('the bow maps density and heat to pitch',
+    bowCold.hz > 40 && bowHot.hz > bowCold.hz && !!bowCold.type && bowNote(MAT[WATER], 0).type === 'sine');
+
+  const shutterWas = shutterOn;
+  setShutter(true);
+  const shutterOnOk = shutterOn && !!expoCanvas && expoCanvas.width === W;
+  setShutter(false);
+  ok('the shutter holds a long exposure', shutterOnOk && !shutterOn);
+  setShutter(shutterWas);
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,BUBBLE); life[idx(20,21)] = WATER; hunger[idx(20,21)] = 299;
+  run(5);
+  ok('a bubble carries its liquid and pops', count(WATER) > 0 && count(BUBBLE) === 0);
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  threads.length = 0;
+  addThread(18,20,22,20);
+  set(20,20,LIFE); gene[idx(20,20)] = 0;
+  harpTick(1000);
+  ok('a creature plucks a harp thread',
+    threads.length === 1 && threads[0].last === 1000 && threads[0].pitch > 0 && threads[0].flash > 1000);
+  threads.length = 0;
 
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
