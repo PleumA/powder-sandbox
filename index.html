@@ -43,6 +43,9 @@
   #mark{margin-top:5px;color:#ffd25a;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #mark[hidden]{display:none}
+  #ride{margin-top:5px;color:#cfe3f2;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ride[hidden]{display:none}
   #survey{position:fixed;left:20px;bottom:calc(var(--palette-h,90px) + 24px);z-index:7;width:330px;max-height:46vh;overflow:auto;
     background:#0d141cf2;border:1px solid var(--line);border-radius:2px;padding:14px 16px;pointer-events:auto;
     color:var(--dim);font:11.5px/1.5 var(--sans)}
@@ -239,6 +242,7 @@
     <div id="nowplaying" hidden></div>
     <div id="daily" hidden></div>
     <div id="mark" hidden></div>
+    <div id="ride" hidden></div>
   </div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
@@ -457,6 +461,9 @@ const BEAVER = 68;
 const DAM = 69;
 const BUBBLE = 70;
 const SHRIKE = 71;
+const BODY = 72;
+const GRAVE = 73;
+const OCHRE = 74;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -531,6 +538,9 @@ const MAT = {
   [DAM]: {name:'Beaver dams', color:[122,94,60], glow:'#7a5e3c', density:9, cat:'solid', tick:tickDam, desc:'packed mud and sticks; it holds the stream until it weathers back to mud'},
   [BUBBLE]: {name:'Bubbles', color:[214,232,246], glow:'#d6e8f6', density:-1, cat:'energy', tick:tickBubble, desc:'a thin film around a mouthful of liquid; it rides the wind and pops where it lands'},
   [SHRIKE]: {name:'Shrikes', color:[206,186,214], glow:'#cebad6', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickShrike, desc:'a hunter whose taste is a colour: it takes the bug nearest its own tint, and its brood inherits the preference'},
+  [BODY]: {name:'Bodies', color:[214,206,190], glow:'#d6cebe', density:3, cat:'life', tick:tickBody, desc:'a person who has died; the camp buries it, and the grave keeps their name'},
+  [GRAVE]: {name:'Graves', color:[150,142,124], glow:'#968e7c', density:9, cat:'solid', desc:'a stone cairn over a person; the Survey reads it, and one gift can turn it into a tree, a spring or a warm stone'},
+  [OCHRE]: {name:'Handprints', color:[190,92,52], glow:'#be5c34', density:9, cat:'solid', desc:'one ochre handprint per life; the Bow reads the name and day, and paint erases it'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -554,8 +564,10 @@ for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).pus
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
-let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, refractory=null, scent=null, home=null, gene=null, camp=null, form=null, fuel=null;
+let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, refractory=null, scent=null, home=null, gene=null, camp=null, form=null, fuel=null, name=null;
+const MARK_NAMES = ['Tallow','Bramble','Pip','Sorrel','Juniper','Moss','Ash','Rook','Wren','Clover','Cinder','Fern'];
 let marked = null, markIx = -1, lastMarkDay = 0;   // the daily marked creature
+let rideIx = -1, ridePrevTool = 'paint';           // the human the player is riding
 let emberCount = 0;
 const cell = 4;              // CSS px per simulated cell, scaled to fit
 
@@ -587,7 +599,7 @@ function resize(){
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
   const oldGrid = grid, oldLife = life, oldFacing = facing, oldHunger = hunger, oldHeat = heat;
-  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldRefractory = refractory, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form, oldFuel = fuel;
+  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldRefractory = refractory, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form, oldFuel = fuel, oldName = name;
   W = nW; H = nH;
   cvs.width = W; cvs.height = H;
   cvs.style.width = cw+'px'; cvs.style.height = ch+'px';
@@ -609,6 +621,7 @@ function resize(){
   camp = new Uint8Array(W*H);    // amoeba signal: hungry cells call their kin together
   form = new Uint8Array(W*H);    // locust phase: 0 ground, 1 winged
   fuel = new Uint8Array(W*H);    // how long a flammable cell has gone unburned
+  name = new Uint8Array(W*H);    // a person's name index; graves and handprints keep it
   img = ctx.createImageData(W, H);
   if (hadWorld){
     const dy = H - oH, cw2 = Math.min(oW, W);    // anchor the world to the floor, keep the left edge
@@ -623,6 +636,7 @@ function resize(){
       if (oldCamp) camp.set(oldCamp.subarray(src, src + cw2), dst);
       if (oldForm) form.set(oldForm.subarray(src, src + cw2), dst);
       if (oldFuel) fuel.set(oldFuel.subarray(src, src + cw2), dst);
+      if (oldName) name.set(oldName.subarray(src, src + cw2), dst);
       hunger.set(oldHunger.subarray(src, src + cw2), dst);
       heat.set(oldHeat.subarray(src, src + cw2), dst);
       home.set(oldHome.subarray(src, src + cw2), dst);
@@ -634,6 +648,7 @@ function resize(){
     }
     reindexRows();
     marked = null; markIx = -1;   // a resized grid cannot follow the old index
+    rideIx = -1;
     threads.length = 0; harpPreview = null;
     surveyPreview = null; if (surveyBox) closeSurvey();
   } else {
@@ -693,6 +708,7 @@ function set(x,y,v){
   if (!inB(x,y) || !MAT[v]) return;
   dirty = true;
   const i = idx(x,y);
+  const oldV = grid[i], oldName = name[i], oldGene = gene[i], oldDay = home[i];
   const was = grid[i] !== EMPTY, now = v !== EMPTY;
   if (was !== now) rowLive[y] += now ? 1 : -1;
   hunger[i] = 200;   // a cell born now starts hungry
@@ -701,8 +717,10 @@ function set(x,y,v){
   grid[i] = v;
   life[i] = MAT[v].life || 0;
   gene[i] = (IS_CREATURE.has(v) || v === EGG) ? randomGene() : 0;   // a new creature is a founder
+  name[i] = v === HUMAN ? 1 + ((Math.random() * MARK_NAMES.length) | 0) : 0;
   form[i] = 0;
   fuel[i] = 0;
+  if (oldV === GRAVE && v !== GRAVE) graveGift(x, y, v, oldName, oldGene, oldDay);
 }
 function swap(a,b){
   const ah = hunger[a]; hunger[a] = hunger[b]; hunger[b] = ah;
@@ -711,10 +729,11 @@ function swap(a,b){
     rowLive[ra] += grid[a] === EMPTY ? 1 : -1;
     rowLive[rb] += grid[b] === EMPTY ? 1 : -1;
   }
-  const av = grid[a], al = life[a], af = facing[a], ah2 = home[a], ag = gene[a], afm = form[a], afu = fuel[a], arf = refractory[a];
-  grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b]; gene[a] = gene[b]; form[a] = form[b]; fuel[a] = fuel[b]; refractory[a] = refractory[b];
-  grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;       gene[b] = ag;       form[b] = afm;       fuel[b] = afu;       refractory[b] = arf;
+  const av = grid[a], al = life[a], af = facing[a], ah2 = home[a], ag = gene[a], afm = form[a], afu = fuel[a], arf = refractory[a], an = name[a];
+  grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b]; gene[a] = gene[b]; form[a] = form[b]; fuel[a] = fuel[b]; refractory[a] = refractory[b]; name[a] = name[b];
+  grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;       gene[b] = ag;       form[b] = afm;       fuel[b] = afu;       refractory[b] = arf;       name[b] = an;
   if (markIx === a) markIx = b; else if (markIx === b) markIx = a;
+  if (rideIx === a) rideIx = b; else if (rideIx === b) rideIx = a;
   moved[b] = 1;
 }
 
@@ -864,8 +883,13 @@ function step(x,y,dir){
   const i = idx(x,y);
   if (moved[i]) return false;
   const v = grid[i];
-  if (v === EMPTY || v === STONE || v === GLASS || v === WEB || v === NEST || v === COAL) return false;
-  if (IS_CREATURE.has(v) && (hunger[i] += 1 + ((gene[i] >> 6) === 3 ? 1 : 0)) > STARVE){ set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY); tally.starved++; return true; }   // starved: carrion; a fast metabolism burns sooner
+  if (v === EMPTY || v === STONE || v === GLASS || v === WEB || v === NEST || v === COAL || v === GRAVE || v === OCHRE) return false;
+  if (IS_CREATURE.has(v) && (hunger[i] += 1 + ((gene[i] >> 6) === 3 ? 1 : 0)) > STARVE){
+    if (v === HUMAN) humanBody(x,y,i);
+    else set(x,y, Math.random() < 0.5 ? COMPOST : EMPTY);
+    tally.starved++; return true;
+  }   // starved: carrion; a fast metabolism burns sooner
+  if (i === rideIx) return false;   // a ridden body waits for the player's command
   const fn = MAT[v] && MAT[v].tick;
   if (fn) return fn(x,y,i,dir);
   if (LIQUID[v]) return tickLiquid(x,y,dir,v);
@@ -2026,10 +2050,73 @@ function tickGull(x,y,i){
 }
 
 // a person: hunts, sows seed, raises planks, and keeps a fire going at night
+/* ---------- death, graves, names and memory ---------- */
+function humanBody(x,y,i){
+  const g = gene[i], nm = name[i];
+  set(x,y, BODY); gene[i] = g; name[i] = nm;
+}
+function tickBody(x,y,i){
+  hunger[i] = Math.min(65535, hunger[i] + 1);
+  if (hunger[i] > 1800){ set(x,y, Math.random() < 0.5 ? BONE : COMPOST); return true; }
+  return false;
+}
+function buryBody(x,y){
+  const i = idx(x,y);
+  if (grid[i] !== BODY) return false;
+  const g = gene[i], nm = name[i], day = 1 + Math.floor(sun / 6.2832);
+  set(x,y, GRAVE); gene[i] = g; name[i] = nm; home[i] = day;
+  if (!testing) chronicle('they bury ' + (nm ? MARK_NAMES[nm-1] : 'a person') + ' on day ' + day);
+  return true;
+}
+function graveGift(x,y,v,nm,g,day){
+  const i = idx(x,y);
+  if (v === SEED || v === PLANT || v === TREE){
+    set(x,y, TREE); gene[i] = g; name[i] = nm; home[i] = day;
+  } else if (v === COAL){
+    heat[i] = Math.max(heat[i], 1.2); gene[i] = g; name[i] = nm; home[i] = day;
+  } else if (v === FISH){
+    set(x,y, SPRING);
+  } else if (v === FLOWER){
+    set(x,y, FLOWER);
+  }
+}
+function learnCraft(x,y,i){
+  let hearth = false;
+  for (const [dx,dy] of NB4){
+    if (!inB(x+dx,y+dy)) continue;
+    const t = grid[idx(x+dx,y+dy)];
+    if (t === STONE || t === FIRE) hearth = true;
+  }
+  if (!hearth) return false;
+  for (const [dx,dy] of NB4){
+    if (!inB(x+dx,y+dy)) continue;
+    const j = idx(x+dx,y+dy);
+    if (grid[j] !== BONE) continue;
+    const p = gene[j];
+    const craft = p === DEER ? 1 : (p === FISH || p === CRAB || p === SNAIL || p === OCTOPUS) ? 2 : p === BEAVER ? 3 : 0;
+    if (craft){ form[i] = (form[i] & ~24) | (craft << 3); return true; }
+  }
+  return false;
+}
+function stampHandprint(x,y,i){
+  if (form[i] & 4) return false;
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny) || grid[idx(nx,ny)] !== STONE) continue;
+    const above = get(nx,ny-1);
+    if (above !== EMPTY && above !== OCHRE) continue;
+    const j = idx(nx,ny), g = gene[i], nm = name[i], day = 1 + Math.floor(sun / 6.2832);
+    set(nx,ny, OCHRE); gene[j] = g; name[j] = nm; home[j] = day;
+    form[i] |= 4;
+    return true;
+  }
+  return false;
+}
+
 function tickHuman(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
-  if (age > 6000 && Math.random() < 0.005){ set(x,y, EMPTY); return true; }
+  if (age > 6000 && Math.random() < 0.005){ humanBody(x,y,i); return true; }
   if (Math.sin(sun) > 0 && Math.sin(sun) < 0.25 && get(x,y+1) === STONE){
     heat[idx(x,y)] = Math.max(heat[idx(x,y)], 0.25);                 // a warm start off the hearth at first light
   }
@@ -2048,15 +2135,24 @@ function tickHuman(x,y,i){
   for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
-    if ((t === FIRE || t === LAVA) && !roofed){ set(x,y, EMPTY); return true; }
+    if ((t === FIRE || t === LAVA) && !roofed){ humanBody(x,y,i); return true; }
     if (t === FIRE && roofed) heat[idx(x,y)] = Math.max(heat[idx(x,y)], 0.4);   // the hearth keeps them warm
   }
-  for (const prey of [DEER, FISH, CRAB, SNAIL, LIFE]){               // the best of what is at hand first
+  for (const [dx,dy] of NB4){
+    if (get(x+dx,y+dy) === BODY){ buryBody(x+dx,y+dy); return true; }
+  }
+  const bodyDir = sense(x,y,BODY,6);
+  if (bodyDir && hop(x,y,x+bodyDir[0],y+bodyDir[1])) return true;
+  if (learnCraft(x,y,i)) return true;
+  if (!(form[i] & 4) && Math.sin(sun) < -0.1 && Math.random() < 0.01 && stampHandprint(x,y,i)) return true;
+  const hoardCraft = (form[i] >> 3) & 3;
+  const preyOrder = hoardCraft === 1 ? [DEER, LIFE, FISH, CRAB, SNAIL] : hoardCraft === 2 ? [FISH, CRAB, SNAIL, OCTOPUS, LIFE] : [DEER, FISH, CRAB, SNAIL, LIFE];
+  for (const prey of preyOrder){               // the best of what is at hand first
     if (hist[prey] <= 2 && (prey === DEER || prey === FISH || prey === CRAB || prey === SNAIL)) continue;   // leave the breeding stock alone
     for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
       if (!inB(nx,ny) || grid[idx(nx,ny)] !== prey) continue;
       if (prey === DEER) raiseAlarm(x, y, DEER, Math.sign(nx - x) || 1);   // the herd bolts when one is taken
-      set(nx,ny, BONE); hunger[i] = 0; return true;                        // the hunt
+      set(nx,ny, BONE); gene[idx(nx,ny)] = prey; hunger[i] = 0; return true;                        // the hunt leaves a readable bone
     }
   }
   if (roofed && !home[i] && Math.random() < 0.05){                  // take a live ember from the hearth
@@ -2141,7 +2237,7 @@ function tickHuman(x,y,i){
     if (a1 === ASH && a2 === EMPTY){ set(x+1,y, ASH); set(x-1,y, EMPTY); return true; }
     if (a2 === ASH && a1 === EMPTY){ set(x-1,y, ASH); set(x+1,y, EMPTY); return true; }
   }
-  if (Math.random() < 0.01){                                        // raise a post on a plank
+  if (Math.random() < (((form[i] >> 3) & 3) === 3 ? 0.03 : 0.01)){  // raise a post on a plank; builders work faster
     for (const [nx,ny] of [[x-1,y],[x+1,y]]){
       if (get(nx,ny) === WOOD && get(nx,ny-1) === EMPTY){ set(nx,ny-1, WOOD); return true; }
     }
@@ -2824,10 +2920,26 @@ function draw(){
         const dark = v === LOCUST && (form[i] & 1) ? 0.55 : 1;
         r = Math.min(255, r*f*shade*tint[0]*dark); g = Math.min(255, g*f*shade*tint[1]*dark); b = Math.min(255, b*f*shade*tint[2]*dark);
         if (alarmT[i] > update.t){ r = Math.min(255, r + 90); g = Math.max(0, g - 45); b = Math.max(0, b - 35); }
+      } else if ((v === TREE || v === FRUIT || v === GRAVE || v === OCHRE) && gene[i]){
+        const t = GENE_TINTS[(gene[i] >> 2) & 15];
+        r = Math.min(255, r*t[0]); g = Math.min(255, g*t[1]); b = Math.min(255, b*t[2]);
       }
       if (heatView){                                 // thermal camera: cold blue, hot white
         const q = Math.min(63, Math.max(0, Math.round(((heat[i] + 1) / 2.4) * 63)));
         r = HEAT_LUT[q*3]; g = HEAT_LUT[q*3+1]; b = HEAT_LUT[q*3+2];
+      }
+      if (rideIx >= 0 && rideIx < grid.length){
+        const rx = rideIx % W, ry = (rideIx / W) | 0;
+        let rad = 13 - Math.min(9, hunger[rideIx] / 100);
+        if (Math.sin(sun) < 0) rad -= 2;
+        rad += Math.min(4, Math.max(0, heat[rideIx]) * 4);
+        const dx = (i % W) - rx, dy = ((i / W) | 0) - ry;
+        const dd = dx*dx + dy*dy;
+        if (dd > rad*rad){
+          const rim = alarmT[rideIx] > update.t && dd < (rad + 1.5) * (rad + 1.5);
+          if (rim){ r = 170; g = 26; b = 26; }
+          else { r *= 0.14; g *= 0.14; b *= 0.14; }
+        }
       }
       d[p]=r; d[p+1]=g; d[p+2]=b; d[p+3]=255;
     } else if ((sky < -0.25 || flash > 0.35) && stars[i]){   // out after dark, or by a lightning flash
@@ -2971,10 +3083,17 @@ function bowAt(x,y){
   if (now - bowAtMs < 60) return;
   const cx = Math.floor(x), cy = Math.floor(y);
   if (!inB(cx,cy)) return;
-  const v = grid[idx(cx,cy)];
+  const i = idx(cx,cy), v = grid[i];
   if (!v) return;
   bowAtMs = now;
-  const n = bowNote(MAT[v], heat[idx(cx,cy)]);
+  if (v === OCHRE){
+    const nm = name[i] ? MARK_NAMES[name[i]-1] : 'a hand';
+    const day = home[i] || 1;
+    if (soundOn) blip(noteHz('C4') * Math.pow(2, ((gene[i] >> 2) & 15) / 12), 0.35, 'sine', 0.03);
+    toastMsg('day ' + day + ' — ' + nm, 3000);
+    return;
+  }
+  const n = bowNote(MAT[v], heat[i]);
   if (soundOn) blip(n.hz, 0.28, n.type, 0.03);
 }
 function bubbleAt(x,y){
@@ -3023,6 +3142,58 @@ function startleAt(x,y){
   return true;
 }
 
+/* ---------- borrowed eyes: ride one person ---------- */
+function startRide(i){
+  if (i < 0 || i >= grid.length || grid[i] !== HUMAN) return false;
+  ridePrevTool = tool;
+  rideIx = i;
+  pointers.clear();
+  cvs.focus();
+  dirty = true;
+  if (!testing) toastMsg('Riding a person — arrows move, E acts, Q leaves', 4000);
+  updateRideCard();
+  return true;
+}
+function endRide(){
+  if (rideIx < 0) return;
+  const i = rideIx;
+  rideIx = -1;
+  const x = i % W, y = (i / W) | 0;
+  if (inB(x,y) && grid[i] === HUMAN) facing[i] = Math.sign(Math.floor(cursor.x) - x) || 1;
+  setTool(ridePrevTool || 'paint');
+  dirty = true;
+  updateRideCard();
+}
+function rideMove(dx,dy){
+  if (rideIx < 0) return;
+  const i = rideIx, x = i % W, y = (i / W) | 0;
+  if (grid[i] !== HUMAN){ endRide(); return; }
+  hunger[i] = Math.min(65535, hunger[i] + 4);
+  if (hop(x,y,x+dx,y+dy)){
+    if (rideIx >= 0 && rideIx < grid.length) facing[rideIx] = dx || 1;
+    dirty = true;
+  }
+}
+function rideAct(){
+  if (rideIx < 0) return;
+  const i = rideIx, x = i % W, y = (i / W) | 0;
+  if (grid[i] !== HUMAN){ endRide(); return; }
+  moved[i] = 0;
+  hunger[i] = Math.min(65535, hunger[i] + 8);
+  tickHuman(x, y, i);
+  dirty = true;
+}
+function checkRide(){
+  if (rideIx >= 0 && (rideIx >= grid.length || grid[rideIx] !== HUMAN)) endRide();
+}
+function updateRideCard(){
+  const el = document.getElementById('ride');
+  if (!el) return;
+  if (rideIx < 0){ el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = 'Riding · arrows move · E act · Q leave';
+}
+
 /* ---------- the survey: read a patch, cull a node, watch the web ---------- */
 function surveyNorm(x1,y1,x2,y2){
   return {
@@ -3034,24 +3205,30 @@ function surveyNorm(x1,y1,x2,y2){
 }
 function surveyData(box){
   const counts = new Uint32Array(MAT_SLOTS);
-  for (let y=box.y1;y<=box.y2;y++) for (let x=box.x1;x<=box.x2;x++) counts[grid[idx(x,y)]]++;
+  const graves = [];
+  for (let y=box.y1;y<=box.y2;y++) for (let x=box.x1;x<=box.x2;x++){
+    const i = idx(x,y);
+    counts[grid[i]]++;
+    if (grid[i] === GRAVE) graves.push({ x, y, name: name[i] ? MARK_NAMES[name[i]-1] : 'a person', day: home[i] || 1 });
+  }
   const rows = MIGRANTS.filter(sp => counts[sp] > 0).map(sp => ({
     sp, count: counts[sp],
     eats: (DIET[sp] || []).filter(p => counts[p] > 0),
   }));
   rows.sort((a,b) => b.count - a.count);
-  return { counts, rows };
+  return { counts, rows, graves };
 }
 function openSurvey(box){
   surveyBox = box;
   const data = surveyData(box);
   const panel = document.getElementById('survey'), list = document.getElementById('surveylist');
   if (!panel || !list) return;
-  list.innerHTML = data.rows.length ? data.rows.map(r =>
+  list.innerHTML = (data.rows.length ? data.rows.map(r =>
     '<div class="srow"><b>' + MAT[r.sp].name + '</b><span>' + r.count + '</span><i>eats ' +
     (r.eats.length ? r.eats.map(p => MAT[p].name).join(', ') : 'nothing here') + '</i>' +
     '<button data-sp="' + r.sp + '">Cull</button></div>').join('')
-    : '<div class="srow">no creatures in this patch</div>';
+    : '<div class="srow">no creatures in this patch</div>') +
+    (data.graves || []).map(g => '<div class="srow"><b>grave</b><i>Here lies ' + g.name + ', day ' + g.day + '</i></div>').join('');
   const note = document.getElementById('surveynote');
   if (note) note.textContent = 'Survey ' + (box.x2-box.x1+1) + '×' + (box.y2-box.y1+1) + '. Culling a species removes it inside the box.';
   panel.hidden = false;
@@ -3121,6 +3298,11 @@ function strokeTo(x, y, v, st){
 
 cvs.addEventListener('pointerdown', e => {
   const [cx, cy] = toCell(e);
+  if (rideIx >= 0) return;
+  if (e.shiftKey && e.button === 0){
+    const px = Math.floor(cx), py = Math.floor(cy);
+    if (inB(px,py) && grid[idx(px,py)] === HUMAN){ startRide(idx(px,py)); e.preventDefault(); return; }
+  }
   if (e.button === 1){                            // middle-click picks the material under the cursor
     e.preventDefault();
     if (inB(cx, cy)) select(grid[idx(Math.floor(cx), Math.floor(cy))]);
@@ -3156,6 +3338,7 @@ cvs.addEventListener('pointermove', e => {
   const cx = Math.floor(x), cy = Math.floor(y);
   const under = inB(cx, cy) ? grid[idx(cx, cy)] : EMPTY;
   let hoverText = under ? 'under cursor: ' + MAT[under].name : '';
+  if (under === HUMAN && name[idx(cx,cy)]) hoverText += ' · ' + MARK_NAMES[name[idx(cx,cy)]-1];
   if (under && IS_CREATURE.has(under)){
     const sc = under === FIREFLY ? 1200 : 900;
     hoverText += ' \u00b7 age ' + life[idx(cx,cy)] + ' \u00b7 ' +
@@ -3186,6 +3369,14 @@ cvs.addEventListener('blur', () => { cursor.on = false; dirty = true; });
 cvs.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;   // leave browser shortcuts alone
   const k = e.key;
+  if (rideIx >= 0){
+    if (k === 'q' || k === 'Q' || k === 'Escape'){ e.preventDefault(); e.stopPropagation(); endRide(); return; }
+    if (k === 'e' || k === 'E'){ e.preventDefault(); e.stopPropagation(); rideAct(); return; }
+    const rdx = k === 'ArrowLeft' || k === 'a' || k === 'A' ? -1 : k === 'ArrowRight' || k === 'd' || k === 'D' ? 1 : 0;
+    const rdy = k === 'ArrowUp' || k === 'w' || k === 'W' ? -1 : k === 'ArrowDown' || k === 's' || k === 'S' ? 1 : 0;
+    if (rdx || rdy){ e.preventDefault(); e.stopPropagation(); rideMove(rdx,rdy); return; }
+    return;
+  }
   if (e.repeat && (k === 'Enter' || k === 'Delete' || k === 'Backspace')) return;
   const d = k === 'ArrowLeft' ? [-1,0] : k === 'ArrowRight' ? [1,0] : k === 'ArrowUp' ? [0,-1] : k === 'ArrowDown' ? [0,1] : null;
   if (d){ e.preventDefault(); e.stopPropagation(); kb.x += d[0]; kb.y += d[1]; kbShow(); return; }
@@ -4137,8 +4328,9 @@ document.getElementById('shot').addEventListener('click', () => {
 function clearAll(){
   if (!dailyBuilding) endDaily();
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
-  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); refractory.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0); fuel.fill(0);   // no stale state
+  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); refractory.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0); fuel.fill(0); name.fill(0);   // no stale state
   marked = null; markIx = -1; lastMarkDay = 0;
+  rideIx = -1;
   threads.length = 0; harpPreview = null;
   surveyPreview = null; if (surveyBox) closeSurvey();
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
@@ -5490,7 +5682,6 @@ function updateDailyCard(){
 document.getElementById('dailybtn').addEventListener('click', () => { startDaily(dailyKey()); });
 
 /* ---------- the marked one: one named creature, one deadline ---------- */
-const MARK_NAMES = ['Tallow','Bramble','Pip','Sorrel','Juniper','Moss','Ash','Rook','Wren','Clover','Cinder','Fern'];
 function maybeMark(){
   if (testing || marked) return;
   const day = 1 + Math.floor(sun / 6.2832);
@@ -5577,6 +5768,7 @@ function frame(t){
   checkGoals();
   maybeMark();
   checkMark();
+  checkRide();
   harpTick(performance.now());
   frames++;
   if (t - fpsT > 500){
@@ -5592,6 +5784,7 @@ function frame(t){
     updateBroadcastMeta();
     updateDailyCard();
     updateMarkCard();
+    updateRideCard();
     checkExperiment();
     if (censusOn){
       const rows = [];
@@ -5626,12 +5819,12 @@ function mulberry32(a){
 }
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
-  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveRe=refractory, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form, saveFu=fuel;
+  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveRe=refractory, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form, saveFu=fuel, saveNa=name;
   const saveHeat=heat.slice(), saveStars=stars, saveTally={...tally}, saveTick=update.t|0;   // the suite mutates all of these
   const saveWO=weatherOff; weatherOff=false;   // the suite needs rain; do not call setWeather (it would save the pref)
   moved=new Uint8Array(1600); facing=new Int8Array(1600); hunger=new Uint16Array(1600);
   alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); refractory=new Uint32Array(1600); rowLive=new Uint16Array(64);
-  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600); fuel=new Uint8Array(1600);
+  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600); fuel=new Uint8Array(1600); name=new Uint8Array(1600);
   sun = 0.5; wind = 0; season = 0; testing = true; // tests run in fixed daylight
   const realRandom = Math.random; Math.random = mulberry32(0x5EED);   // deterministic suite
   const errs = [];
@@ -7642,6 +7835,63 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('culling removes the species in the box', culled === 2 && !surveyAfter2.rows.some(r => r.sp === LIFE));
   closeSurvey();
 
+  // borrowed eyes: ride a person, wait for commands, leave
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,HUMAN);
+  const toolWas3 = tool;
+  setTool('harp');
+  startRide(idx(20,21));
+  rideMove(1,0);
+  const rode = rideIx === idx(21,21) && grid[idx(21,21)] === HUMAN;
+  endRide();
+  const rideOk = rode && rideIx === -1 && tool === 'harp';
+  setTool(toolWas3);
+  ok('riding moves and tracks the body', rideOk);
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,HUMAN); rideIx = idx(20,21); hunger[idx(20,21)] = 200;
+  step(20,21,1);
+  ok('a ridden body waits for a command', grid[idx(20,21)] === HUMAN && rideIx === idx(20,21));
+  rideIx = -1;
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,HUMAN); rideIx = idx(20,21); ridePrevTool = 'paint';
+  endRide();
+  ok('leaving the body restores the view', rideIx === -1 && document.getElementById('ride').hidden === true);
+
+  // death & memory: body, burial, grave gifts, survey, handprint, bone craft
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); gene[idx(20,21)] = 8; name[idx(20,21)] = 3; hunger[idx(20,21)] = 900;
+  step(20,21,1);
+  const bodied = grid[idx(20,21)] === BODY;
+  buryBody(20,21);
+  ok('a death leaves a body and the camp buries it',
+    bodied && grid[idx(20,21)] === GRAVE && name[idx(20,21)] === 3 && home[idx(20,21)] >= 1);
+
+  chamber(20,20); form.fill(0); name.fill(0);
+  set(20,21,GRAVE); gene[idx(20,21)] = 8; name[idx(20,21)] = 3; home[idx(20,21)] = 4;
+  set(20,21,SEED);
+  ok('a seed on a grave grows the dead tree',
+    grid[idx(20,21)] === TREE && gene[idx(20,21)] === 8 && name[idx(20,21)] === 3);
+
+  chamber(20,20); form.fill(0); name.fill(0);
+  set(20,21,GRAVE); name[idx(20,21)] = 3; home[idx(20,21)] = 4;
+  const graveSurvey = surveyData({x1:19,y1:19,x2:21,y2:21});
+  ok('the survey reads a grave', graveSurvey.graves.length > 0 && graveSurvey.graves[0].name === MARK_NAMES[2]);
+
+  chamber(20,20); form.fill(0); name.fill(0);
+  set(20,21,HUMAN); name[idx(20,21)] = 3; gene[idx(20,21)] = 8;
+  set(21,21,STONE);
+  const handStamped = stampHandprint(20,21,idx(20,21));
+  ok('a handprint remembers a life',
+    handStamped && grid[idx(21,21)] === OCHRE && name[idx(21,21)] === 3 && (form[idx(20,21)] & 4));
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); form[idx(20,21)] = 0;
+  set(20,22,STONE); set(21,21,BONE); gene[idx(21,21)] = DEER;
+  const learned = learnCraft(20,21,idx(20,21));
+  ok('a bone teaches a craft', learned && ((form[idx(20,21)] >> 3) & 3) === 1);
+
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
 set(20,20,LIFE); hunger[idx(20,20)] = 899; heat[idx(20,20)] = 1;
@@ -7722,7 +7972,7 @@ cvsEl3.blur(); cursor.on = false; chamber(20,20);
     Math.random = realRandom;
     testing = false;
     W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
-    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; refractory=saveRe; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo; fuel=saveFu;
+    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; refractory=saveRe; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo; fuel=saveFu; name=saveNa;
     heat=saveHeat; stars=saveStars; Object.assign(tally, saveTally); update.t=saveTick;
     weatherOff=saveWO;
   }

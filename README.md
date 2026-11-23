@@ -23,6 +23,7 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | right-click | erase |
 | middle-click | pick a material under the cursor |
 | arrows, `Enter`, `Delete`, `X` (canvas focused) | move the keyboard cursor, pour, erase, pick |
+| Shift+click a person | ride; arrows/WASD move, `E` acts, `Q` leaves |
 | `space` | pause / resume |
 | `[` `]` | brush size |
 | `0`–`9` | pick a material by number |
@@ -52,6 +53,10 @@ With **Sound** on, a procedural ambience follows the world: rain and storms, fir
 
 
 **The Marked One** appears once a day: a gold ring settles on one ordinary creature with a name and a dusk deadline. Keep it alive and the sky clears; lose it and the world rings one bell and leaves a little ash.
+
+**Borrowed Eyes** lets you enter one person. Shift-click a human to ride; arrows or WASD move, `E` acts, `Q` leaves. Hunger narrows the view, fire widens it, alarm reddens the rim, and the world falls dark outside what that body can see.
+
+**Death and memory** — a person who dies leaves a body; the camp buries it into a cairn, and the Survey reads the cairn's name and day. One gift changes the grave: a seed grows a tree in the dead person's hue, coal leaves a warm stone, a fish leaves a spring, a flower a patch. Once in a life, a person presses an ochre handprint into bare stone at dusk, and the Bow reads it back. Bones by a hearth teach the camp's next craft: a deer bone makes a hunter, a fish bone a fisher, a beaver bone a builder.
 
 **Tools** sit beside the palette: **Bow** sweeps notes out of the terrain, **Bubble** dips into any liquid and floats it somewhere else, **Harp** strings the air for creatures to pluck, **Startle** sends a red alarm wave through a herd (animals that have already bolted are refractory), **Survey** reads a boxed patch's food web and lets you cull one node and watch the census answer, and **Shutter** accumulates a long exposure for the PNG export.
 
@@ -96,11 +101,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **302 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **310 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~360 KB, zero dependencies, zero network requests.
+- One file, ~371 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.

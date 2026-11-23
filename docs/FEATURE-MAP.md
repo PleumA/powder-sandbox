@@ -35,6 +35,9 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Music / lo-fi, picker, vinyl, now-playing | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick`, `#nowplaying` |
 | World sound (ambience) | `ambienceTargets`, `worldStart`, `worldTick` | `#worldvol`, `worldStart` |
 | The Marked One | `maybeMark`, `checkMark`, `markIx` | `#mark`, `form` bit 2 |
+| Borrowed Eyes (ride a human) | `startRide`, `rideMove`, `rideAct`, `checkRide` | `#ride`, `rideIx` |
+| Death & memory (bodies, graves, names) | `humanBody`, `buryBody`, `graveGift` | `BODY`, `GRAVE`, `name` |
+| Handprint wall / bone crafts | `stampHandprint`, `learnCraft` | `OCHRE`, `form` bits |
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
 | The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
 | The Hue Hunter | `tickShrike`, `shrikeHue`, `mutateGene` | `SHRIKE`, `gene` |
