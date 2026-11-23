@@ -2053,6 +2053,10 @@ function tickGull(x,y,i){
 /* ---------- death, graves, names and memory ---------- */
 function humanBody(x,y,i){
   const g = gene[i], nm = name[i];
+  if (campSong && nm === campSong.keeper && !campSong.archived){
+    campSong = null;
+    if (!testing) chronicle('the camp’s song is lost');
+  }
   set(x,y, BODY); gene[i] = g; name[i] = nm;
 }
 function tickBody(x,y,i){
@@ -2064,6 +2068,7 @@ function buryBody(x,y){
   const i = idx(x,y);
   if (grid[i] !== BODY) return false;
   const g = gene[i], nm = name[i], day = 1 + Math.floor(sun / 6.2832);
+  lastKind = 'death';
   set(x,y, GRAVE); gene[i] = g; name[i] = nm; home[i] = day;
   if (!testing) chronicle('they bury ' + (nm ? MARK_NAMES[nm-1] : 'a person') + ' on day ' + day);
   return true;
@@ -2148,6 +2153,7 @@ function tickHuman(x,y,i){
   const hoardCraft = (form[i] >> 3) & 3;
   const preyOrder = hoardCraft === 1 ? [DEER, LIFE, FISH, CRAB, SNAIL] : hoardCraft === 2 ? [FISH, CRAB, SNAIL, OCTOPUS, LIFE] : [DEER, FISH, CRAB, SNAIL, LIFE];
   for (const prey of preyOrder){               // the best of what is at hand first
+    if (myth && myth.kind === 'cull' && prey === DEER) continue;   // the camp’s rule spares the deer
     if (hist[prey] <= 2 && (prey === DEER || prey === FISH || prey === CRAB || prey === SNAIL)) continue;   // leave the breeding stock alone
     for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
       if (!inB(nx,ny) || grid[idx(nx,ny)] !== prey) continue;
@@ -3095,6 +3101,9 @@ function bowAt(x,y){
   }
   const n = bowNote(MAT[v], heat[i]);
   if (soundOn) blip(n.hz, 0.28, n.type, 0.03);
+  playerPhrase.push(n.hz);
+  if (playerPhrase.length > 8) playerPhrase.shift();
+  if (playerPhrase.length >= 4) learnPhrase(playerPhrase);
 }
 function bubbleAt(x,y){
   const cx = Math.floor(x), cy = Math.floor(y);
@@ -3121,10 +3130,14 @@ function addThread(x1,y1,x2,y2){
 function harpTick(t){
   for (const th of threads){
     if (t - th.last < 450) continue;
-    let hit = false;
-    for (const i of th.cells) if (IS_CREATURE.has(grid[i])){ hit = true; break; }
+    let hit = false, hitI = -1;
+    for (const i of th.cells) if (IS_CREATURE.has(grid[i])){ hit = true; hitI = i; break; }
     if (hit){
       th.last = t; th.flash = t + 350;
+      if (campSong && !campSong.archived && hitI >= 0 && grid[hitI] === HUMAN && name[hitI] === campSong.keeper){
+        campSong.archived = true;
+        if (!testing) toastMsg('the Harp keeps the camp’s song', 3000);
+      }
       if (soundOn) blip(th.pitch, 0.35, 'sine', 0.03);
       dirty = true;
       break;
@@ -3241,6 +3254,7 @@ function cullSurvey(sp){
   for (let y=surveyBox.y1;y<=surveyBox.y2;y++) for (let x=surveyBox.x1;x<=surveyBox.x2;x++){
     if (grid[idx(x,y)] === sp){ set(x,y, BONE); n++; }
   }
+  lastKind = 'cull';
   const note = document.getElementById('surveynote');
   if (note) note.textContent = 'Culled ' + n + ' ' + MAT[sp].name + '. Watch the patch; the census will tell you what happened.';
   if (surveyTimer) clearTimeout(surveyTimer);
@@ -5738,6 +5752,53 @@ function updateMarkCard(){
   el.textContent = 'Mark · ' + marked.name + ' · until dusk';
 }
 
+/* ---------- camp culture: a myth, a song, the hand's tune ---------- */
+let myth = null, mythDay = 0, campSong = null, lastKind = '', playerPhrase = [];
+const MYTH_LINES = {
+  cull: 'the deer were taken by a hand in the sky',
+  death: 'the dead watch from the stones',
+  fire: 'fire is a debt that is paid at night',
+  camp: 'we were given this ground',
+};
+function mythLine(kind){ return MYTH_LINES[kind] || MYTH_LINES.camp; }
+function makeMyth(kind, day){
+  const line = mythLine(kind);
+  const strength = myth && myth.kind === kind ? Math.min(3, myth.strength + 1) : 1;
+  myth = { kind, line, strength, day };
+  return myth;
+}
+function maybeTell(){
+  if (testing) return;
+  const day = 1 + Math.floor(sun / 6.2832);
+  if (mythDay === day || Math.sin(sun) > -0.1) return;
+  mythDay = day;
+  makeMyth(lastKind || 'camp', day);
+  toastMsg('the camp tells: "' + myth.line + '"', 5000);
+  chronicle('the camp tells: ' + myth.line);
+  playCampSong();
+}
+function songNote(hue, step){ return noteHz('C4') * Math.pow(2, (step + (hue / 16) * 2) / 12); }
+function makeSong(pick){
+  const nm = name[pick] || 1, hue = (gene[pick] >> 2) & 15;
+  campSong = { notes: [0,3,5,7].map(s => songNote(hue, s)), keeper: nm, archived: false, day: 1 + Math.floor(sun / 6.2832) };
+  return campSong;
+}
+function maybeSong(){
+  if (testing || campSong || (update.t | 0) % 120) return;
+  for (let i=0;i<grid.length;i++) if (grid[i] === HUMAN){ makeSong(i); return; }
+}
+function learnPhrase(notes){
+  if (!notes || notes.length < 3) return null;
+  const keeper = campSong ? campSong.keeper : 1;
+  campSong = { notes: notes.slice(-4), keeper, archived: false, day: 1 + Math.floor(sun / 6.2832) };
+  if (!testing) chronicle('the camp learns the hand’s tune');
+  return campSong;
+}
+function playCampSong(){
+  if (!campSong || !soundOn || testing) return;
+  campSong.notes.forEach((hz,k) => setTimeout(() => blip(hz, 0.35, 'sine', 0.03), k * 380));
+}
+
 // § LOOP — RAF, HUD, goals
 /* ---------- loop ---------- */
 const fpsEl = document.getElementById('fps');
@@ -5769,6 +5830,8 @@ function frame(t){
   maybeMark();
   checkMark();
   checkRide();
+  maybeTell();
+  maybeSong();
   harpTick(performance.now());
   frames++;
   if (t - fpsT > 500){
@@ -7891,6 +7954,36 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   set(20,22,STONE); set(21,21,BONE); gene[idx(21,21)] = DEER;
   const learned = learnCraft(20,21,idx(20,21));
   ok('a bone teaches a craft', learned && ((form[idx(20,21)] >> 3) & 3) === 1);
+
+  // camp culture: a myth, a lost/kept song, the hand's phrase
+  const mythWas = myth, songWas = campSong;
+  const mythOk = mythLine('cull').indexOf('hand in the sky') >= 0;
+  makeMyth('cull', 1);
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); form[idx(20,21)] = 0;
+  set(21,21,DEER);
+  tickHuman(20,21,idx(20,21));
+  ok('a cull becomes a myth that spares the deer',
+    mythOk && myth.kind === 'cull' && grid[idx(21,21)] === DEER);
+
+  campSong = { notes: [1,2,3,4], keeper: 3, archived: false, day: 1 };
+  learnPhrase([10,20,30,40]);
+  ok('the camp learns the hand’s tune', !!campSong && campSong.notes.length >= 3 && campSong.notes[campSong.notes.length-1] === 40);
+
+  campSong = { notes: [1,2,3,4], keeper: 3, archived: false, day: 1 };
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); name[idx(20,21)] = 3;
+  threads.length = 0; addThread(19,21,21,21);
+  harpTick(2000);
+  ok('the Harp keeps a keeper’s song', campSong.archived === true);
+  threads.length = 0;
+
+  campSong = { notes: [1,2,3,4], keeper: 3, archived: false, day: 1 };
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); name[idx(20,21)] = 3;
+  humanBody(20,21,idx(20,21));
+  ok('an unkept song dies with its keeper', campSong === null);
+  myth = mythWas; campSong = songWas;
 
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);

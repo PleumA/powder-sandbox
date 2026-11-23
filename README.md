@@ -58,6 +58,8 @@ With **Sound** on, a procedural ambience follows the world: rain and storms, fir
 
 **Death and memory** — a person who dies leaves a body; the camp buries it into a cairn, and the Survey reads the cairn's name and day. One gift changes the grave: a seed grows a tree in the dead person's hue, coal leaves a warm stone, a fish leaves a spring, a flower a patch. Once in a life, a person presses an ochre handprint into bare stone at dusk, and the Bow reads it back. Bones by a hearth teach the camp's next craft: a deer bone makes a hunter, a fish bone a fisher, a beaver bone a builder.
 
+**Camp culture** — when a cull or a death is retold at night, it becomes a rule the camp acts on: a cull can become a taboo that spares the deer. A camp's song lives in one person's memory; draw a Harp thread through the keeper to keep it, or it dies with them untaught. Bow a phrase out of the terrain and the camp learns it as its own tune.
+
 **Tools** sit beside the palette: **Bow** sweeps notes out of the terrain, **Bubble** dips into any liquid and floats it somewhere else, **Harp** strings the air for creatures to pluck, **Startle** sends a red alarm wave through a herd (animals that have already bolted are refractory), **Survey** reads a boxed patch's food web and lets you cull one node and watch the census answer, and **Shutter** accumulates a long exposure for the PNG export.
 
 Creatures carry a family line: hue and metabolism are inherited through births and eggs with small mutations. Slow lines last longer between meals; fast ones breed slightly more, so a population's colours and habits drift over days. The Help panel lists each species' dominant line. Lineages are live — scene links and saved scenes carry the world, not the family colours.
@@ -101,11 +103,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **310 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **314 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~371 KB, zero dependencies, zero network requests.
+- One file, ~375 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
