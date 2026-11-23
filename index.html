@@ -414,6 +414,8 @@ const FROST = 59;
 const TERMITE = 60;
 const OCTOPUS = 61;
 const INK = 62;
+const AMOEBA = 63;
+const STALK = 64;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -435,7 +437,7 @@ const MAT = {
   [TNT]: {name:'TNT', color:[220,58,66], glow:'#dc3a42', density:3, cat:'energy', tick:(x,y,i,dir)=>tickTnt(x,y,dir,i), desc:'blows a crater when fire touches it'},
   [SMOKE]: {name:'Smoke', color:[74,78,90], glow:'#4a4e5a', density:-2, life:200, cat:'energy', tick:tickSmoke, desc:'rises, thins out, and drifts with the wind'},
   [MERCURY]: {name:'Mercury', color:[200,208,218], glow:'#c8d0da', density:4, liquid:true, cat:'liquid', desc:'heavier than sand; gives off fumes near fire'},
-  [WORM]: {name:'Worms', color:[196,120,84], glow:'#c47854', density:5, migrant:1, cat:'life', diet:[PLANT, SEED], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
+  [WORM]: {name:'Worms', color:[196,120,84], glow:'#c47854', density:5, migrant:1, cat:'life', diet:[PLANT, SEED, AMOEBA], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
   [SALT]: {name:'Salt', color:[236,232,220], glow:'#ece8dc', density:3, cat:'powder', tick:(x,y,i,dir)=>tickSalt(x,y,dir,i), desc:'melts ice and dissolves in water'},
   [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9, cat:'solid', tick:tickFungus, desc:'eats wood, spreads into plants, burns'},
   [SNOW]: {name:'Snow', color:[238,246,255], glow:'#eef6ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickSnow(x,y,dir,i), desc:'falls like sand and melts near heat'},
@@ -444,7 +446,7 @@ const MAT = {
   [FIREWORK]: {name:'Firework', color:[255,214,90], glow:'#ffd65a', density:3, cat:'energy', tick:(x,y,i,dir)=>tickFirework(x,y,dir,i), desc:'climbs when lit, then bursts into fire'},
   [SPIDER]: {name:'Spiders', color:[176,110,220], glow:'#b06edc', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickSpider, desc:'climbs walls and hunts bugs'},
   [FROG]: {name:'Frogs', color:[120,220,110], glow:'#78dc6e', density:1.5, migrant:1, cat:'life', diet:[LIFE, FISH, FIREFLY, ANT, BEE], tick:tickFrog, desc:'leaps two cells, hunts bugs and fish'},
-  [SNAIL]: {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED], tick:tickSnail, desc:'a slow grazer that eats plants'},
+  [SNAIL]: {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED, AMOEBA], tick:tickSnail, desc:'a slow grazer that eats plants'},
   [BAT]: {name:'Bats', color:[130,120,160], glow:'#8278a0', density:-2, migrant:1, cat:'life', diet:[LIFE, BEE, FIREFLY, ANT], tick:tickBat, desc:'flutters erratically and hunts bugs'},
   [EGG]: {name:'Eggs', color:[240,232,200], glow:'#f0e8c8', density:2, cat:'life', tick:(x,y,i,dir)=>tickEgg(x,y,dir,i), desc:'hatches a bird near a nest, a fish in water, a bug anywhere else'},
   [FIREFLY]: {name:'Fireflies', color:[255,246,120], glow:'#fff678', density:-3, cat:'life', tick:tickFirefly, desc:'comes out at dusk and is gone by morning'},
@@ -479,6 +481,8 @@ const MAT = {
   [TERMITE]: {name:'Termites', color:[184,144,98], glow:'#b89062', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
   [OCTOPUS]: {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2, migrant:1, cat:'life', diet:[CRAB, FISH, SNAIL, WORM], tick:tickOctopus, desc:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes'},
   [INK]: {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickInk(x,y,dir,i), desc:'a dark cloud that spreads through water and thins away'},
+  [AMOEBA]: {name:'Amoebae', color:[232,236,170], glow:'#e8ecaa', density:2, migrant:1, cat:'life', diet:[COMPOST, MOSS], tick:tickAmoeba, desc:'grazes microbes; when it gets hungry it signals, gathers into a crawling slug, and fruits into a stalk'},
+  [STALK]: {name:'Slime stalks', color:[200,210,150], glow:'#c8d296', density:9, cat:'life', tick:tickStalk, desc:'a pale fruiting body that releases a new generation of amoebae, then falls back to compost'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -500,7 +504,7 @@ for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).pus
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
-let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, scent=null, home=null, gene=null;
+let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, scent=null, home=null, gene=null, camp=null;
 const cell = 4;              // CSS px per simulated cell, scaled to fit
 
 let current = SAND;
@@ -531,7 +535,7 @@ function resize(){
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
   const oldGrid = grid, oldLife = life, oldFacing = facing, oldHunger = hunger, oldHeat = heat;
-  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldStars = stars, oldGene = gene;
+  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldStars = stars, oldGene = gene, oldCamp = camp;
   W = nW; H = nH;
   cvs.width = W; cvs.height = H;
   cvs.style.width = cw+'px'; cvs.style.height = ch+'px';
@@ -549,6 +553,7 @@ function resize(){
   if (!hadWorld) for (let i=0;i<stars.length;i++) stars[i] = Math.random() < 0.0018 ? 1 + ((Math.random()*2)|0) : 0;
   facing = new Int8Array(W*H);   // which way each bug is walking
   gene = new Uint8Array(W*H);    // lineage: low 6 bits hue, high 2 bits metabolism
+  camp = new Uint8Array(W*H);    // amoeba signal: hungry cells call their kin together
   img = ctx.createImageData(W, H);
   if (hadWorld){
     const dy = H - oH, cw2 = Math.min(oW, W);    // anchor the world to the floor, keep the left edge
@@ -560,6 +565,7 @@ function resize(){
       life.set(oldLife.subarray(src, src + cw2), dst);
       facing.set(oldFacing.subarray(src, src + cw2), dst);
       if (oldGene) gene.set(oldGene.subarray(src, src + cw2), dst);
+      if (oldCamp) camp.set(oldCamp.subarray(src, src + cw2), dst);
       hunger.set(oldHunger.subarray(src, src + cw2), dst);
       heat.set(oldHeat.subarray(src, src + cw2), dst);
       home.set(oldHome.subarray(src, src + cw2), dst);
@@ -773,6 +779,7 @@ function spreadHeat(){
     else if (v === FROST) h = h < 0.1 ? Math.min(h, -0.8) : h;  // unless something is actively heating them
 
     heat[i] = h;
+    if (camp[i]) camp[i] = camp[i] > 6 ? camp[i] - 6 : 0;       // the amoeba signal fades
   }
   for (let y=1;y<H-1;y++){
     const row = y*W;
@@ -780,6 +787,8 @@ function spreadHeat(){
       const i = row + x;
       const n = (heat[i-1] + heat[i+1] + heat[i-W] + heat[i+W]) * 0.25;
       if (Math.abs(n) > Math.abs(heat[i])) heat[i] += (n - heat[i]) * 0.45;   // heat and cold both spread outward
+      const c = (camp[i-1] + camp[i+1] + camp[i-W] + camp[i+W]) >> 2;
+      if (c > camp[i]) camp[i] = c;                              // and the signal drifts to the neighbours
     }
   }
 }
@@ -1017,6 +1026,83 @@ function tickLife(x,y,i){
   if (hop(x,y,x+d,y)) return true;                       // walk on
   if (inB(x+d,y) && grid[idx(x+d,y)] !== EMPTY && hop(x,y,x+d,y-1)) return true;  // step up
   facing[i] = -d;                                        // blocked: turn around
+  return true;
+}
+
+// an amoeba: grazes microbes; when hungry it signals, gathers into a slug, and fruits
+function tickAmoeba(x,y,i){
+  if (moved[i]) return false;
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny)) continue;
+    const t = grid[idx(nx,ny)];
+    if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
+  }
+  if (hunger[i] >= 120){
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (!inB(nx,ny)) continue;
+      const t = grid[idx(nx,ny)];
+      if (t === COMPOST || t === MOSS){ set(nx,ny, EMPTY); hunger[i] = 0; tally.eaten++; return true; }
+    }
+  }
+  if (age > 2200 && Math.random() < 0.004){ set(x,y, COMPOST); return true; }
+
+  if (hunger[i] > 500){                                  // hungry: call the kin and climb the signal
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (inB(nx,ny)) camp[idx(nx,ny)] = Math.min(255, camp[idx(nx,ny)] + 48);
+    }
+    let kin = 0;
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (inB(nx,ny) && grid[idx(nx,ny)] === AMOEBA && hunger[idx(nx,ny)] > 500) kin++;
+    }
+    const onSolid = get(x,y+1) !== EMPTY && get(x,y+1) !== WATER && get(x,y+1) !== LAVA;
+    if (kin >= 2 && onSolid && Math.random() < 0.02){    // enough hungry kin: rear up into a stalk
+      const g = gene[i];
+      set(x,y, STALK); gene[i] = g;
+      for (let k=1;k<=2;k++){
+        const yy = y-k;
+        if (yy < 0 || grid[idx(x,yy)] !== EMPTY) break;
+        set(x,yy, STALK); gene[idx(x,yy)] = g;
+      }
+      return true;
+    }
+    if (kin >= 1 && Math.random() < 0.9) return false;   // hold the slug together between crawls
+    let best = null, bestC = camp[i];
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (!inB(nx,ny) || grid[idx(nx,ny)] !== EMPTY) continue;
+      const c = camp[idx(nx,ny)];
+      if (c > bestC){ bestC = c; best = [nx,ny]; }
+    }
+    if (best && hop(x,y,best[0],best[1])) return true;
+  }
+
+  if (hop(x,y,x,y+1)) return true;
+  let d = facing[i];
+  if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
+  if (hop(x,y,x+d,y)) return true;
+  if (hop(x,y,x+d,y-1)) return true;
+  facing[i] = -d;
+  return true;
+}
+
+// a slime stalk: a solid fruiting body that releases a few amoebae, then turns to compost
+function tickStalk(x,y,i){
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  if (age < 180) return false;
+  const g = gene[i];
+  let born = 0;
+  for (const [dx,dy] of [[0,-1],[-1,0],[1,0],[0,1],[-1,-1],[1,-1]]){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny) || grid[idx(nx,ny)] !== EMPTY) continue;
+    set(nx,ny, AMOEBA); gene[idx(nx,ny)] = mutateGene(g); hunger[idx(nx,ny)] = 320; born++;
+    if (born >= 2) break;
+  }
+  set(x,y, COMPOST);
   return true;
 }
 
@@ -3533,7 +3619,7 @@ document.getElementById('shot').addEventListener('click', () => {
 function clearAll(){
   if (!dailyBuilding) endDaily();
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
-  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0); gene.fill(0);   // no stale state
+  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0);   // no stale state
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
 }
 
@@ -3585,6 +3671,10 @@ const SCENES = {
     for (let k=0;k<30;k++){                                       // moss and fungus on the quiet ground
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
       if (t > 3) set(x, t-1, Math.random() < 0.6 ? MOSS : FUNGUS);
+    }
+    for (let k=0;k<10;k++){                                       // a pinch of amoebae in the damp moss
+      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, AMOEBA);
     }
 
     const scar = Math.min(W - 3, (W * 0.85) | 0);                 // an old burn on the far bank
@@ -3752,6 +3842,10 @@ const SCENES = {
     for (let k=0;k<20;k++){                                 // drowned wood and rot on the banks
       const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
       if (t > 3) set(x, t-1, Math.random() < 0.4 ? WOOD : Math.random() < 0.5 ? FUNGUS : COMPOST);
+    }
+    for (let k=0;k<12;k++){                                 // amoebae on the wet rot
+      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, AMOEBA);
     }
     for (let k=0;k<10;k++){ const x=cx-r+((Math.random()*(2*r))|0); set(x, (topsHint[x]||H-4)-1, FROG); }
     for (let k=0;k<8;k++){ const x=(Math.random()*W)|0, t=topsHint[x]||H-4; if (t>2) set(x,t-1,SNAIL); }
@@ -4935,12 +5029,12 @@ function mulberry32(a){
 }
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
-  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene;
+  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp;
   const saveHeat=heat.slice(), saveStars=stars, saveTally={...tally}, saveTick=update.t|0;   // the suite mutates all of these
   const saveWO=weatherOff; weatherOff=false;   // the suite needs rain; do not call setWeather (it would save the pref)
   moved=new Uint8Array(1600); facing=new Int8Array(1600); hunger=new Uint16Array(1600);
   alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); rowLive=new Uint16Array(64);
-  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600);
+  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600);
   sun = 0.5; wind = 0; season = 0; testing = true; // tests run in fixed daylight
   const realRandom = Math.random; Math.random = mulberry32(0x5EED);   // deterministic suite
   const errs = [];
@@ -5499,6 +5593,27 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   step(20,20,1);
   ok('a fast metabolism starves sooner', grid[idx(20,20)] !== LIFE);
 
+  // social amoebae: fed ones stay solitary; hungry ones gather and fruit
+  chamber(20,20); camp.fill(0);
+  set(20,20,AMOEBA); set(21,20,AMOEBA); set(20,21,COMPOST); set(21,21,COMPOST);
+  gene[idx(20,20)] = 0; gene[idx(21,20)] = 0;
+  run(60);
+  ok('fed amoebae stay solitary', count(STALK) === 0);
+
+  chamber(20,20); camp.fill(0);
+  for (let k=0;k<3;k++){ set(19+k,21,AMOEBA); gene[idx(19+k,21)] = 0; hunger[idx(19+k,21)] = 600; }
+  let stalked = false;
+  for (let i=0;i<300 && !stalked;i++){
+    update();
+    for (let j=0;j<grid.length;j++) if (grid[j] === STALK){ stalked = true; break; }
+  }
+  ok('hungry amoebae gather and fruit', stalked);
+
+  chamber(20,20); camp.fill(0);
+  set(20,21,STALK); gene[idx(20,21)] = 0; life[idx(20,21)] = 179;
+  run(80);
+  ok('a stalk fruits a new generation', count(AMOEBA) > 0 && grid[idx(20,21)] !== STALK);
+
   // stone never moves, and an empty world spawns nothing
   chamber(20,32);
   set(20,32,STONE); const sx = idx(20,32); run(10);
@@ -5589,6 +5704,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   grid.fill(0); facing.fill(0); alarmT.fill(0);
   for (let x=5;x<35;x++) grid[idx(x,30)] = STONE;
   set(18,29,HERON);
+  gene[idx(18,29)] = 0;                        // normal metabolism: this test is about the egg, not starvation
   life[idx(18,29)] = 1250;                     // already settled: it has to lay before it starves (STARVE is 900)
   run(600);
   ok('a settled heron lays an egg', count(EGG) + count(HERON) > 1);
@@ -6833,7 +6949,7 @@ cvsEl3.blur(); cursor.on = false; chamber(20,20);
     Math.random = realRandom;
     testing = false;
     W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
-    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe;
+    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa;
     heat=saveHeat; stars=saveStars; Object.assign(tally, saveTally); update.t=saveTick;
     weatherOff=saveWO;
   }
