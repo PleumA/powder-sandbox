@@ -564,8 +564,9 @@ for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).pus
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
-let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, refractory=null, scent=null, home=null, gene=null, camp=null, form=null, fuel=null, name=null;
+let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, refractory=null, scent=null, home=null, gene=null, camp=null, form=null, fuel=null, name=null, print=null;
 const MARK_NAMES = ['Tallow','Bramble','Pip','Sorrel','Juniper','Moss','Ash','Rook','Wren','Clover','Cinder','Fern'];
+let lastTouch = null, idleCairn = false, fireGrief = 0, shepherdSpoke = false, strokeCells = null, bridgeLesson = null;
 let marked = null, markIx = -1, lastMarkDay = 0;   // the daily marked creature
 let rideIx = -1, ridePrevTool = 'paint';           // the human the player is riding
 let emberCount = 0;
@@ -599,7 +600,7 @@ function resize(){
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
   const oldGrid = grid, oldLife = life, oldFacing = facing, oldHunger = hunger, oldHeat = heat;
-  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldRefractory = refractory, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form, oldFuel = fuel, oldName = name;
+  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldRefractory = refractory, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form, oldFuel = fuel, oldName = name, oldPrint = print;
   W = nW; H = nH;
   cvs.width = W; cvs.height = H;
   cvs.style.width = cw+'px'; cvs.style.height = ch+'px';
@@ -622,6 +623,7 @@ function resize(){
   form = new Uint8Array(W*H);    // locust phase: 0 ground, 1 winged
   fuel = new Uint8Array(W*H);    // how long a flammable cell has gone unburned
   name = new Uint8Array(W*H);    // a person's name index; graves and handprints keep it
+  print = new Uint8Array(W*H);   // footprints: 255 adult, 120 child; weather fades them
   img = ctx.createImageData(W, H);
   if (hadWorld){
     const dy = H - oH, cw2 = Math.min(oW, W);    // anchor the world to the floor, keep the left edge
@@ -637,6 +639,7 @@ function resize(){
       if (oldForm) form.set(oldForm.subarray(src, src + cw2), dst);
       if (oldFuel) fuel.set(oldFuel.subarray(src, src + cw2), dst);
       if (oldName) name.set(oldName.subarray(src, src + cw2), dst);
+      if (oldPrint) print.set(oldPrint.subarray(src, src + cw2), dst);
       hunger.set(oldHunger.subarray(src, src + cw2), dst);
       heat.set(oldHeat.subarray(src, src + cw2), dst);
       home.set(oldHome.subarray(src, src + cw2), dst);
@@ -865,6 +868,7 @@ function spreadHeat(){
 
     heat[i] = h;
     if (camp[i]) camp[i] = camp[i] > 6 ? camp[i] - 6 : 0;       // the amoeba signal fades
+    if (print[i]) print[i] = print[i] > 1 ? print[i] - 1 : 0;   // weather erases the footprints
     if (FLAM[v] && (update.t & 7) === 1) fuel[i] = Math.min(255, fuel[i] + 1);   // unburned fuel piles up
   }
   for (let y=1;y<H-1;y++){
@@ -1106,6 +1110,10 @@ function hop(x,y,tx,ty){
   if (!inB(tx,ty)) return false;
   const j = idx(tx,ty);
   if (grid[j] !== EMPTY) return false;
+  if (grid[idx(x,y)] === HUMAN){
+    const below = get(x,y+1);
+    if (below !== EMPTY && below !== WATER && below !== FIRE && below !== LAVA) print[idx(x,y+1)] = life[idx(x,y)] < 1200 ? 120 : 255;
+  }
   swap(idx(x,y), j);
   moved[j] = 1;
   return true;
@@ -2155,6 +2163,56 @@ function cutFirebreak(cx,cy,r){
   }
   return cleared;
 }
+function shepherdCheck(x,y,v){
+  if (v !== FIRE && v !== LAVA) return false;
+  let person = -1;
+  for (let dy=-2;dy<=2 && person<0;dy++) for (let dx=-2;dx<=2;dx++){
+    if (!dx && !dy) continue;
+    const nx=x+dx, ny=y+dy;
+    if (!inB(nx,ny) || grid[idx(nx,ny)] !== HUMAN) continue;
+    for (const [ax,ay] of NB4){
+      const t = get(nx+ax,ny+ay);
+      if (IS_CREATURE.has(t) && t !== HUMAN){ person = idx(nx,ny); break; }
+    }
+    if (person >= 0) break;
+  }
+  if (person < 0) return false;
+  facing[person] = Math.sign(x - (person % W)) || 1;
+  alarmT[person] = update.t + 20;
+  if (!testing && !shepherdSpoke){ toastMsg('a person steps between the hand and the catch', 3000); shepherdSpoke = true; }
+  return true;
+}
+function effigyAt(x,y){
+  if (!fireGrief) return false;
+  fireGrief = 0;
+  for (const [dx,dy] of NB4){
+    const nx=x+dx, ny=y+dy;
+    if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){
+      set(nx,ny, REED);
+      if (inB(nx,ny-1) && grid[idx(nx,ny-1)] === EMPTY) set(nx,ny-1, FIRE);
+      break;
+    }
+  }
+  if (!testing) chronicle('the camp burns a reed hand for the dead');
+  return true;
+}
+function buildIdleCairn(){
+  if (!lastTouch || idleCairn) return false;
+  let human = -1;
+  for (let i=0;i<grid.length;i++) if (grid[i] === HUMAN){ human = i; break; }
+  if (human < 0) return false;
+  const x = lastTouch.x, y = lastTouch.y;
+  if (!inB(x,y) || grid[idx(x,y)] !== EMPTY) return false;
+  const i = idx(x,y);
+  set(x,y, GRAVE); name[i] = 0; home[i] = 1 + Math.floor(sun / 6.2832);
+  idleCairn = true;
+  if (!testing){ toastMsg('the camp builds a cairn where the hand last acted', 5000); chronicle('the camp mourns the hand'); }
+  return true;
+}
+function maybeIdleCairn(){
+  if (testing || idleCairn || !lastTouch) return;
+  if (performance.now() - lastTouch.at > 30000) buildIdleCairn();
+}
 
 function tickHuman(x,y,i){
   if (moved[i]) return false;
@@ -2186,7 +2244,7 @@ function tickHuman(x,y,i){
   for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
     if (!inB(nx,ny)) continue;
     const t = grid[idx(nx,ny)];
-    if ((t === FIRE || t === LAVA) && !roofed){ humanBody(x,y,i); return true; }
+    if ((t === FIRE || t === LAVA) && !roofed){ fireGrief = 1; lastKind = 'fire'; humanBody(x,y,i); return true; }
     if (t === FIRE && roofed) heat[idx(x,y)] = Math.max(heat[idx(x,y)], 0.4);   // the hearth keeps them warm
   }
   for (const [dx,dy] of NB4){
@@ -2195,10 +2253,23 @@ function tickHuman(x,y,i){
   const bodyDir = sense(x,y,BODY,6);
   if (bodyDir && hop(x,y,x+bodyDir[0],y+bodyDir[1])) return true;
   if (learnCraft(x,y,i)) return true;
+  if (bridgeLesson && Math.random() < 0.01 && repairBridge()) return true;
   if (!(form[i] & 4) && Math.sin(sun) < -0.1 && Math.random() < 0.01 && stampHandprint(x,y,i)) return true;
+  if (fireGrief && Math.sin(sun) < -0.1 && Math.random() < 0.01 && effigyAt(x,y)) return true;
+  if (hunger[i] > 120){
+    for (const [dx,dy] of NB4){
+      if (get(x+dx,y+dy) === GARDEN){ set(x+dx,y+dy, EMPTY); hunger[i] = 0; form[i] |= 32; return true; }
+    }
+  }
+  if (form[i] & 32){                                       // the pale keeper farms instead of hunting
+    for (const [dx,dy] of NB4){
+      const t = get(x+dx,y+dy);
+      if (t === PLANT || t === REED || t === FLOWER){ set(x+dx,y+dy, GARDEN); return true; }
+    }
+  }
   const hoardCraft = (form[i] >> 3) & 3;
   const preyOrder = hoardCraft === 1 ? [DEER, LIFE, FISH, CRAB, SNAIL] : hoardCraft === 2 ? [FISH, CRAB, SNAIL, OCTOPUS, LIFE] : [DEER, FISH, CRAB, SNAIL, LIFE];
-  for (const prey of preyOrder){               // the best of what is at hand first
+  if (!(form[i] & 32)) for (const prey of preyOrder){               // the best of what is at hand first
     if (myth && myth.kind === 'cull' && prey === DEER) continue;   // the camp’s rule spares the deer
     if (hist[prey] <= 2 && (prey === DEER || prey === FISH || prey === CRAB || prey === SNAIL)) continue;   // leave the breeding stock alone
     for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
@@ -2965,9 +3036,14 @@ function draw(){
         const dark = (v === LOCUST && (form[i] & 1)) || (v === HUMAN && fuel[i]) ? 0.55 : 1;
         r = Math.min(255, r*f*shade*tint[0]*dark); g = Math.min(255, g*f*shade*tint[1]*dark); b = Math.min(255, b*f*shade*tint[2]*dark);
         if (alarmT[i] > update.t){ r = Math.min(255, r + 90); g = Math.max(0, g - 45); b = Math.max(0, b - 35); }
+        if (v === HUMAN && (form[i] & 32)){ r = Math.min(255, r + 35); g = Math.min(255, g + 25); b = Math.min(255, b + 15); }
       } else if ((v === TREE || v === FRUIT || v === GRAVE || v === OCHRE) && gene[i]){
         const t = GENE_TINTS[(gene[i] >> 2) & 15];
         r = Math.min(255, r*t[0]); g = Math.min(255, g*t[1]); b = Math.min(255, b*t[2]);
+      }
+      if (print[i]){
+        const pm = print[i] / 255;
+        r = r * (1 - 0.28*pm); g = g * (1 - 0.28*pm); b = Math.min(255, b + 22*pm);
       }
       if (heatView){                                 // thermal camera: cold blue, hot white
         const q = Math.min(63, Math.max(0, Math.round(((heat[i] + 1) / 2.4) * 63)));
@@ -3062,6 +3138,8 @@ const hist = new Uint32Array(MAT_SLOTS);
 const prevHist = new Uint32Array(MAT_SLOTS);
 
 function paintAt(cx, cy, v = current, rad = brush){
+  lastTouch = { x: Math.floor(cx), y: Math.floor(cy), at: performance.now() };
+  shepherdCheck(Math.floor(cx), Math.floor(cy), v);
   paintCircle(cx, cy, v, rad);
   if (mirror) paintCircle(W - 1 - cx, cy, v, rad);
 }
@@ -3073,7 +3151,42 @@ function paintCircle(cx, cy, v, rad = brush){
     const x = x0+dx, y = y0+dy;
     if (!inB(x,y)) continue;
     set(x,y, v);
+    if (strokeCells && (v === WOOD || v === STONE)) strokeCells.add(idx(x,y));
   }
+}
+function finishStroke(){
+  if (!strokeCells || strokeCells.size < 3) return false;
+  const cells = [...strokeCells];
+  let overWater = false;
+  for (const i of cells){
+    if (grid[i] !== WOOD && grid[i] !== STONE) continue;
+    const x = i % W, y = (i / W) | 0;
+    for (const [dx,dy] of NB4) if (get(x+dx,y+dy) === WATER){ overWater = true; break; }
+    if (overWater) break;
+  }
+  if (!overWater) return false;
+  let witness = false;
+  for (let i=0;i<grid.length && !witness;i++){
+    if (grid[i] !== HUMAN || life[i] >= 1200) continue;
+    const x = i % W, y = (i / W) | 0;
+    for (const j of cells){
+      if (Math.abs((j % W) - x) <= 8 && Math.abs(((j / W) | 0) - y) <= 8){ witness = true; break; }
+    }
+  }
+  if (!witness) return false;
+  bridgeLesson = { cells };
+  if (!testing) chronicle('a child watches the bridge');
+  return true;
+}
+function repairBridge(){
+  if (!bridgeLesson) return false;
+  for (const i of bridgeLesson.cells){
+    if (grid[i] !== WOOD && grid[i] !== STONE){
+      const x = i % W, y = (i / W) | 0;
+      if (grid[i] === EMPTY || grid[i] === WATER){ set(x,y, WOOD); return true; }
+    }
+  }
+  return false;
 }
 
 function toCell(e){
@@ -3166,6 +3279,21 @@ function addThread(x1,y1,x2,y2){
   threads.push({ x1, y1, x2, y2, cells, pitch: threadPitch((y1+y2)/2), last: 0, flash: 0 });
   while (threads.length > 12) threads.shift();
 }
+function harpLead(th){
+  for (const i of th.cells){
+    const x = i % W, y = (i / W) | 0;
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (!inB(nx,ny)) continue;
+      const j = idx(nx,ny);
+      if (grid[j] === HUMAN && life[j] < 1200){
+        facing[j] = Math.sign((th.x1 + th.x2) / 2 - (j % W)) || 1;
+        return true;
+      }
+    }
+  }
+  return false;
+}
 function harpTick(t){
   for (const th of threads){
     if (t - th.last < 450) continue;
@@ -3173,6 +3301,7 @@ function harpTick(t){
     for (const i of th.cells) if (IS_CREATURE.has(grid[i])){ hit = true; hitI = i; break; }
     if (hit){
       th.last = t; th.flash = t + 350;
+      harpLead(th);
       if (campSong && !campSong.archived && hitI >= 0 && grid[hitI] === HUMAN && name[hitI] === campSong.keeper){
         campSong.archived = true;
         if (!testing) toastMsg('the Harp keeps the camp’s song', 3000);
@@ -3383,6 +3512,7 @@ cvs.addEventListener('pointerdown', e => {
   const st = { last: null, erasing: e.button === 2 };
   pointers.set(e.pointerId, st);
   cvs.setPointerCapture(e.pointerId);
+  strokeCells = new Set();
   paintAt(cx, cy, st.erasing ? EMPTY : current);
 });
 cvs.addEventListener('pointermove', e => {
@@ -3449,6 +3579,7 @@ addEventListener('pointerup', e => {
     if (box.x2 - box.x1 >= 1 && box.y2 - box.y1 >= 1) openSurvey(box);
     surveyPreview = null; dirty = true;
   }
+  if (strokeCells){ finishStroke(); strokeCells = null; }
   pointers.delete(e.pointerId);
 });
 addEventListener('pointercancel', e => pointers.delete(e.pointerId));
@@ -4390,9 +4521,11 @@ document.getElementById('shot').addEventListener('click', () => {
 function clearAll(){
   if (!dailyBuilding) endDaily();
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
-  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); refractory.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0); fuel.fill(0); name.fill(0);   // no stale state
+  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); refractory.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0); fuel.fill(0); name.fill(0); print.fill(0);   // no stale state
   marked = null; markIx = -1; lastMarkDay = 0;
   rideIx = -1;
+  lastTouch = null; idleCairn = false; fireGrief = 0; shepherdSpoke = false;
+  strokeCells = null; bridgeLesson = null;
   threads.length = 0; harpPreview = null;
   surveyPreview = null; if (surveyBox) closeSurvey();
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
@@ -5880,6 +6013,7 @@ function frame(t){
   checkRide();
   maybeTell();
   maybeSong();
+  maybeIdleCairn();
   harpTick(performance.now());
   frames++;
   if (t - fpsT > 500){
@@ -5930,12 +6064,12 @@ function mulberry32(a){
 }
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
-  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveRe=refractory, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form, saveFu=fuel, saveNa=name;
+  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveRe=refractory, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form, saveFu=fuel, saveNa=name, savePr=print;
   const saveHeat=heat.slice(), saveStars=stars, saveTally={...tally}, saveTick=update.t|0;   // the suite mutates all of these
   const saveWO=weatherOff; weatherOff=false;   // the suite needs rain; do not call setWeather (it would save the pref)
   moved=new Uint8Array(1600); facing=new Int8Array(1600); hunger=new Uint16Array(1600);
   alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); refractory=new Uint32Array(1600); rowLive=new Uint16Array(64);
-  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600); fuel=new Uint8Array(1600); name=new Uint8Array(1600);
+  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600); fuel=new Uint8Array(1600); name=new Uint8Array(1600); print=new Uint8Array(1600);
   sun = 0.5; wind = 0; season = 0; testing = true; // tests run in fixed daylight
   const realRandom = Math.random; Math.random = mulberry32(0x5EED);   // deterministic suite
   const errs = [];
@@ -8057,6 +8191,67 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   tickHuman(20,21,idx(20,21));
   ok('a debt-born needs the hearth', cooled && grid[idx(20,21)] === HUMAN);
 
+  // the hand & becoming: pale keeper, shepherd, effigy, idle cairn
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); set(21,21,GARDEN);
+  tickHuman(20,21,idx(20,21));
+  ok('a hungry human becomes a pale keeper',
+    grid[idx(21,21)] !== GARDEN && (form[idx(20,21)] & 32));
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); form[idx(20,21)] = 32; set(21,21,PLANT);
+  tickHuman(20,21,idx(20,21));
+  ok('a pale keeper farms', grid[idx(21,21)] === GARDEN);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); set(21,21,FISH); alarmT[idx(20,21)] = 0;
+  const stood = shepherdCheck(20,20,FIRE);
+  ok('a person stands between the hand and the catch', stood && alarmT[idx(20,21)] > update.t);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); fireGrief = 1;
+  const burnedEffigy = effigyAt(20,21);
+  ok('a fire death leaves an effigy to burn', burnedEffigy && fireGrief === 0 && count(FIRE) > 0 && count(REED) > 0);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); lastTouch = { x:20, y:20, at:0 }; idleCairn = false;
+  const cairned = buildIdleCairn();
+  ok('the camp builds a cairn where the hand stopped', cairned && grid[idx(20,20)] === GRAVE);
+
+  // the small prints and the taught bridge
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0); print.fill(0);
+  for (let x=18;x<=22;x++) set(x,22,SAND);
+  set(20,21,HUMAN); life[idx(20,21)] = 500;
+  hop(20,21,21,21);
+  ok('a child leaves small prints', print[idx(20,22)] > 0 && print[idx(20,22)] < 160);
+
+  print[idx(20,22)] = 200;
+  const printBefore = print[idx(20,22)];
+  run(8);
+  ok('weather fades the prints', print[idx(20,22)] < printBefore);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0); print.fill(0);
+  threads.length = 0;
+  addThread(19,21,21,21);
+  set(20,20,HUMAN); life[idx(20,20)] = 500;
+  const led = harpLead(threads[0]);
+  ok('the Harp leads a lost child', led === true);
+  threads.length = 0;
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  for (let x=20;x<=22;x++) set(x,21,WOOD);
+  set(21,22,WATER); set(18,20,HUMAN); life[idx(18,20)] = 500;
+  strokeCells = new Set([idx(20,21), idx(21,21), idx(22,21)]);
+  const taught = finishStroke();
+  strokeCells = null;
+  ok('a watched bridge becomes a lesson', taught && !!bridgeLesson);
+
+  bridgeLesson = { cells: [idx(20,21), idx(21,21), idx(22,21)] };
+  set(21,21, EMPTY);
+  const repaired = repairBridge();
+  ok('the camp repairs a taught bridge', repaired && grid[idx(21,21)] === WOOD);
+  bridgeLesson = null;
+
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
 set(20,20,LIFE); hunger[idx(20,20)] = 899; heat[idx(20,20)] = 1;
@@ -8137,7 +8332,7 @@ cvsEl3.blur(); cursor.on = false; chamber(20,20);
     Math.random = realRandom;
     testing = false;
     W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
-    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; refractory=saveRe; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo; fuel=saveFu; name=saveNa;
+    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; refractory=saveRe; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo; fuel=saveFu; name=saveNa; print=savePr;
     heat=saveHeat; stars=saveStars; Object.assign(tally, saveTally); update.t=saveTick;
     weatherOff=saveWO;
   }

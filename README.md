@@ -62,6 +62,10 @@ With **Sound** on, a procedural ambience follows the world: rain and storms, fir
 
 **Fire and civilization** — people cannot conjure fire, only carry it: a carried ember relights a cold hearth, and a stolen ember can found a new fire. In the dry season the camp cuts a firebreak with a gap the player can finish. A camp that burns enough fuel births a coal-dark debt-born, who eats ash and cools into stone when the hearth dies.
 
+**The hand and becoming** — a hungry person who eats from a fungus garden turns pale and farms it instead of hunting. Someone will step between your fire brush and a catch, face the hand and wait. A fire death leaves a reed effigy the camp burns at dusk, and when you go quiet for a while the camp builds a cairn where your hand last acted and mourns.
+
+**The small prints and the bridge** — people leave footprints that weather away, small ones for a child; draw a Harp thread through a lost child and they turn toward it. Paint a bridge across water while a child watches and it becomes a camp lesson: the camp repairs and keeps the bridge after you leave.
+
 **Tools** sit beside the palette: **Bow** sweeps notes out of the terrain, **Bubble** dips into any liquid and floats it somewhere else, **Harp** strings the air for creatures to pluck, **Startle** sends a red alarm wave through a herd (animals that have already bolted are refractory), **Survey** reads a boxed patch's food web and lets you cull one node and watch the census answer, and **Shutter** accumulates a long exposure for the PNG export.
 
 Creatures carry a family line: hue and metabolism are inherited through births and eggs with small mutations. Slow lines last longer between meals; fast ones breed slightly more, so a population's colours and habits drift over days. The Help panel lists each species' dominant line. Lineages are live — scene links and saved scenes carry the world, not the family colours.
@@ -105,11 +109,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **317 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **327 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~378 KB, zero dependencies, zero network requests.
+- One file, ~386 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.
