@@ -38,6 +38,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
 | Social amoebae / slime stalks | `tickAmoeba`, `tickStalk`, `camp` | `AMOEBA`, `STALK` |
 | Locust phase switch / pods | `tickLocust`, `tickPod`, `form` | `LOCUST`, `POD` |
+| Fungus-farming ants | `tickAnt`, `tickGarden` | `GARDEN`, `ANTHILL` |
 | Help, goals, chronicle | `buildHelp`, `GOALS`, `chronicle` | `buildHelp` |
 | Tests | the matching `// § TEST:` group | `ok('` |
 | Scripting API | `SANDBOX_API` | `SANDBOX_API` |

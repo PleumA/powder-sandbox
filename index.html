@@ -418,6 +418,7 @@ const AMOEBA = 63;
 const STALK = 64;
 const LOCUST = 65;
 const POD = 66;
+const GARDEN = 67;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -461,7 +462,7 @@ const MAT = {
   [IRON]: {name:'Iron', color:[150,158,172], glow:'#969eac', density:9, cat:'solid', tick:tickIron, desc:'pipes heat along itself, melts white-hot, and draws lightning'},
   [SPRING]: {name:'Springs', color:[86,170,196], glow:'#56aac4', density:9, cat:'source', tick:tickSpring, desc:'a source: keeps pouring water out of its faces'},
   [VENT]: {name:'Vents', color:[92,84,74], glow:'#5c544a', density:9, cat:'source', tick:tickVent, desc:'a source: keeps pushing smoke out of its top'},
-  [ANT]: {name:'Ants', color:[180,96,60], glow:'#b4603c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
+  [ANT]: {name:'Ants', color:[180,96,60], glow:'#b4603c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED, GARDEN], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
   [ANTHILL]: {name:'Anthills', color:[128,96,70], glow:'#806046', density:9, cat:'powder', desc:'packed sand; ants raise it under themselves'},
   [CRAB]: {name:'Crabs', color:[214,84,72], glow:'#d65448', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE], tick:tickCrab, desc:'sidles sideways along the sand and scavenges scraps'},
   [TREE]: {name:'Saplings', color:[96,148,80], glow:'#609450', density:9, cat:'life', tick:tickTree, desc:'a sapling: grows a trunk and a crown from a seed in soil'},
@@ -487,6 +488,7 @@ const MAT = {
   [STALK]: {name:'Slime stalks', color:[200,210,150], glow:'#c8d296', density:9, cat:'life', tick:tickStalk, desc:'a pale fruiting body that releases a new generation of amoebae, then falls back to compost'},
   [LOCUST]: {name:'Locusts', color:[170,190,80], glow:'#aabe50', density:2, migrant:1, cat:'life', diet:[PLANT, REED, FLOWER], tick:tickLocust, desc:'a solitary hopper until the crowd triggers it: then it darkens, takes wing, strips the meadow, and leaves pods'},
   [POD]: {name:'Locust pods', color:[150,120,66], glow:'#967842', density:9, cat:'life', tick:tickPod, desc:'a dormant pod that waits for the wet season or a long sleep, then hatches a hopper'},
+  [GARDEN]: {name:'Fungus gardens', color:[224,216,188], glow:'#e0d8bc', density:9, cat:'life', tick:tickGarden, desc:'a pale garden the ants raise on cut plants; it feeds the colony until it overshoots and crashes'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -1187,6 +1189,19 @@ function tickPod(x,y,i){
     set(x,y, LOCUST); gene[i] = g; form[i] = 0; hunger[i] = 350;
     return true;
   }
+  return false;
+}
+
+// a fungus garden: pale food the ants raise; it creeps onto litter and rots back
+function tickGarden(x,y,i){
+  life[i] = Math.min(65535, life[i] + 1);
+  if (Math.random() < 0.02){
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (inB(nx,ny) && grid[idx(nx,ny)] === COMPOST){ set(nx,ny, GARDEN); break; }
+    }
+  }
+  if (Math.random() < 0.003){ set(x,y, COMPOST); return true; }
   return false;
 }
 
@@ -2344,6 +2359,14 @@ function tickAnt(x,y,i){
   }
   if (hop(x,y,x,y+1)) return true;                     // gravity first
   if (fleeFrom(x, y, ANT, 3)) return true;
+  const onHill = get(x,y+1) === ANTHILL || get(x,y-1) === ANTHILL || get(x-1,y) === ANTHILL || get(x+1,y) === ANTHILL;
+  if (onHill){                                          // farming: cut plants into a garden at the mound
+    for (const [nx,ny] of [[x,y-1],[x-1,y],[x+1,y],[x,y+1]]){
+      if (!inB(nx,ny)) continue;
+      const t = grid[idx(nx,ny)];
+      if (t === PLANT || t === REED || t === FLOWER){ set(nx,ny, GARDEN); return true; }
+    }
+  }
   if (forage(x, y, ANT, 5)) return true;
   eatAround(x, y, ANT);
   if (get(x, y+1) === SAND && Math.random() < 0.06) set(x, y+1, ANTHILL);   // build underfoot
@@ -5720,6 +5743,25 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   set(20,21,POD); gene[idx(20,21)] = 0; life[idx(20,21)] = 899;
   run(300);
   ok('a pod hatches a locust', count(LOCUST) > 0);
+
+  // fungus-farming ants: cut plants at the mound, eat the garden, spread it
+  chamber(20,20); form.fill(0); camp.fill(0); moved.fill(0);
+  set(20,22,ANTHILL); set(20,21,ANT); set(21,21,PLANT);
+  gene[idx(20,21)] = 0;
+  tickAnt(20,21,idx(20,21));
+  ok('ants cut plants into gardens at the hill', grid[idx(21,21)] === GARDEN);
+
+  chamber(20,20); form.fill(0); camp.fill(0);
+  set(20,21,ANT); gene[idx(20,21)] = 0; hunger[idx(20,21)] = 300;
+  set(21,21,GARDEN);
+  run(10);
+  ok('a fungus garden feeds ants', count(GARDEN) === 0 && count(ANT) >= 1);
+
+  chamber(20,20); form.fill(0); camp.fill(0);
+  set(20,21,GARDEN); set(21,21,COMPOST);
+  let spread = false;
+  for (let i=0;i<200 && !spread;i++){ update(); if (grid[idx(21,21)] === GARDEN) spread = true; }
+  ok('a fungus garden spreads over litter', spread);
 
   // stone never moves, and an empty world spawns nothing
   chamber(20,32);
