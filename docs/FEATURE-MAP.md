@@ -39,6 +39,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Social amoebae / slime stalks | `tickAmoeba`, `tickStalk`, `camp` | `AMOEBA`, `STALK` |
 | Locust phase switch / pods | `tickLocust`, `tickPod`, `form` | `LOCUST`, `POD` |
 | Fungus-farming ants | `tickAnt`, `tickGarden` | `GARDEN`, `ANTHILL` |
+| Beaver dams | `tickBeaver`, `tickDam` | `BEAVER`, `DAM` |
 | Help, goals, chronicle | `buildHelp`, `GOALS`, `chronicle` | `buildHelp` |
 | Tests | the matching `// § TEST:` group | `ok('` |
 | Scripting API | `SANDBOX_API` | `SANDBOX_API` |

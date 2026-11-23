@@ -419,6 +419,8 @@ const STALK = 64;
 const LOCUST = 65;
 const POD = 66;
 const GARDEN = 67;
+const BEAVER = 68;
+const DAM = 69;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -477,7 +479,7 @@ const MAT = {
   [REED]: {name:'Reeds', color:[126,168,88], glow:'#7ea858', density:9, cat:'solid', tick:tickReed, desc:'the grass of the shallows: grows up through water, burns like straw'},
   [HERON]: {name:'Herons', color:[188,196,206], glow:'#bcc4ce', density:2, migrant:1, cat:'life', tick:tickHeron, desc:'wades the shallows and spears any fish it can see under two cells of water'},
   [GULL]: {name:'Gulls', color:[236,240,246], glow:'#ecf0f6', density:-3, migrant:1, cat:'life', diet:[LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST], tick:tickGull, desc:'shadows a heron and robs its patch rather than fishing for itself'},
-  [HUMAN]: {name:'Humans', color:[232,196,160], glow:'#e8c4a0', density:2, migrant:1, cat:'life', diet:[LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE], tick:tickHuman, desc:'hunts, sows seed, raises planks, and keeps a fire going at night'},
+  [HUMAN]: {name:'Humans', color:[232,196,160], glow:'#e8c4a0', density:2, migrant:1, cat:'life', diet:[LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE, BEAVER], tick:tickHuman, desc:'hunts, sows seed, raises planks, and keeps a fire going at night'},
   [DEER]: {name:'Deer', color:[176,132,92], glow:'#b0845c', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, REED, MOSS, FRUIT, SEED], tick:tickDeer, desc:'grazes the green things and bolts from people'},
   [COAL]: {name:'Coal', color:[44,44,50], glow:'#2c2c32', density:3, cat:'solid', desc:'a dark lump that smoulders far longer than wood'},
   [FROST]: {name:'Frost', color:[196,232,255], glow:'#c4e8ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickFrost(x,y,dir,i), desc:'cold dust: chills the water it touches to ice, melts near heat'},
@@ -489,6 +491,8 @@ const MAT = {
   [LOCUST]: {name:'Locusts', color:[170,190,80], glow:'#aabe50', density:2, migrant:1, cat:'life', diet:[PLANT, REED, FLOWER], tick:tickLocust, desc:'a solitary hopper until the crowd triggers it: then it darkens, takes wing, strips the meadow, and leaves pods'},
   [POD]: {name:'Locust pods', color:[150,120,66], glow:'#967842', density:9, cat:'life', tick:tickPod, desc:'a dormant pod that waits for the wet season or a long sleep, then hatches a hopper'},
   [GARDEN]: {name:'Fungus gardens', color:[224,216,188], glow:'#e0d8bc', density:9, cat:'life', tick:tickGarden, desc:'a pale garden the ants raise on cut plants; it feeds the colony until it overshoots and crashes'},
+  [BEAVER]: {name:'Beavers', color:[164,112,70], glow:'#a47046', density:2, migrant:1, cat:'life', diet:[WOOD, PLANT, REED, SEED, FRUIT], tick:tickBeaver, desc:'swims, fells soft plants, and packs a mud dam across a narrow channel'},
+  [DAM]: {name:'Beaver dams', color:[122,94,60], glow:'#7a5e3c', density:9, cat:'solid', tick:tickDam, desc:'packed mud and sticks; it holds the stream until it weathers back to mud'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -1202,6 +1206,55 @@ function tickGarden(x,y,i){
     }
   }
   if (Math.random() < 0.003){ set(x,y, COMPOST); return true; }
+  return false;
+}
+
+// beavers: swim, eat soft plants, and pack a dam across a narrow channel
+function tickBeaver(x,y,i){
+  if (moved[i]) return false;
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny)) continue;
+    const t = grid[idx(nx,ny)];
+    if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
+  }
+  if (fleeFrom(x, y, BEAVER, 3)) return true;
+  if (eatAround(x, y, BEAVER)) return true;
+  if (age > 2400 && Math.random() < 0.004){ set(x,y, COMPOST); return true; }
+
+  let wet = false;
+  for (const [dx,dy] of NB4) if (inB(x+dx,y+dy) && grid[idx(x+dx,y+dy)] === WATER) wet = true;
+  if (wet && Math.random() < 0.02){                     // dam a water cell that touches a bank
+    for (const [dx,dy] of NB4){
+      const nx = x+dx, ny = y+dy;
+      if (!inB(nx,ny) || grid[idx(nx,ny)] !== WATER) continue;
+      let bank = false;
+      for (const [ax,ay] of NB4){
+        if (!inB(nx+ax,ny+ay)) continue;
+        const t = grid[idx(nx+ax,ny+ay)];
+        if (t === STONE || t === MUD || t === SAND || t === ANTHILL || t === GLASS) bank = true;
+      }
+      if (bank){ set(nx,ny, DAM); return true; }
+    }
+  }
+  if (wet){
+    const d = Math.random() < 0.5 ? -1 : 1;
+    if (swim(x,y,x+d,y) || swim(x,y,x,y+1) || swim(x,y,x,y-1)) return true;
+  }
+  if (hop(x,y,x,y+1)) return true;
+  let d = facing[i];
+  if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
+  if (hop(x,y,x+d,y)) return true;
+  if (hop(x,y,x+d,y-1)) return true;
+  facing[i] = -d;
+  return true;
+}
+
+// a dam silts and finally gives way, returning the channel to mud
+function tickDam(x,y,i){
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  if (age > 1200 + (gene[i] & 15) * 30){ set(x,y, MUD); return true; }
   return false;
 }
 
@@ -3818,6 +3871,11 @@ const SCENES = {
     set((Math.random()*W*0.6 + W*0.2)|0, H-6, BAT);
     for (let k=0;k<2;k++){ const sx = (Math.random()*W*0.6 + W*0.2)|0; set(sx, (topsHint[sx]||H-5)-1, SPIDER); }
     for (let k=0;k<12;k++) set((Math.random()*W)|0, (Math.random()*H*0.4)|0, FIREFLY);
+    for (let k=0;k<2;k++){                                        // beavers on the pond bank
+      const x = Math.max(2, Math.min(W-3, cx + r + 2 + k*3));
+      const t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, BEAVER);
+    }
     const bot = Math.min(H-2, (topsHint[cx] || H-5) + 8);          // the pond keeps its own level, at the bottom
     if (cx > 1 && cx < W-2 && H > 3){
       set(cx, bot, SPRING);
@@ -5762,6 +5820,24 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   let spread = false;
   for (let i=0;i<200 && !spread;i++){ update(); if (grid[idx(21,21)] === GARDEN) spread = true; }
   ok('a fungus garden spreads over litter', spread);
+
+  // beavers: dam a narrow channel, weather back to mud, leave open water alone
+  chamber(20,20); form.fill(0); camp.fill(0);
+  for (let y=19;y<=21;y++) for (let x=19;x<=21;x++) set(x,y,WATER);
+  set(20,21,BEAVER); gene[idx(20,21)] = 0;
+  run(200);
+  ok('a beaver dams a narrow channel and survives', count(DAM) > 0 && count(BEAVER) > 0);
+
+  chamber(20,20); form.fill(0); camp.fill(0);
+  set(20,21,DAM); gene[idx(20,21)] = 0; life[idx(20,21)] = 1199;
+  run(2);
+  ok('a dam weathers back to mud', grid[idx(20,21)] === MUD);
+
+  grid.fill(0); form.fill(0); camp.fill(0);
+  for (let y=16;y<=24;y++) for (let x=16;x<=24;x++) set(x,y,WATER);
+  set(20,20,BEAVER); gene[idx(20,20)] = 0;
+  run(100);
+  ok('a beaver in open water builds nothing', count(DAM) === 0);
 
   // stone never moves, and an empty world spawns nothing
   chamber(20,32);
