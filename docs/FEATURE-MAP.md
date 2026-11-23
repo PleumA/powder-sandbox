@@ -39,6 +39,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Death & memory (bodies, graves, names) | `humanBody`, `buryBody`, `graveGift` | `BODY`, `GRAVE`, `name` |
 | Handprint wall / bone crafts | `stampHandprint`, `learnCraft` | `OCHRE`, `form` bits |
 | Camp culture (myth, song, hand's tune) | `makeMyth`, `maybeTell`, `makeSong`, `learnPhrase` | `myth`, `campSong` |
+| Fire & civilization | `stolenEmber`, `cutFirebreak`, `makeDebtBorn` | `fuel`, `HUMAN` |
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
 | The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
 | The Hue Hunter | `tickShrike`, `shrikeHue`, `mutateGene` | `SHRIKE`, `gene` |

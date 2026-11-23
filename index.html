@@ -2118,9 +2118,55 @@ function stampHandprint(x,y,i){
   return false;
 }
 
+function stampHandprint(x,y,i){
+  if (form[i] & 4) return false;
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny) || grid[idx(nx,ny)] !== STONE) continue;
+    const above = get(nx,ny-1);
+    if (above !== EMPTY && above !== OCHRE) continue;
+    const j = idx(nx,ny), g = gene[i], nm = name[i], day = 1 + Math.floor(sun / 6.2832);
+    set(nx,ny, OCHRE); gene[j] = g; name[j] = nm; home[j] = day;
+    form[i] |= 4;
+    return true;
+  }
+  return false;
+}
+function makeDebtBorn(i){ fuel[i] = 255; gene[i] = gene[i] & 192; }
+function stolenEmber(x,y,i){
+  if (home[i] !== COAL) return false;
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny) || grid[idx(nx,ny)] !== EMPTY || get(nx,ny+1) === EMPTY) continue;
+    set(nx,ny, STONE); set(nx,ny-1, FIRE); home[i] = 0;
+    if (!testing) chronicle('a second fire is lit');
+    return true;
+  }
+  return false;
+}
+function cutFirebreak(cx,cy,r){
+  let cleared = 0;
+  for (let dy=-r;dy<=r;dy++) for (let dx=-r;dx<=r;dx++){
+    if (Math.max(Math.abs(dx),Math.abs(dy)) !== r) continue;
+    if (dx === r && dy > -2 && dy < 2) continue;          // a gap the camp has not finished
+    const x = cx+dx, y = cy+dy;
+    if (!inB(x,y)) continue;
+    if (FLAM[grid[idx(x,y)]]){ set(x,y, SAND); cleared++; }
+  }
+  return cleared;
+}
+
 function tickHuman(x,y,i){
   if (moved[i]) return false;
   const age = life[i] = Math.min(65535, life[i] + 1);
+  if (fuel[i]){                                            // the debt-born: heat made into a person
+    let lit = false;
+    for (const [dx,dy] of NB4) if (get(x+dx,y+dy) === FIRE){ lit = true; break; }
+    if (!lit){ set(x,y, COAL); return true; }
+    if (hunger[i] > 120){
+      for (const [dx,dy] of NB4) if (get(x+dx,y+dy) === ASH){ set(x+dx,y+dy, EMPTY); hunger[i] = 0; return true; }
+    }
+  }
   if (age > 6000 && Math.random() < 0.005){ humanBody(x,y,i); return true; }
   if (Math.sin(sun) > 0 && Math.sin(sun) < 0.25 && get(x,y+1) === STONE){
     heat[idx(x,y)] = Math.max(heat[idx(x,y)], 0.25);                 // a warm start off the hearth at first light
@@ -2188,21 +2234,14 @@ function tickHuman(x,y,i){
   const quarry = sense(x,y,DEER, onHearth ? 9 : 5);                  // from the hearth, it guards the whole patch
   if (quarry && hop(x,y,x + quarry[0], y + quarry[1])) return true;  // go after a deer it can see
   if (Math.sin(sun) < -0.2 && !sense(x,y,FIRE,3) && (home[i] === WOOD || home[i] === COAL)){
-    for (const [nx,ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){          // a cold hearth stone gets relit
+    for (const [nx,ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){          // a cold hearth stone gets relit from a carried ember
       if (inB(nx,ny) && grid[idx(nx,ny)] === STONE && get(nx,ny-1) === EMPTY){
         set(nx, ny-1, FIRE); home[i] = 0; return true;
       }
     }
   }
-  if (Math.sin(sun) < -0.2 && Math.random() < 0.02 && !sense(x,y,FIRE,2)){   // a fire for the night
-    for (const [nx,ny] of [[x-1,y],[x+1,y]]){
-      if (inB(nx,ny) && (grid[idx(nx,ny)] === WOOD || grid[idx(nx,ny)] === COAL)){
-        set(nx,ny, FIRE);
-        if (get(nx, ny+1) === EMPTY) set(nx, ny+1, STONE);          // a hearth stone under it
-        return true;
-      }
-    }
-  }
+  if (home[i] === COAL && !sense(x,y,FIRE,8) && Math.random() < 0.002 && stolenEmber(x,y,i)) return true;   // a second fire, carried
+  if (onHearth && Math.sin(season) < -0.45 && Math.random() < 0.004){ cutFirebreak(x,y,3); return true; }    // the camp cuts a firebreak
   if (Math.random() < 0.012){                                       // sow a seed on open soil
     const soil = get(x,y+1);
     if (soil === SAND || soil === MUD || soil === COMPOST){
@@ -2923,7 +2962,7 @@ function draw(){
           if (cxm*cxm + cym*cym < 64) shade = 0.78;
         }
         const tint = GENE_TINTS[(gene[i] >> 2) & 15];
-        const dark = v === LOCUST && (form[i] & 1) ? 0.55 : 1;
+        const dark = (v === LOCUST && (form[i] & 1)) || (v === HUMAN && fuel[i]) ? 0.55 : 1;
         r = Math.min(255, r*f*shade*tint[0]*dark); g = Math.min(255, g*f*shade*tint[1]*dark); b = Math.min(255, b*f*shade*tint[2]*dark);
         if (alarmT[i] > update.t){ r = Math.min(255, r + 90); g = Math.max(0, g - 45); b = Math.max(0, b - 35); }
       } else if ((v === TREE || v === FRUIT || v === GRAVE || v === OCHRE) && gene[i]){
@@ -3863,7 +3902,16 @@ function settleCamp(){                               // a household, a hearth, a
     const returning = hist[DEER] <= 2 && Math.random() < 0.3;   // a thin herd drifts back to the quiet camp
     const newcomer = !returning && Math.random() < 0.35;         // a household grows, not only its fence
     for (const [nx,ny] of [[hx2-2,hy2],[hx2+2,hy2],[hx2+1,hy2],[hx2-1,hy2],[hx2,hy2+2],[hx2,hy2-1]]){
-      if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){ set(nx,ny, returning ? DEER : newcomer ? HUMAN : Math.random() < 0.5 ? WOOD : SEED); break; }
+      if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){
+        const sp = returning ? DEER : newcomer ? HUMAN : Math.random() < 0.5 ? WOOD : SEED;
+        set(nx,ny, sp);
+        if (sp === HUMAN){
+          let fsum = 0;
+          for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++) if (inB(nx+dx,ny+dy)) fsum += fuel[idx(nx+dx,ny+dy)];
+          if (fsum > 600) makeDebtBorn(idx(nx,ny));
+        }
+        break;
+      }
     }
     draw();
     return;
@@ -7411,12 +7459,12 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   }
   ok('people rake the hearth', raked);
 
-  // a sheltered person still lights the hearth beside the hut
+  // a sheltered person still relights the hearth beside the hut from a carried ember
   let hearthLit = false;
   for (let k=0;k<400 && !hearthLit;k++){
     grid.fill(0); facing.fill(0); alarmT.fill(0); heat.fill(0);
     for (let x=5;x<35;x++) grid[idx(x,30)] = STONE;
-    set(20,28,WOOD); set(21,29,WOOD); set(20,29,HUMAN); sun = 4.7;
+    set(20,28,WOOD); set(21,29,STONE); set(20,29,HUMAN); home[idx(20,29)] = COAL; sun = 4.7;
     moved.fill(0);
     tickHuman(20,29,idx(20,29));
     hearthLit = count(FIRE) > 0 && count(HUMAN) === 1;
@@ -7504,9 +7552,9 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('people sow seed', humanTry(() => { set(20,30,SAND); set(20,29,HUMAN); }, () => count(SEED) > 0));
   ok('people raise planks', humanTry(() => { set(20,29,HUMAN); }, () => count(WOOD) > 0));
   sun = 4.7;
-  const litFire = humanTry(() => { set(21,29,WOOD); set(20,29,HUMAN); }, () => count(FIRE) > 0, 400);
+  const litFire = humanTry(() => { set(21,29,STONE); set(20,29,HUMAN); home[idx(20,29)] = COAL; }, () => count(FIRE) > 0, 400);
   sun = 0.5;
-  ok('people light a fire at night', litFire);
+  ok('a carried ember lights a cold hearth', litFire);
 
   // coal smoulders far longer than wood
   grid.fill(0); heat.fill(0);
@@ -7984,6 +8032,30 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   humanBody(20,21,idx(20,21));
   ok('an unkept song dies with its keeper', campSong === null);
   myth = mythWas; campSong = songWas;
+
+  // fire & civilization: stolen ember, firebreak, debt-born
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); home[idx(20,21)] = COAL;
+  for (let x=18;x<=22;x++) set(x,22,STONE);
+  const stolen = stolenEmber(20,21,idx(20,21));
+  ok('a stolen ember founds a second fire',
+    stolen && count(FIRE) > 0 && count(STONE) > 0 && home[idx(20,21)] === 0);
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  for (let dx=-3;dx<=3;dx++) for (let dy=-3;dy<=3;dy++){
+    if (Math.max(Math.abs(dx),Math.abs(dy)) === 3 && inB(20+dx,20+dy)) set(20+dx,20+dy,PLANT);
+  }
+  const cleared = cutFirebreak(20,20,3);
+  ok('the camp cuts a firebreak with a gap', cleared > 0 && count(SAND) > 0 && grid[idx(23,20)] === PLANT);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); fuel[idx(20,21)] = 255;
+  tickHuman(20,21,idx(20,21));
+  const cooled = grid[idx(20,21)] === COAL;
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,20,WOOD); set(21,21,FIRE); set(19,21,STONE); set(20,21,HUMAN); fuel[idx(20,21)] = 255;
+  tickHuman(20,21,idx(20,21));
+  ok('a debt-born needs the hearth', cooled && grid[idx(20,21)] === HUMAN);
 
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
