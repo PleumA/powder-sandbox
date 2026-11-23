@@ -2,7 +2,7 @@
 
 A living falling-sand world in **one HTML file** — no build step, no dependencies, no network, works offline.
 
-Sand, water, fire, lava, ice, ash, reeds and coal. Amoebae gather into a slug and fruit into pale stalks; locusts darken and take wing when the crowd gets too thick; ants farm pale fungus gardens at their mounds; beavers dam a channel into a pond; shrikes hunt the bug whose colour matches their own. Deer, herons, gulls, crabs, ants, termites and people who hunt, farm, build, haul and keep a fire. Weather that turns to snow at night, seasons that dry the ponds and brown the reeds, lightning that starts wildfires in a drought and puts itself out in the wet season. Procedural lo-fi that follows the sky, and a chronicle in which the world writes down what happened in it.
+Sand, water, fire, lava, ice, ash, reeds and coal. Amoebae gather into a slug and fruit into pale stalks; locusts darken and take wing when the crowd gets too thick; ants farm pale fungus gardens at their mounds; beavers dam a channel into a pond; shrikes hunt the bug whose colour matches their own. Deer, herons, gulls, crabs, ants, termites and people who hunt, farm, build, haul and keep a fire. Weather that turns to snow at night, seasons that dry the ponds and brown the reeds, lightning that starts wildfires in a drought and puts itself out in the wet season. Old, unburned growth carries a debt of fuel: a spark dies in a burn scar and crowns in an old stand, and a fire you put out becomes fuel for the next. Procedural lo-fi that follows the sky, and a chronicle in which the world writes down what happened in it.
 
 **Live demo:** the repo root is already `index.html` — enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root). Nothing else is needed.
 
