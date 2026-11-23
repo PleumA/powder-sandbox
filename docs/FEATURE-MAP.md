@@ -34,7 +34,6 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Autopilot | `autopilot`, the `plan*` helpers, `liveCare` | `function autopilot` |
 | Music / lo-fi, picker, vinyl, now-playing | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick`, `#nowplaying` |
 | World sound (ambience) | `ambienceTargets`, `worldStart`, `worldTick` | `#worldvol`, `worldStart` |
-| Powder Radio | `radioText`, `radioSpeak`, `setRadio` | `#radiobtn`, `#radio` |
 | The Marked One | `maybeMark`, `checkMark`, `markIx` | `#mark`, `form` bit 2 |
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
 | The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
