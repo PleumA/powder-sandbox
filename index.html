@@ -43,6 +43,9 @@
   #radio{margin-top:5px;color:#9fb6c8;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #radio[hidden]{display:none}
+  #mark{margin-top:5px;color:#ffd25a;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #mark[hidden]{display:none}
   .statsep{display:inline-block;width:1px;height:9px;background:#39454f;margin:0 7px;vertical-align:-1px}
   #sel{margin-top:8px;max-width:320px;color:var(--dim);font-size:12px;line-height:1.5}
   #sel b{color:var(--accent);font-weight:500}
@@ -226,6 +229,7 @@
     <div id="nowplaying" hidden></div>
     <div id="daily" hidden></div>
     <div id="radio" hidden></div>
+    <div id="mark" hidden></div>
   </div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
@@ -520,6 +524,7 @@ for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).pus
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
 let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, scent=null, home=null, gene=null, camp=null, form=null;
+let marked = null, markIx = -1, lastMarkDay = 0;   // the daily marked creature
 const cell = 4;              // CSS px per simulated cell, scaled to fit
 
 let current = SAND;
@@ -592,6 +597,7 @@ function resize(){
       stars.set(oldStars.subarray(src, src + cw2), dst);
     }
     reindexRows();
+    marked = null; markIx = -1;   // a resized grid cannot follow the old index
   } else {
     seed();
   }
@@ -668,6 +674,7 @@ function swap(a,b){
   const av = grid[a], al = life[a], af = facing[a], ah2 = home[a], ag = gene[a], afm = form[a];
   grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b]; gene[a] = gene[b]; form[a] = form[b];
   grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;       gene[b] = ag;       form[b] = afm;
+  if (markIx === a) markIx = b; else if (markIx === b) markIx = a;
   moved[b] = 1;
 }
 
@@ -1150,7 +1157,7 @@ function tickLocust(x,y,i){
   if (fleeFrom(x, y, LOCUST, 3)) return true;
   if (locustEat(x,y,i)) return true;
 
-  if (form[i]){                                          // winged: fly with the band, then leave a pod
+  if (form[i] & 1){                                      // winged: fly with the band, then leave a pod
     if (age > 180 && get(x,y+1) !== EMPTY){              // landed and ready to lay
       if (Math.random() < 0.2){
         const g = gene[i];
@@ -1178,7 +1185,7 @@ function tickLocust(x,y,i){
       const nx = x+dx, ny = y+dy;
       if (inB(nx,ny) && grid[idx(nx,ny)] === LOCUST) kin++;
     }
-    if (kin >= 5){ form[i] = 1; return true; }
+    if (kin >= 5){ form[i] = (form[i] & 2) | 1; return true; }
   }
   if (age > 1500 && Math.random() < 0.005){ set(x,y, COMPOST); return true; }
   if (hop(x,y,x,y+1)) return true;
@@ -2686,7 +2693,7 @@ function draw(){
           if (cxm*cxm + cym*cym < 64) shade = 0.78;
         }
         const tint = GENE_TINTS[(gene[i] >> 2) & 15];
-        const dark = v === LOCUST && form[i] ? 0.55 : 1;
+        const dark = v === LOCUST && (form[i] & 1) ? 0.55 : 1;
         r = Math.min(255, r*f*shade*tint[0]*dark); g = Math.min(255, g*f*shade*tint[1]*dark); b = Math.min(255, b*f*shade*tint[2]*dark);
       }
       if (heatView){                                 // thermal camera: cold blue, hot white
@@ -2710,6 +2717,11 @@ function draw(){
   }
   ctx.putImageData(img, 0, 0);
   drawClouds(day, nowMs);
+  if (marked && markIx >= 0 && markIx < grid.length){
+    const mx = markIx % W, my = (markIx / W) | 0;
+    ctx.strokeStyle = '#ffd25a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(mx + 0.5, my + 0.5, 2.5 + Math.sin(nowMs * 3) * 0.4, 0, TAU); ctx.stroke();
+  }
   if (!calmOn && shake > 0.3){
     cvs.style.transform = 'translate(' + ((Math.random()-0.5)*shake).toFixed(1) + 'px,' +
                           ((Math.random()-0.5)*shake).toFixed(1) + 'px)';
@@ -3786,6 +3798,7 @@ function clearAll(){
   if (!dailyBuilding) endDaily();
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
   facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0);   // no stale state
+  marked = null; markIx = -1; lastMarkDay = 0;
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
 }
 
@@ -5214,6 +5227,64 @@ function updateDailyCard(){
 }
 document.getElementById('dailybtn').addEventListener('click', () => { startDaily(dailyKey()); });
 
+/* ---------- the marked one: one named creature, one deadline ---------- */
+const MARK_NAMES = ['Tallow','Bramble','Pip','Sorrel','Juniper','Moss','Ash','Rook','Wren','Clover','Cinder','Fern'];
+function maybeMark(){
+  if (testing || marked) return;
+  const day = 1 + Math.floor(sun / 6.2832);
+  if (lastMarkDay === day) return;
+  const dayStart = Math.floor(sun / 6.2832) * 6.2832;
+  if (Math.sin(sun) < 0.15 || sun - dayStart > Math.PI * 0.55) return;
+  lastMarkDay = day;
+  let pick = -1, n = 0;
+  for (let i=0;i<grid.length;i++){
+    if (!IS_CREATURE.has(grid[i])) continue;
+    n++;
+    if (Math.random() < 1 / n) pick = i;
+  }
+  if (pick < 0) return;
+  const sp = grid[pick];
+  form[pick] |= 2; markIx = pick;
+  marked = { name: MARK_NAMES[(Math.random()*MARK_NAMES.length)|0], species: sp, day, deadline: dayStart + Math.PI };
+  if (!testing){
+    toastMsg('the mark is on ' + marked.name + ', one of the ' + MAT[sp].name.toLowerCase() + ' — until dusk', 5000);
+    chronicle('the mark is on ' + marked.name);
+  }
+}
+function checkMark(){
+  if (!marked) return;
+  const i = markIx;
+  if (i < 0 || i >= grid.length || !grid[i] || !(form[i] & 2)){
+    const was = marked, lostAt = i;
+    marked = null; markIx = -1;
+    if (!testing){
+      if (lostAt >= 0 && lostAt < grid.length && grid[lostAt] === EMPTY) set(lostAt % W, (lostAt / W) | 0, ASH);
+      toastMsg('✗ ' + was.name + ' did not see dusk');
+      chronicle('✗ ' + was.name + ' did not see dusk');
+      if (soundOn) blip(110, 1.2, 'sine', 0.05);
+    }
+    return;
+  }
+  if (sun >= marked.deadline){
+    const was = marked;
+    form[i] &= ~2; markIx = -1; marked = null;
+    if (!testing){
+      toastMsg('✓ ' + was.name + ' saw dusk');
+      chronicle('✓ ' + was.name + ' saw dusk');
+      if (soundOn){ blip(880, 0.25, 'sine', 0.05); blip(1320, 0.4, 'sine', 0.04); }
+      flash = Math.max(flash, 0.25);
+      if (!weatherOff){ storm = false; rainWanted = false; raining = false; }
+    }
+  }
+}
+function updateMarkCard(){
+  const el = document.getElementById('mark');
+  if (!el) return;
+  if (!marked){ el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = 'Mark · ' + marked.name + ' · until dusk';
+}
+
 // § LOOP — RAF, HUD, goals
 /* ---------- loop ---------- */
 const fpsEl = document.getElementById('fps');
@@ -5242,6 +5313,8 @@ function frame(t){
   if (autoPlay && !paused) autopilot(t);
   playlistTick();
   checkGoals();
+  maybeMark();
+  checkMark();
   frames++;
   if (t - fpsT > 500){
     fpsEl.textContent = Math.round(frames * 1000 / (t - fpsT));
@@ -5255,6 +5328,7 @@ function frame(t){
     if (seasonEl) seasonEl.textContent = weatherOff ? '-' : Math.sin(season) > 0.45 ? 'wet' : Math.sin(season) < -0.45 ? 'dry' : 'mild';
     updateBroadcastMeta();
     updateDailyCard();
+    updateMarkCard();
     checkExperiment();
     if (censusOn){
       const rows = [];
@@ -5879,7 +5953,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   for (let y=20;y<=21;y++) for (let x=19;x<=21;x++){ set(x,y,LOCUST); gene[idx(x,y)] = 0; hunger[idx(x,y)] = 600; }
   run(24);
   let winged = 0;
-  for (let j=0;j<grid.length;j++) if (grid[j] === LOCUST && form[j]) winged++;
+  for (let j=0;j<grid.length;j++) if (grid[j] === LOCUST && (form[j] & 1)) winged++;
   ok('crowded hoppers take wing', winged > 0);
 
   chamber(20,20); form.fill(0); camp.fill(0);
@@ -5928,6 +6002,32 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   set(20,20,BEAVER); gene[idx(20,20)] = 0;
   run(100);
   ok('a beaver in open water builds nothing', count(DAM) === 0);
+
+  // the marked one: follows a move, is lost on death, is released at dusk
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,LIFE); gene[idx(20,21)] = 0;
+  const markWas2 = marked, markIxWas = markIx, lastDayWas = lastMarkDay;
+  form[idx(20,21)] |= 2; markIx = idx(20,21);
+  marked = { name:'Tallow', species:LIFE, day:1, deadline:9 };
+  hop(20,21,21,21);
+  ok('the mark follows a moving creature',
+    markIx === idx(21,21) && grid[markIx] === LIFE && (form[markIx] & 2));
+
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(20,21,LIFE); form[idx(20,21)] |= 2; markIx = idx(20,21);
+  marked = { name:'Pip', species:LIFE, day:1, deadline:9 };
+  set(20,21, EMPTY);
+  checkMark();
+  ok('a mark is lost when the creature dies', marked === null && markIx === -1);
+
+  chamber(20,20); form.fill(0);
+  set(20,21,LIFE); form[idx(20,21)] |= 2; markIx = idx(20,21);
+  marked = { name:'Wren', species:LIFE, day:1, deadline:0 };
+  const sunWas5 = sun; sun = 6.4;
+  checkMark();
+  ok('a mark released at dusk is cleared', marked === null && markIx === -1 && !(form[idx(20,21)] & 2));
+  sun = sunWas5;
+  marked = markWas2; markIx = markIxWas; lastMarkDay = lastDayWas;
 
   // stone never moves, and an empty world spawns nothing
   chamber(20,32);

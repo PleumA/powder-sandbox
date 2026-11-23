@@ -51,6 +51,8 @@ With **Sound** on, a procedural ambience follows the world: rain and storms, fir
 
 **Radio** turns the lo-fi into a local station: between tracks it ducks the music and reads a bulletin about the actual world — the day, weather, census, fires and a call-in from a species — with a caption when speech is unavailable.
 
+**The Marked One** appears once a day: a gold ring settles on one ordinary creature with a name and a dusk deadline. Keep it alive and the sky clears; lose it and the world rings one bell and leaves a little ash.
+
 Creatures carry a family line: hue and metabolism are inherited through births and eggs with small mutations. Slow lines last longer between meals; fast ones breed slightly more, so a population's colours and habits drift over days. The Help panel lists each species' dominant line. Lineages are live — scene links and saved scenes carry the world, not the family colours.
 
 ## Autoplay
@@ -92,11 +94,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **286 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **289 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~342 KB, zero dependencies, zero network requests.
+- One file, ~346 KB, zero dependencies, zero network requests.
 - Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
 - Licence: Apache License 2.0 — see `LICENSE`.

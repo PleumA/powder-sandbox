@@ -35,6 +35,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Music / lo-fi, picker, vinyl, now-playing | `TRACKS`, `startTrack`, `beginFade`, `musicStep`, `drawVinyl` | `TRACKS`, `drawVinyl`, `#musicpick`, `#nowplaying` |
 | World sound (ambience) | `ambienceTargets`, `worldStart`, `worldTick` | `#worldvol`, `worldStart` |
 | Powder Radio | `radioText`, `radioSpeak`, `setRadio` | `#radiobtn`, `#radio` |
+| The Marked One | `maybeMark`, `checkMark`, `markIx` | `#mark`, `form` bit 2 |
 | Lineages (genes) | `gene`, `mutateGene`, `lineageCounts` | `gene`, `.hlineages` |
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
 | Social amoebae / slime stalks | `tickAmoeba`, `tickStalk`, `camp` | `AMOEBA`, `STALK` |
