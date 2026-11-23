@@ -40,6 +40,9 @@
   #daily{margin-top:5px;color:#d3bd97;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #daily[hidden]{display:none}
+  #radio{margin-top:5px;color:#9fb6c8;font:10.5px/1.5 var(--sans);letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #radio[hidden]{display:none}
   .statsep{display:inline-block;width:1px;height:9px;background:#39454f;margin:0 7px;vertical-align:-1px}
   #sel{margin-top:8px;max-width:320px;color:var(--dim);font-size:12px;line-height:1.5}
   #sel b{color:var(--accent);font-weight:500}
@@ -222,6 +225,7 @@
     <div id="stats"><b id="fps">0</b> fps<span class="statsep"></span><b id="count">0</b> cells<span class="statsep"></span><b id="bugs">0</b> alive<span class="statsep"></span><b id="clock">day</b><span class="statsep"></span><b id="wind" title="wind">-</b><span class="statsep"></span><b id="season" title="season">-</b><span class="statsep"></span><b id="gstat">0/17</b></div>
     <div id="nowplaying" hidden></div>
     <div id="daily" hidden></div>
+    <div id="radio" hidden></div>
   </div>
   <div id="sel"></div>
   <div id="sparklabel">Life, last 150 ticks</div>
@@ -278,6 +282,7 @@
   </div>
   <div class="row">
     <button class="btn" id="dailybtn" aria-pressed="false" title="today's daily world and goal">Daily</button>
+    <button class="btn" id="radiobtn" aria-pressed="false" title="local radio bulletins about this world">Radio</button>
     <button class="btn" id="calm" aria-pressed="false" title="reduce motion, flashes and flicker">Calm</button>
   </div>
   <div class="row audio">
@@ -3006,7 +3011,7 @@ document.getElementById('quake').addEventListener('click', quake);
 
 // § AUDIO — SFX, volume, noise
 let audio = null, soundOn = false, sfxOut = null, musicOut = null, worldOut = null;
-let sfxLevel = 0.8, musicLevel = 0.7, worldLevel = 0.55;
+let sfxLevel = 0.8, musicLevel = 0.7, worldLevel = 0.55, radioOn = false, radioTimer = 0;
 function volClamp(v){ return Math.max(0, Math.min(1, v)); }
 function ac(){
   if (!audio && typeof AudioContext !== 'undefined') audio = new AudioContext();
@@ -4620,6 +4625,7 @@ function startTrack(i){
     clearTimeout(startTrack._t);
     startTrack._t = setTimeout(() => toast.classList.remove('on'), 2600);
   }
+  if (radioOn && !testing) radioSpeak();
 }
 function trackStepsFor(tr){ return Math.round(tr.minutes * 60 * tr.bpm / 15); }   // 16ths in the track
 function trackPool(group, from){
@@ -4738,6 +4744,90 @@ function armMusic(){
     }, { once: true });
   }
 }
+/* ---------- Powder Radio: the world, read aloud between tracks ---------- */
+function radioCall(sp){
+  const lines = {
+    [LIFE]: 'the leaves are good this year, no comment on the birds',
+    [FISH]: 'the water is wet, the herons are not',
+    [BIRD]: 'we are not circling anything, please stop asking',
+    [DEER]: 'the herd is fine, the people are the problem',
+    [HUMAN]: 'we were here first, according to us',
+    [ANT]: 'the hill is expanding, no further questions',
+    [BEAVER]: 'the stream was going the wrong way anyway',
+    [LOCUST]: 'we are solitary, we are definitely solitary',
+    [AMOEBA]: 'we are one, we are many, it depends on lunch',
+    [HERON]: 'the fish are small this season',
+    [GULL]: 'we are not following the heron, we are nearby',
+    [SNAIL]: 'slow news day',
+    [FROG]: 'the pond is fine, the water is fine, everything is fine',
+    [WORM]: 'the soil is fine, thank you',
+    [BAT]: 'we sleep through this',
+    [SPIDER]: 'the web is holding',
+    [BEE]: 'the hive is busy',
+    [FIREFLY]: 'we are only on at night',
+    [CRAB]: 'the tide is late',
+    [OCTOPUS]: 'no comment',
+    [TERMITE]: 'the timber is fine',
+  };
+  return lines[sp] || 'no comment';
+}
+function radioText(){
+  const day = 1 + Math.floor(sun / 6.2832);
+  const alive = MIGRANTS.filter(sp => hist[sp] > 0);
+  const weather = weatherOff ? 'the weather desk has nothing to report'
+    : storm ? 'a storm is parked over the valley'
+    : raining ? 'rain, all day'
+    : Math.sin(season) > 0.45 ? 'the wet season is in'
+    : Math.sin(season) < -0.45 ? 'a dry spell continues'
+    : 'mild and unremarkable';
+  const parts = ['This is Powder Radio, 88.3, the voice of the valley.', 'Day ' + day + '. ' + weather.charAt(0).toUpperCase() + weather.slice(1) + '.'];
+  if (alive.length){
+    const sp = alive[(Math.random() * alive.length) | 0];
+    parts.push('The census lists ' + hist[sp] + ' ' + MAT[sp].name + '.');
+    parts.push('A call-in from the ' + MAT[sp].name.toLowerCase() + ': "' + radioCall(sp) + '"');
+  } else parts.push('The census is empty. The microphone is very quiet.');
+  const fire = hist[FIRE] || 0;
+  if (fire) parts.push('The fire desk reports ' + fire + ' cells alight.');
+  const last = chronicleLog[chronicleLog.length - 1];
+  if (last) parts.push('Earlier: ' + last.t + '.');
+  parts.push('We will be here all night.');
+  return parts.join(' ');
+}
+function radioRestore(){
+  if (radioTimer){ clearTimeout(radioTimer); radioTimer = 0; }
+  if (musicOut && audio) musicOut.gain.setTargetAtTime(musicLevel, audio.currentTime, 0.4);
+  const el = document.getElementById('radio'); if (el) el.hidden = true;
+}
+function radioSpeak(){
+  if (!radioOn || testing) return;
+  const text = radioText();
+  if (castOn) showCaption(text); else toastMsg(text, 7000);
+  const el = document.getElementById('radio');
+  if (el){ el.textContent = '📻 Powder Radio · on air'; el.hidden = false; }
+  const s = (typeof speechSynthesis !== 'undefined') ? speechSynthesis : null;
+  if (!s || typeof SpeechSynthesisUtterance === 'undefined'){ radioRestore(); return; }
+  try {
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.92; u.pitch = 0.85;
+    if (musicOut && audio) musicOut.gain.setTargetAtTime(musicLevel * 0.18, audio.currentTime, 0.2);
+    u.onend = radioRestore; u.onerror = radioRestore;
+    s.speak(u);
+    radioTimer = setTimeout(radioRestore, Math.min(30000, 4500 + text.length * 70));
+  } catch (e) { radioRestore(); }
+}
+function setRadio(on){
+  radioOn = on;
+  const btn = document.getElementById('radiobtn');
+  if (btn){ btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); }
+  if (on) radioSpeak();
+  else {
+    try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch (e) { /* no voice */ }
+    radioRestore();
+  }
+}
+document.getElementById('radiobtn').addEventListener('click', () => setRadio(!radioOn));
+
 function loadPrefs(){
   let p = null;
   try { p = JSON.parse(localStorage.getItem('powder-prefs') || 'null'); } catch (e) { return; }
@@ -6858,6 +6948,28 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('applyPrefs restores the world volume',
     Math.abs(worldLevel - 0.35) < 0.001 && document.getElementById('worldvol').value === '35');
   setWorldLevel(worldWas);
+
+  // Powder Radio reads the live world and falls back to text
+  const radioHist = MIGRANTS.map(sp => hist[sp]);
+  for (const sp of MIGRANTS) hist[sp] = 0;
+  hist[DEER] = 4;
+  const radioTextNow = radioText();
+  ok('the radio reads the live census',
+    radioTextNow.indexOf('Powder Radio') >= 0 && radioTextNow.indexOf('4 Deer') >= 0 && radioTextNow.indexOf('call-in') >= 0);
+  for (let k=0;k<MIGRANTS.length;k++) hist[MIGRANTS[k]] = radioHist[k];
+  const weatherWas4 = weatherOff, stormWas4 = storm, rainWas4 = raining, seasonWas4 = season, fireWas4 = hist[FIRE];
+  weatherOff = true; hist[FIRE] = 7;
+  const radioWeather = radioText();
+  ok('the radio reports the weather desk and the fire desk',
+    radioWeather.indexOf('weather desk') >= 0 && radioWeather.indexOf('7 cells alight') >= 0);
+  weatherOff = weatherWas4; storm = stormWas4; raining = rainWas4; season = seasonWas4; hist[FIRE] = fireWas4;
+  const radioWas = radioOn;
+  setRadio(true);
+  const radioOnOk = radioOn && document.getElementById('radiobtn').getAttribute('aria-pressed') === 'true';
+  setRadio(false);
+  const radioOffOk = !radioOn && document.getElementById('radiobtn').getAttribute('aria-pressed') === 'false';
+  ok('the radio toggle works', radioOnOk && radioOffOk);
+  radioOn = radioWas;
   const wasClean = document.body.classList.contains('clean');
   dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
   ok('h hides all panels', document.body.classList.contains('clean') !== wasClean);
