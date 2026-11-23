@@ -2,7 +2,7 @@
 
 A living falling-sand world in **one HTML file** — no build step, no dependencies, no network, works offline.
 
-Sand, water, fire, lava, ice, ash, reeds and coal. Amoebae gather into a slug and fruit into pale stalks; locusts darken and take wing when the crowd gets too thick; ants farm pale fungus gardens at their mounds; beavers dam a channel into a pond; shrikes hunt the bug whose colour matches their own. Deer, herons, gulls, crabs, ants, termites and people who hunt, farm, build, haul and keep a fire. Weather that turns to snow at night, seasons that dry the ponds and brown the reeds, lightning that starts wildfires in a drought and puts itself out in the wet season. Old, unburned growth carries a debt of fuel: a spark dies in a burn scar and crowns in an old stand, and a fire you put out becomes fuel for the next. Procedural lo-fi that follows the sky, and a chronicle in which the world writes down what happened in it.
+Sand, water, fire, lava, ice, ash, reeds and coal; TNT leaves a layered crater and throws a shockwave that sets its fringe alight. Amoebae gather into a slug and fruit into pale stalks; locusts darken and take wing when the crowd gets too thick; ants farm pale fungus gardens at their mounds; beavers dam a channel into a pond; shrikes hunt the bug whose colour matches their own. Deer, herons, gulls, crabs, ants, termites and people who hunt, farm, build, haul and keep a fire. Weather that turns to snow at night, seasons that dry the ponds and brown the reeds, lightning that starts wildfires in a drought and puts itself out in the wet season. Old, unburned growth carries a debt of fuel: a spark dies in a burn scar and crowns in an old stand, and a fire you put out becomes fuel for the next. Procedural lo-fi that follows the sky, and a chronicle in which the world writes down what happened in it.
 
 **Live demo:** the repo root is already `index.html` — enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root). Nothing else is needed.
 
@@ -29,7 +29,7 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `0`–`9` | pick a material by number |
 | `f` `w` `b` `l` `Shift`+`I` `g` `t` `s` `m` `o` | Fish, Wood, Birds, Bugs, Ice, Glass, TNT, Smoke, Mercury, Worms |
 | `y` | mirror painting |
-| `h` | hide all panels (press again to bring them back) |
+| `h` or `u` | hide all panels (press again to bring them back) |
 | `/` | focus the material filter |
 | `i` | census overlay + population sparkline |
 | `k` | lo-fi on / off |
@@ -37,16 +37,20 @@ That's it. It runs from `file://`, from a static host, from a USB stick. Everyth
 | `j` | broadcast captions on / off |
 | `v` | camera drift on / off |
 | `p` | scene loop on / off |
-| `Ctrl`+`Z` | undo |
+| `c` | clear the world (undoable) |
+| `z` or `Ctrl`+`Z` | undo |
+| `F3` | performance overlay |
 | `?` | help panel — goals, creatures, food web, **the story so far** |
 
 Buttons: Pause, Step, Clear, Fill, Rain, Quake, Weather, Volcano, Terrain, Wrath, Storm, Gust, Heat (thermal view: cold blue, black neutral, red hot), Garden, Shot (PNG), Link (share a scene by URL hash), Rec (WebM), Keep / Recall (localStorage), Speed, Sound, Lo-fi, the music picker, Autoplay, Cast, Cine, Loop, Daily, Calm, the tool picker, Shutter, and a scene picker. The Sound and Music volume sliders appear only while that channel is on; with Sound on, a World slider balances the ambience.
+
+The material shelf is tabbed by category: Eraser, Powder, Solid, Liquid, Energy, Source and Life. One tab shows at a time; picking a material by hotkey, the picker or a click opens its tab, and the filter (`/`) searches every category at once.
 
 **Cast** swaps the panels for a stream overlay: the HUD header (vinyl, title, stats and the playing track), the latest chronicle line as a caption, and the current day in the corner. **Cine** adds a slow camera drift, **Loop** rotates scenes every 20 minutes through a fade, and **Calm** removes flashes, screen shake and flicker (it starts on when the OS asks for reduced motion). The same are available as `?broadcast`, `?cine`, `?playlist` and `?calm`.
 
 **Daily world** builds a date-seeded starting world with one goal for the day. The HUD card tracks the goal and the day; the result is saved in the browser, and the Link button shares a `?daily=YYYY-MM-DD` link. `?daily` opens today's world; `?daily=2026-11-22` opens a specific day. The date picks the same scene and goal for everyone (the scene scales to the window); Autopilot and Cast work with it.
 
-Lo-fi is twenty-six procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. The late-night set leans on descending maj9/min9 changes, a sparse rim and a warm pad. A small pixel vinyl spins in the HUD while the music plays, and the header names the track and its mood (Cast keeps them visible). The picker beside Lo-fi chooses Auto (a random mood each time), a mood, or one track; the choice persists. When a track ends it fades out and the next one fades in. The music follows the sky (darker at night, faster in a storm).
+Lo-fi is twenty-six procedural tracks in five mood groups — cafe, cozy, study, focus and jazz — each 3–5 minutes with different chords, tempos, drum patterns, synth voices and hooks. The jazz set uses ii–V–I changes, walking bass and a brushed kit. The late-night set leans on descending maj9/min9 changes, a sparse rim and a warm pad. A small pixel vinyl spins in the HUD while the music plays, and the header names the track and its mood (Cast keeps them visible). The picker under Lo-fi chooses Auto (a random mood each time), a mood, or one track; the choice persists. When a track ends it fades out and the next one fades in. The music follows the sky (darker at night, faster in a storm).
 
 With **Sound** on, a procedural ambience follows the world: rain and storms, fire, water, birds by day and the wind, mixed live from the census. The World slider balances it; Calm fades it out.
 
@@ -111,11 +115,11 @@ Also: `get`, `fill`, `clear`, `pause`, `resume`, `speed`, `save`, `load`, `size`
 
 The world carries its own test suite:
 
-- `index.html?selftest` runs **331 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
+- `index.html?selftest` runs **333 in-page checks** (physics, ecology, weather, people, conservation rules) and prints the result in the HUD.
 - `scripts/selftest.sh` is the headless development check; the app itself ships as one file. Run `window.sandbox.bench(80)` in the console for local timings on your machine.
 
 ## Notes
 
-- One file, ~388 KB, zero dependencies, zero network requests.
-- Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), and the chronicle.
+- One file, ~391 KB, zero dependencies, zero network requests.
+- Saves: scenes in `localStorage` (`Keep` / `Recall`), preferences (music, weather, volume, calm and the music pick), the chronicle, the goal card and the daily results.
 - Licence: Apache License 2.0 — see `LICENSE`.

@@ -28,6 +28,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Weather, storm, seasons | the weather block in `update`, `setWeather` | `setWeather`, `raining` |
 | Rendering, clouds, heat view | `draw`, `drawClouds`, the palette LUT | `function draw` |
 | A UI button or panel | its DOM id and listener | `#clear`, `getElementById('clear')` |
+| Palette categories / tabs | `#cats`, `CATS`, `renderPalette` | `.cattab`, `activeCat` |
 | Painting, pointer, keyboard cursor | the pointer handlers and the canvas keydown | `pointerdown`, `ArrowRight` |
 | Save / Keep / Recall / share | `pack`, `unpack`, `keepScene`, `recallScene` | `function unpack` |
 | A scene (the ecosystem pond, swamp, snow) | `SCENES`, `loadScene`, `bed`, `terrain` | `SCENES.ecosystem` |
@@ -40,6 +41,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Handprint wall / bone crafts | `stampHandprint`, `learnCraft` | `OCHRE`, `form` bits |
 | Camp culture (myth, song, hand's tune) | `makeMyth`, `maybeTell`, `makeSong`, `learnPhrase` | `myth`, `campSong` |
 | Fire & civilization | `stolenEmber`, `cutFirebreak`, `makeDebtBorn` | `fuel`, `HUMAN` |
+| TNT blast / shockwave | `boom`, `blasts` | `tickTnt`, `blasts` |
 | The hand & becoming | `shepherdCheck`, `effigyAt`, `buildIdleCairn` | `#tool`, `lastTouch` |
 | Small prints / taught bridge | `print`, `harpLead`, `finishStroke`, `repairBridge` | `print`, `bridgeLesson` |
 | Smarter building / jump & climb | `humanCanEscape`, `vault` | `humanCanEscape`, `vault` |

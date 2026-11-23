@@ -76,9 +76,14 @@
     background:linear-gradient(180deg,transparent,#0a1119e6 26%,#0a1119fa 100%);
     border-top:1px solid var(--line);flex-wrap:wrap;justify-content:center}
   #palette::-webkit-scrollbar{display:none}
-  .catlabel{flex:0 0 auto;align-self:center;font:italic 10px/1 var(--serif);color:#7d8a95;
-    padding:0 6px;writing-mode:vertical-rl;transform:rotate(180deg);user-select:none}
-  .mat[hidden],.catlabel[hidden]{display:none}
+  #cats{position:static;pointer-events:auto;display:flex;gap:2px;padding:4px 14px 0;
+    justify-content:center;flex-wrap:wrap;background:linear-gradient(180deg,transparent,#0a1119e6 65%)}
+  .cattab{flex:0 0 auto;background:none;border:0;border-bottom:1px solid transparent;border-radius:0;
+    color:#7d8a95;font:italic 11px/1.4 var(--serif);letter-spacing:.03em;padding:4px 9px;cursor:pointer;
+    user-select:none;transition:color .12s ease,border-color .12s ease}
+  .cattab:hover{color:var(--txt)}
+  .cattab[aria-pressed="true"]{color:var(--txt);border-bottom-color:var(--accent)}
+  .mat[hidden]{display:none}
   .mat{position:relative;flex:0 0 auto;width:46px;height:50px;border:0;border-radius:2px;
     background:transparent;cursor:pointer;padding:3px 2px;display:flex;flex-direction:column;
     align-items:center;justify-content:flex-start;gap:3px;transition:background .12s ease}
@@ -112,7 +117,7 @@
   .btn.danger{color:#b58a76}
   .btn.danger:hover{color:var(--ember)}
   .btn.danger.on{color:var(--ember);border-bottom-color:#c96a4688}
-  .btn:focus-visible,.mat:focus-visible,#filter:focus-visible,select:focus-visible,input[type=range]:focus-visible{
+  .btn:focus-visible,.mat:focus-visible,.cattab:focus-visible,#filter:focus-visible,select:focus-visible,input[type=range]:focus-visible{
     outline:2px solid var(--accent);outline-offset:2px}
   .sep{height:1px;background:var(--line);margin:6px 0}
   .volrow{display:flex;align-items:center;gap:6px}
@@ -183,7 +188,7 @@
 
   #toolstoggle{display:none}
 
-  body.clean #hud,body.clean #tools,body.cast #tools,body.clean #palette,body.cast #palette,
+  body.clean #hud,body.clean #tools,body.cast #tools,body.clean #cats,body.cast #cats,body.clean #palette,body.cast #palette,
   body.clean #hint,body.cast #hint,body.clean #toast,body.cast #toast,
   body.clean #toolstoggle,body.cast #toolstoggle,body.clean #log,body.cast #log{display:none}
   body.cast #sel,body.cast #sparklabel,body.cast #spark,body.cast #hover,body.cast #census{display:none}
@@ -223,6 +228,9 @@
       scrollbar-width:thin;scrollbar-color:#ffffff24 transparent}
     #palette::-webkit-scrollbar{display:block;width:6px}
     #palette::-webkit-scrollbar-thumb{background:#ffffff24;border-radius:3px}
+    #cats{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding:4px 10px 0;
+      scrollbar-width:none}
+    #cats::-webkit-scrollbar{display:none}
   }
   @media (prefers-reduced-motion: reduce){
     .mat,.btn,#toast,#bcap,#fade{transition:none}
@@ -368,6 +376,7 @@
 
 <div id="bottom">
   <div id="log" aria-live="polite"></div>
+  <nav id="cats" aria-label="Palette categories"></nav>
   <nav id="palette" aria-label="Materials"></nav>
 </div>
 
@@ -587,7 +596,8 @@ let dirty = true;      // something changed since the last draw (a paused world 
 /* ---------- grid ---------- */
 function resize(){
   const pal = document.getElementById('palette');
-  const palH = Math.ceil(pal.getBoundingClientRect().height) || 0;
+  const cats = document.getElementById('cats');
+  const palH = Math.ceil(pal.getBoundingClientRect().height + cats.getBoundingClientRect().height) || 0;
   document.documentElement.style.setProperty('--palette-h', palH + 'px');
   const bare = document.body.classList.contains('clean') || document.body.classList.contains('cast');
   let band = bare ? 0 : Math.max(78, palH + 24);   // chrome overlays the world; only the shelf reserves ground
@@ -1590,15 +1600,28 @@ function tickTnt(x,y,dir,i){
 
 function boom(x,y){
   flash = 1;
-  shake = 7;
-  noiseBurst(0.4, 0.18); blip(70, 0.5, 'sawtooth', 0.10);
-  const R = 4;
+  shake = 12;
+  noiseBurst(0.55, 0.26); blip(58, 0.6, 'sawtooth', 0.11); blip(36, 0.85, 'sine', 0.09);
+  const R = 7;
   for (let dy=-R; dy<=R; dy++) for (let dx=-R; dx<=R; dx++){
-    if (dx*dx + dy*dy > R*R) continue;
+    const d2 = dx*dx + dy*dy;
+    if (d2 > R*R) continue;
     const nx = x+dx, ny = y+dy;
     if (!inB(nx,ny)) continue;
-    if (Math.random() < 0.3) continue;            // rubble stays
-    set(nx, ny, Math.random() < 0.55 ? FIRE : EMPTY);
+    if (d2 <= 6){                                  // white-hot core
+      set(nx, ny, Math.random() < 0.7 ? FIRE : EMPTY);
+    } else if (d2 <= 25){                          // crater: fire, smoke, ash, rubble
+      const p = Math.random();
+      set(nx, ny, p < 0.35 ? FIRE : p < 0.6 ? SMOKE : p < 0.75 ? ASH : EMPTY);
+    } else {                                       // charred fringe: light what burns, leave stone
+      const t = grid[idx(nx,ny)];
+      if (MAT[t] && MAT[t].flammable && Math.random() < 0.5) set(nx, ny, FIRE);
+      else if ((t === EMPTY || t === SMOKE) && Math.random() < 0.15) set(nx, ny, SMOKE);
+    }
+  }
+  if (!calmOn){
+    blasts.push({ x, y, r: 2, life: 1 });
+    if (blasts.length > 24) blasts.shift();
   }
   return true;
 }
@@ -3131,6 +3154,16 @@ function draw(){
     flash *= 0.72;
     if (flash < 0.02) flash = 0;
   }
+  if (blasts.length){                               // the shockwave itself: an expanding ring
+    for (let i=blasts.length-1; i>=0; i--){
+      const b = blasts[i];
+      b.r += 0.9; b.life -= 0.035;
+      if (b.life <= 0){ blasts.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(255,206,140,${(b.life*0.55).toFixed(3)})`;
+      ctx.lineWidth = 1 + b.life*2;
+      ctx.beginPath(); ctx.arc(b.x+0.5, b.y+0.5, b.r, 0, TAU); ctx.stroke();
+    }
+  }
   if (cursor.on && !document.body.classList.contains('clean')){   // brush ring so you can aim
     ctx.strokeStyle = 'rgba(235,246,255,0.45)';
     ctx.lineWidth = 0.8;
@@ -3603,7 +3636,11 @@ const selEl = document.getElementById('sel');
 // § PALETTE — materials, DESC, CATS, buttons
 /* ---------- palette UI ---------- */
 const paletteEl = document.getElementById('palette');
+const catsEl = document.getElementById('cats');
+const filterEl = document.getElementById('filter');
 const buttons = {};
+const catTabs = {};
+let activeCat = MAT[current].cat;
 const CAT_ORDER = ['tool','powder','solid','liquid','energy','source','life'];
 const CATS = CAT_ORDER.map(name => [name, MATS.filter(k => MAT[k].cat === name)]).filter(([, ids]) => ids.length);
 
@@ -3611,6 +3648,7 @@ const CATS = CAT_ORDER.map(name => [name, MATS.filter(k => MAT[k].cat === name)]
 function addButton(k){
   const m = MAT[k];
   const b = document.createElement('button');
+  b.type = 'button';
   b.className = 'mat';
   b.style.setProperty('--glow', m.glow);
   b.setAttribute('aria-pressed', k === current ? 'true' : 'false');
@@ -3621,48 +3659,56 @@ function addButton(k){
   buttons[k] = b;
 }
 
-const catLabels = {};
+// one tab per category; the shelf shows the active one, or every match while filtering
+function renderPalette(){
+  const q = filterEl.value.trim().toLowerCase();
+  for (const [name, ids] of CATS){
+    for (const k of ids){
+      const show = q ? MAT[k].name.toLowerCase().indexOf(q) >= 0 : name === activeCat;
+      if (buttons[k]) buttons[k].hidden = !show;
+    }
+  }
+  for (const name in catTabs) catTabs[name].setAttribute('aria-pressed', !q && name === activeCat ? 'true' : 'false');
+}
+
 for (const [name, ids] of CATS){
-  const lbl = document.createElement('span');
-  lbl.className = 'catlabel';
-  lbl.textContent = name;
-  paletteEl.appendChild(lbl);
-  catLabels[name] = lbl;
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'cattab';
+  tab.textContent = name;
+  tab.setAttribute('aria-controls', 'palette');
+  tab.setAttribute('aria-pressed', name === activeCat ? 'true' : 'false');
+  tab.addEventListener('click', () => { activeCat = name; filterEl.value = ''; renderPalette(); });
+  catsEl.appendChild(tab);
+  catTabs[name] = tab;
   for (const k of ids) addButton(k);
 }
+renderPalette();
 
 // the palette reflows after fonts and filtering; re-fit the stage whenever it does
 if (typeof ResizeObserver !== 'undefined'){
   let palQueued = false;
-  new ResizeObserver(() => {
+  const ro = new ResizeObserver(() => {
     if (palQueued) return;
     palQueued = true;
     requestAnimationFrame(() => { palQueued = false; resize(); });
-  }).observe(document.getElementById('palette'));
+  });
+  ro.observe(catsEl);
+  ro.observe(paletteEl);
 } else setTimeout(resize, 60);
 
-// typing narrows the palette to matching materials and hides empty categories
-const filterEl = document.getElementById('filter');
-filterEl.addEventListener('input', () => {
-  const q = filterEl.value.trim().toLowerCase();
-  for (const [name, ids] of CATS){
-    let any = false;
-    for (const k of ids){
-      const show = !q || MAT[k].name.toLowerCase().indexOf(q) >= 0;
-      if (buttons[k]) buttons[k].hidden = !show;
-      if (show) any = true;
-    }
-    if (catLabels[name]) catLabels[name].hidden = !any;
-  }
-});
+// typing searches every category, not just the open tab
+filterEl.addEventListener('input', renderPalette);
 filterEl.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ filterEl.value = ''; filterEl.dispatchEvent(new Event('input')); filterEl.blur(); }
+  if (e.key === 'Escape'){ filterEl.value = ''; renderPalette(); filterEl.blur(); }
 });
 function select(k){
   current = k;
   if (filterEl.value && buttons[k] && buttons[k].hidden){    // selecting an out-of-filter material clears the filter
-    filterEl.value = ''; filterEl.dispatchEvent(new Event('input'));
+    filterEl.value = '';
   }
+  activeCat = MAT[k].cat;                                    // the shelf follows the selection to its tab
+  renderPalette();
   if (buttons[k] && buttons[k].scrollIntoView) buttons[k].scrollIntoView({ block: 'nearest', inline: 'center' });
   for (const j in buttons) buttons[j].setAttribute('aria-pressed', j == k ? 'true' : 'false');
   selEl.innerHTML = '<b>' + MAT[k].name + '</b>: ' + (DESC[k] || '');
@@ -3921,6 +3967,7 @@ stormEl.addEventListener('click', () => {
 });
 
 let acidRain = 0, wasNight = false, shake = 0, wasWet = null;
+const blasts = [];                                   // live shockwave rings, drawn and aged in draw()
 const chronSeen = {};
 let autoPlay = false, autoNext = 0, autoStroke = null, autoHideAt = 0, autoSceneAt = 0;
 let autoQueue = [];                                  // the current project's scheduled moves
@@ -6242,9 +6289,12 @@ ok('creature colours are distinct', (() => {
   ok('lava makes glass', count(GLASS) > 0);
 
   // TNT detonates when it touches fire
+  const calmWasBlast = calmOn; calmOn = false;     // Calm suppresses the ring; this check is about the ring
   chamber(8,20);
   fillInterior(8,20,TNT); set(8,20,FIRE); run(3);
   ok('tnt explodes', count(TNT) <= 4);
+  ok('a blast leaves a shockwave', blasts.length > 0);
+  calmOn = calmWasBlast;
 
   // mercury is heavier than sand and sinks through it
   shaft(20,6);
@@ -6910,7 +6960,8 @@ ok('creature colours are distinct', (() => {
   for (let y=25;y<=29;y++){ grid[idx(15,y)] = STONE; grid[idx(28,y)] = STONE; }
   set(20,29,REED); set(21,29,FROG); set(25,29,FISH);
   ok('a frog sees through water, not through land', senseWet(21,29,FISH,4) !== null && sense(21,29,FISH,4) === null);
-  run(80);
+  set(25,29,WATER); set(22,29,FISH);        // move it within strike range: no random walk needed
+  run(2);
   ok('a frog in ambush takes a fish from the water', count(FISH) === 0);
 
   // fish move slowly through a reed bed
@@ -7902,6 +7953,11 @@ ok('creature colours are distinct', (() => {
 
   // the brush slider has an accessible label
   ok('the brush slider has a label', !!document.querySelector('label[for="brush"]'));
+
+  // the palette has one tab per category and one reachable button per material
+  ok('the palette has a tab per category and a button per material',
+    document.querySelectorAll('#cats .cattab').length === CATS.length &&
+    Object.keys(buttons).length === MATS.length && MATS.every(id => buttons[id]));
 
   // choosing a scene does not drop keyboard focus
   const scenePick = document.getElementById('scene');
