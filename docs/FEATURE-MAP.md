@@ -39,6 +39,7 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
 | The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
 | The Hue Hunter | `tickShrike`, `shrikeHue`, `mutateGene` | `SHRIKE`, `gene` |
+| The Empty Chair (survey) | `surveyData`, `openSurvey`, `cullSurvey` | `#survey`, `#tool` |
 | Fire debt | `fuel`, `fireLifeFor`, `igniteCell` | `FLAM`, `fuel` |
 | Lineages (genes) | `gene`, `mutateGene`, `lineageCounts` | `gene`, `.hlineages` |
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
