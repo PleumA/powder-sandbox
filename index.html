@@ -485,17 +485,17 @@ const MAT = {
   [TNT]: {name:'TNT', color:[220,58,66], glow:'#dc3a42', density:3, cat:'energy', tick:(x,y,i,dir)=>tickTnt(x,y,dir,i), desc:'blows a crater when fire touches it'},
   [SMOKE]: {name:'Smoke', color:[74,78,90], glow:'#4a4e5a', density:-2, life:200, cat:'energy', tick:tickSmoke, desc:'rises, thins out, and drifts with the wind'},
   [MERCURY]: {name:'Mercury', color:[200,208,218], glow:'#c8d0da', density:4, liquid:true, cat:'liquid', desc:'heavier than sand; gives off fumes near fire'},
-  [WORM]: {name:'Worms', color:[196,120,84], glow:'#c47854', density:5, migrant:1, cat:'life', diet:[PLANT, SEED, AMOEBA], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
+  [WORM]: {name:'Worms', color:[235,140,70], glow:'#eb8c46', density:5, migrant:1, cat:'life', diet:[PLANT, SEED, AMOEBA], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
   [SALT]: {name:'Salt', color:[236,232,220], glow:'#ece8dc', density:3, cat:'powder', tick:(x,y,i,dir)=>tickSalt(x,y,dir,i), desc:'melts ice and dissolves in water'},
   [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9, flammable:1, cat:'solid', tick:tickFungus, desc:'eats wood, spreads into plants, burns'},
   [SNOW]: {name:'Snow', color:[238,246,255], glow:'#eef6ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickSnow(x,y,dir,i), desc:'falls like sand and melts near heat'},
   [SLIME]: {name:'Slime', color:[120,200,90], glow:'#78c85a', density:1.2, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickSlime(x,y,dir,i), desc:'thick goo that spreads slowly and swallows plants'},
   [MUD]: {name:'Mud', color:[126,96,66], glow:'#7e6042', density:3.5, cat:'powder', tick:(x,y,i,dir)=>tickMud(x,y,dir,i), desc:'wet sand that dries back to sand near heat'},
   [FIREWORK]: {name:'Firework', color:[255,214,90], glow:'#ffd65a', density:3, cat:'energy', tick:(x,y,i,dir)=>tickFirework(x,y,dir,i), desc:'climbs when lit, then bursts into fire'},
-  [SPIDER]: {name:'Spiders', color:[176,110,220], glow:'#b06edc', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickSpider, desc:'climbs walls and hunts bugs'},
+  [SPIDER]: {name:'Spiders', color:[150,80,210], glow:'#9650d2', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickSpider, desc:'climbs walls and hunts bugs'},
   [FROG]: {name:'Frogs', color:[120,220,110], glow:'#78dc6e', density:1.5, migrant:1, cat:'life', diet:[LIFE, FISH, FIREFLY, ANT, BEE], tick:tickFrog, desc:'leaps two cells, hunts bugs and fish'},
-  [SNAIL]: {name:'Snails', color:[214,196,150], glow:'#d6c496', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED, AMOEBA], tick:tickSnail, desc:'a slow grazer that eats plants'},
-  [BAT]: {name:'Bats', color:[130,120,160], glow:'#8278a0', density:-2, migrant:1, cat:'life', diet:[LIFE, BEE, FIREFLY, ANT], tick:tickBat, desc:'flutters erratically and hunts bugs'},
+  [SNAIL]: {name:'Snails', color:[140,165,115], glow:'#8ca573', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, MOSS, HONEY, REED, AMOEBA], tick:tickSnail, desc:'a slow grazer that eats plants'},
+  [BAT]: {name:'Bats', color:[120,110,160], glow:'#786ea0', density:-2, migrant:1, cat:'life', diet:[LIFE, BEE, FIREFLY, ANT], tick:tickBat, desc:'flutters erratically and hunts bugs'},
   [EGG]: {name:'Eggs', color:[240,232,200], glow:'#f0e8c8', density:2, cat:'life', tick:(x,y,i,dir)=>tickEgg(x,y,dir,i), desc:'hatches a bird near a nest, a fish in water, a bug anywhere else'},
   [FIREFLY]: {name:'Fireflies', color:[255,246,120], glow:'#fff678', density:-3, cat:'life', tick:tickFirefly, desc:'comes out at dusk and is gone by morning'},
   [FLOWER]: {name:'Flowers', color:[240,120,200], glow:'#f078c8', density:9, life:1500, cat:'solid', tick:tickFlower, desc:'bees make them; they seed new plants when wet'},
@@ -507,9 +507,9 @@ const MAT = {
   [IRON]: {name:'Iron', color:[150,158,172], glow:'#969eac', density:9, cat:'solid', tick:tickIron, desc:'pipes heat along itself, melts white-hot, and draws lightning'},
   [SPRING]: {name:'Springs', color:[86,170,196], glow:'#56aac4', density:9, cat:'source', tick:tickSpring, desc:'a source: keeps pouring water out of its faces'},
   [VENT]: {name:'Vents', color:[92,84,74], glow:'#5c544a', density:9, cat:'source', tick:tickVent, desc:'a source: keeps pushing smoke out of its top'},
-  [ANT]: {name:'Ants', color:[180,96,60], glow:'#b4603c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED, GARDEN], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
+  [ANT]: {name:'Ants', color:[150,60,50], glow:'#963c32', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED, GARDEN], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
   [ANTHILL]: {name:'Anthills', color:[128,96,70], glow:'#806046', density:9, cat:'powder', desc:'packed sand; ants raise it under themselves'},
-  [CRAB]: {name:'Crabs', color:[214,84,72], glow:'#d65448', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE], tick:tickCrab, desc:'sidles sideways along the sand and scavenges scraps'},
+  [CRAB]: {name:'Crabs', color:[220,60,60], glow:'#dc3c3c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE], tick:tickCrab, desc:'sidles sideways along the sand and scavenges scraps'},
   [TREE]: {name:'Saplings', color:[96,148,80], glow:'#609450', density:9, flammable:1, cat:'life', tick:tickTree, desc:'a sapling: grows a trunk and a crown from a seed in soil'},
   [FRUIT]: {name:'Fruit', color:[214,72,96], glow:'#d64860', density:2, cat:'life', tick:(x,y,i,dir)=>tickFruit(x,y,dir,i), desc:'bears in the crown; falls, feeds, and sometimes takes root'},
   [MOSS]: {name:'Moss', color:[78,138,74], glow:'#4e8a4a', density:9, flammable:1, cat:'solid', tick:tickMoss, desc:'creeps over wet stone; snails graze it'},
@@ -520,24 +520,24 @@ const MAT = {
   [BONE]: {name:'Bones', color:[228,224,208], glow:'#e4e0d0', density:9, cat:'solid', tick:tickBone, desc:'a kill leaves it behind; it weathers into compost'},
   [ASH]: {name:'Ash', color:[150,144,136], glow:'#969088', density:1.4, cat:'powder', tick:(x,y,i,dir)=>tickAsh(x,y,dir,i), desc:'what a fire leaves behind; water washes it into mud, and old ash feeds the soil'},
   [REED]: {name:'Reeds', color:[126,168,88], glow:'#7ea858', density:9, flammable:1, cat:'solid', tick:tickReed, desc:'the grass of the shallows: grows up through water, burns like straw'},
-  [HERON]: {name:'Herons', color:[188,196,206], glow:'#bcc4ce', density:2, migrant:1, cat:'life', tick:tickHeron, desc:'wades the shallows and spears any fish it can see under two cells of water'},
-  [GULL]: {name:'Gulls', color:[236,240,246], glow:'#ecf0f6', density:-3, migrant:1, cat:'life', diet:[LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST], tick:tickGull, desc:'shadows a heron and robs its patch rather than fishing for itself'},
+  [HERON]: {name:'Herons', color:[160,180,200], glow:'#a0b4c8', density:2, migrant:1, cat:'life', tick:tickHeron, desc:'wades the shallows and spears any fish it can see under two cells of water'},
+  [GULL]: {name:'Gulls', color:[240,242,246], glow:'#f0f2f6', density:-3, migrant:1, cat:'life', diet:[LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST], tick:tickGull, desc:'shadows a heron and robs its patch rather than fishing for itself'},
   [HUMAN]: {name:'Humans', color:[232,196,160], glow:'#e8c4a0', density:2, migrant:1, cat:'life', diet:[LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE, BEAVER], tick:tickHuman, desc:'hunts, sows seed, raises planks, and keeps a fire going at night'},
-  [DEER]: {name:'Deer', color:[176,132,92], glow:'#b0845c', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, REED, MOSS, FRUIT, SEED], tick:tickDeer, desc:'grazes the green things and bolts from people'},
+  [DEER]: {name:'Deer', color:[170,110,70], glow:'#aa6e46', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, REED, MOSS, FRUIT, SEED], tick:tickDeer, desc:'grazes the green things and bolts from people'},
   [COAL]: {name:'Coal', color:[44,44,50], glow:'#2c2c32', density:3, cat:'solid', desc:'a dark lump that smoulders far longer than wood'},
   [FROST]: {name:'Frost', color:[196,232,255], glow:'#c4e8ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickFrost(x,y,dir,i), desc:'cold dust: chills the water it touches to ice, melts near heat'},
-  [TERMITE]: {name:'Termites', color:[184,144,98], glow:'#b89062', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
-  [OCTOPUS]: {name:'Octopus', color:[196,96,150], glow:'#c46096', density:2, migrant:1, cat:'life', diet:[CRAB, FISH, SNAIL, WORM], tick:tickOctopus, desc:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes'},
+  [TERMITE]: {name:'Termites', color:[200,180,120], glow:'#c8b478', density:2, migrant:1, cat:'life', diet:[WOOD], tick:tickTermite, desc:'chews timber: the only thing that keeps a wooden world in check'},
+  [OCTOPUS]: {name:'Octopus', color:[220,80,170], glow:'#dc50aa', density:2, migrant:1, cat:'life', diet:[CRAB, FISH, SNAIL, WORM], tick:tickOctopus, desc:'hunts crabs and fish, hides in rock, and inks the water when a gull or a person comes'},
   [INK]: {name:'Ink', color:[30,24,46], glow:'#1e182e', density:0.6, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickInk(x,y,dir,i), desc:'a dark cloud that spreads through water and thins away'},
-  [AMOEBA]: {name:'Amoebae', color:[232,236,170], glow:'#e8ecaa', density:2, migrant:1, cat:'life', diet:[COMPOST, MOSS], tick:tickAmoeba, desc:'grazes microbes; when it gets hungry it signals, gathers into a crawling slug, and fruits into a stalk'},
+  [AMOEBA]: {name:'Amoebae', color:[200,235,190], glow:'#c8ebbe', density:2, migrant:1, cat:'life', diet:[COMPOST, MOSS], tick:tickAmoeba, desc:'grazes microbes; when it gets hungry it signals, gathers into a crawling slug, and fruits into a stalk'},
   [STALK]: {name:'Slime stalks', color:[200,210,150], glow:'#c8d296', density:9, cat:'life', tick:tickStalk, desc:'a pale fruiting body that releases a new generation of amoebae, then falls back to compost'},
-  [LOCUST]: {name:'Locusts', color:[170,190,80], glow:'#aabe50', density:2, migrant:1, cat:'life', diet:[PLANT, REED, FLOWER], tick:tickLocust, desc:'a solitary hopper until the crowd triggers it: then it darkens, takes wing, strips the meadow, and leaves pods'},
+  [LOCUST]: {name:'Locusts', color:[190,210,60], glow:'#bed23c', density:2, migrant:1, cat:'life', diet:[PLANT, REED, FLOWER], tick:tickLocust, desc:'a solitary hopper until the crowd triggers it: then it darkens, takes wing, strips the meadow, and leaves pods'},
   [POD]: {name:'Locust pods', color:[150,120,66], glow:'#967842', density:9, cat:'life', tick:tickPod, desc:'a dormant pod that waits for the wet season or a long sleep, then hatches a hopper'},
   [GARDEN]: {name:'Fungus gardens', color:[224,216,188], glow:'#e0d8bc', density:9, cat:'life', tick:tickGarden, desc:'a pale garden the ants raise on cut plants; it feeds the colony until it overshoots and crashes'},
-  [BEAVER]: {name:'Beavers', color:[164,112,70], glow:'#a47046', density:2, migrant:1, cat:'life', diet:[WOOD, PLANT, REED, SEED, FRUIT], tick:tickBeaver, desc:'swims, fells soft plants, and packs a mud dam across a narrow channel'},
+  [BEAVER]: {name:'Beavers', color:[80,55,40], glow:'#503728', density:2, migrant:1, cat:'life', diet:[WOOD, PLANT, REED, SEED, FRUIT], tick:tickBeaver, desc:'swims, fells soft plants, and packs a mud dam across a narrow channel'},
   [DAM]: {name:'Beaver dams', color:[122,94,60], glow:'#7a5e3c', density:9, cat:'solid', tick:tickDam, desc:'packed mud and sticks; it holds the stream until it weathers back to mud'},
   [BUBBLE]: {name:'Bubbles', color:[214,232,246], glow:'#d6e8f6', density:-1, cat:'energy', tick:tickBubble, desc:'a thin film around a mouthful of liquid; it rides the wind and pops where it lands'},
-  [SHRIKE]: {name:'Shrikes', color:[206,186,214], glow:'#cebad6', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickShrike, desc:'a hunter whose taste is a colour: it takes the bug nearest its own tint, and its brood inherits the preference'},
+  [SHRIKE]: {name:'Shrikes', color:[90,80,100], glow:'#5a5064', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickShrike, desc:'a hunter whose taste is a colour: it takes the bug nearest its own tint, and its brood inherits the preference'},
   [BODY]: {name:'Bodies', color:[214,206,190], glow:'#d6cebe', density:3, cat:'life', tick:tickBody, desc:'a person who has died; the camp buries it, and the grave keeps their name'},
   [GRAVE]: {name:'Graves', color:[150,142,124], glow:'#968e7c', density:9, cat:'solid', desc:'a stone cairn over a person; the Survey reads it, and one gift can turn it into a tree, a spring or a warm stone'},
   [OCHRE]: {name:'Handprints', color:[190,92,52], glow:'#be5c34', density:9, cat:'solid', desc:'one ochre handprint per life; the Bow reads the name and day, and paint erases it'},
@@ -1118,6 +1118,15 @@ function hop(x,y,tx,ty){
   moved[j] = 1;
   return true;
 }
+function vault(x,y,dx){
+  if (hop(x,y,x+dx,y)) return true;              // walk
+  if (hop(x,y,x+dx,y-1)) return true;            // step or climb a one-cell bank
+  if (hop(x,y,x,y-1)){                           // jump up
+    if (hop(x,y-1,x+dx,y-1)) return true;        // and over
+    return true;
+  }
+  return false;
+}
 function airborne(x,y){ return y + 1 < H && grid[idx(x,y+1)] === EMPTY; }
 
 // a bug: falls, walks, climbs one step, eats plants, burns, drowns, dies of old age
@@ -1288,8 +1297,7 @@ function tickLocust(x,y,i){
   if (hop(x,y,x,y+1)) return true;
   let d = facing[i];
   if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
-  if (hop(x,y,x+d,y)) return true;
-  if (hop(x,y,x+d,y-1)) return true;
+  if (vault(x,y,d)) return true;
   facing[i] = -d;
   return true;
 }
@@ -1354,8 +1362,7 @@ function tickBeaver(x,y,i){
   if (hop(x,y,x,y+1)) return true;
   let d = facing[i];
   if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
-  if (hop(x,y,x+d,y)) return true;
-  if (hop(x,y,x+d,y-1)) return true;
+  if (vault(x,y,d)) return true;
   facing[i] = -d;
   return true;
 }
@@ -1422,8 +1429,7 @@ function tickShrike(x,y,i){
   if (hop(x,y,x,y+1)) return true;
   let d = facing[i];
   if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
-  if (hop(x,y,x+d,y)) return true;
-  if (hop(x,y,x+d,y-1)) return true;
+  if (vault(x,y,d)) return true;
   facing[i] = -d;
   return true;
 }
@@ -1796,7 +1802,7 @@ function tickFrog(x,y,i){
   let d = facing[i];
   if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
   if (inB(x+2*d,y) && grid[idx(x+d,y)] === EMPTY && grid[idx(x+2*d,y)] === EMPTY && hop(x,y,x+2*d,y)) return true;  // leap
-  if (hop(x,y,x+d,y)) return true;
+  if (vault(x,y,d)) return true;
   if (hop(x,y,x+d,y+1)) return true;                     // drop off a ledge
   if (hop(x,y,x,y+1)) return true;                       // fall
   facing[i] = -d;                                        // blocked: turn around
@@ -2213,6 +2219,11 @@ function maybeIdleCairn(){
   if (testing || idleCairn || !lastTouch) return;
   if (performance.now() - lastTouch.at > 30000) buildIdleCairn();
 }
+function humanCanEscape(x,y,tx,ty){
+  const open = (nx,ny) => get(nx,ny) === EMPTY && !(nx === tx && ny === ty);
+  return open(x-1,y) || open(x+1,y) ||                      // a side is open
+         (open(x,y-1) && (open(x-1,y-1) || open(x+1,y-1)));  // or vault up and over
+}
 
 function tickHuman(x,y,i){
   if (moved[i]) return false;
@@ -2319,8 +2330,8 @@ function tickHuman(x,y,i){
       for (const [nx,ny] of [[x-1,y],[x+1,y]]) if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){ set(nx,ny, SEED); return true; }
     }
   }
-  if (Math.random() < 0.006){                                       // raise a plank
-    for (const [nx,ny] of [[x-1,y],[x+1,y]]) if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){ set(nx,ny, WOOD); return true; }
+  if (Math.random() < 0.006){                                       // raise a plank, but never wall yourself in
+    for (const [nx,ny] of [[x-1,y],[x+1,y]]) if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY && humanCanEscape(x,y,nx,ny)){ set(nx,ny, WOOD); return true; }
   }
   if (home[i]){                                                     // carrying a load: put it down a little later
     const byHearth = [[0,1],[0,-1],[1,0],[-1,0]].some(([dx,dy]) => get(x+dx,y+dy) === STONE);
@@ -2355,14 +2366,14 @@ function tickHuman(x,y,i){
   }
   if (Math.random() < (((form[i] >> 3) & 3) === 3 ? 0.03 : 0.01)){  // raise a post on a plank; builders work faster
     for (const [nx,ny] of [[x-1,y],[x+1,y]]){
-      if (get(nx,ny) === WOOD && get(nx,ny-1) === EMPTY){ set(nx,ny-1, WOOD); return true; }
+      if (get(nx,ny) === WOOD && get(nx,ny-1) === EMPTY && humanCanEscape(x,y,nx,ny-1)){ set(nx,ny-1, WOOD); return true; }
     }
   }
   if (Math.sin(sun) < -0.2 && get(x,y-1) === WOOD && heat[idx(x,y)] < 0.3) return false;   // a roof overhead, and no fire: stay in for the night
   if (home[i] && Math.random() < 0.5) return false;                  // a load slows you down
   let d = facing[i];
   if (!d || Math.random() < 0.1) d = facing[i] = Math.random() < 0.5 ? -1 : 1;
-  if (hop(x,y,x+d,y)) return true;
+  if (vault(x,y,d)) return true;
   facing[i] = -d;
   return false;
 }
@@ -2419,7 +2430,7 @@ function tickDeer(x,y,i){
   if (herd && Math.random() < 0.6 && hop(x,y,x + herd[0], y + herd[1])) return true;
   let d = facing[i];
   if (!d || Math.random() < 0.06) d = facing[i] = Math.random() < 0.5 ? -1 : 1;
-  if (hop(x,y,x+d,y)) return true;
+  if (vault(x,y,d)) return true;
   facing[i] = -d;
   return false;
 }
@@ -6121,6 +6132,13 @@ ok('liquid flags agree', MATS.every(id => !!LIQUID[id] === !!MAT[id].liquid));
 ok('hot materials are real ids', Object.keys(HOT).every(id => MAT[+id]));
 ok('diet and feared ids are real', Object.keys(DIET).every(id => MAT[+id]) && Object.values(DIET).flat().every(id => MAT[id]));
 ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.size === MIGRANTS.length);
+ok('creature colours are distinct', (() => {
+  for (let i=0;i<MIGRANTS.length;i++) for (let j=i+1;j<MIGRANTS.length;j++){
+    const a = MAT[MIGRANTS[i]].color, b = MAT[MIGRANTS[j]].color;
+    if (Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]) < 50) return false;
+  }
+  return true;
+})());
 
 // § TEST: PHYSICS — materials, heat, movement
   // sand falls to the floor and stacks
@@ -8189,7 +8207,7 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
   set(20,20,WOOD); set(21,21,FIRE); set(19,21,STONE); set(20,21,HUMAN); fuel[idx(20,21)] = 255;
   tickHuman(20,21,idx(20,21));
-  ok('a debt-born needs the hearth', cooled && grid[idx(20,21)] === HUMAN);
+  ok('a debt-born needs the hearth', cooled && count(HUMAN) === 1);   // it may vault past the flame, but it does not cool
 
   // the hand & becoming: pale keeper, shepherd, effigy, idle cairn
   chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
@@ -8251,6 +8269,24 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   const repaired = repairBridge();
   ok('the camp repairs a taught bridge', repaired && grid[idx(21,21)] === WOOD);
   bridgeLesson = null;
+
+  // smarter people: vault a wall, keep an exit
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); set(21,21,WOOD);
+  const vaulted = vault(20,21,1);
+  ok('a person climbs a one-cell wall', vaulted && grid[idx(21,20)] === HUMAN);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,DEER); set(21,21,WOOD);
+  const deerVault = vault(20,21,1);
+  ok('a deer vaults a fence', deerVault && grid[idx(21,20)] === DEER);
+
+  chamber(20,20); form.fill(0); name.fill(0); moved.fill(0);
+  set(20,21,HUMAN); set(19,21,WOOD); set(20,20,WOOD);
+  const sealed = humanCanEscape(20,21,21,21);
+  set(19,21, EMPTY);
+  const free = humanCanEscape(20,21,21,21);
+  ok('a person keeps an exit when building', !sealed && free);
 
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);

@@ -42,6 +42,8 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Fire & civilization | `stolenEmber`, `cutFirebreak`, `makeDebtBorn` | `fuel`, `HUMAN` |
 | The hand & becoming | `shepherdCheck`, `effigyAt`, `buildIdleCairn` | `#tool`, `lastTouch` |
 | Small prints / taught bridge | `print`, `harpLead`, `finishStroke`, `repairBridge` | `print`, `bridgeLesson` |
+| Smarter building / jump & climb | `humanCanEscape`, `vault` | `humanCanEscape`, `vault` |
+| Creature colours (one per species) | each migrant's `MAT` color/glow | `migrant:1`, `MIGRANTS` |
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
 | The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
 | The Hue Hunter | `tickShrike`, `shrikeHue`, `mutateGene` | `SHRIKE`, `gene` |
