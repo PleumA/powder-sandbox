@@ -441,6 +441,7 @@ const GARDEN = 67;
 const BEAVER = 68;
 const DAM = 69;
 const BUBBLE = 70;
+const SHRIKE = 71;
 
 const MAT = {
   [EMPTY]: {name:'Eraser', color:[10,12,18], glow:'#333a4a', density:0, cat:'tool', desc:'erases whatever you drag over'},
@@ -514,6 +515,7 @@ const MAT = {
   [BEAVER]: {name:'Beavers', color:[164,112,70], glow:'#a47046', density:2, migrant:1, cat:'life', diet:[WOOD, PLANT, REED, SEED, FRUIT], tick:tickBeaver, desc:'swims, fells soft plants, and packs a mud dam across a narrow channel'},
   [DAM]: {name:'Beaver dams', color:[122,94,60], glow:'#7a5e3c', density:9, cat:'solid', tick:tickDam, desc:'packed mud and sticks; it holds the stream until it weathers back to mud'},
   [BUBBLE]: {name:'Bubbles', color:[214,232,246], glow:'#d6e8f6', density:-1, cat:'energy', tick:tickBubble, desc:'a thin film around a mouthful of liquid; it rides the wind and pops where it lands'},
+  [SHRIKE]: {name:'Shrikes', color:[206,186,214], glow:'#cebad6', density:2, migrant:1, cat:'life', diet:[LIFE, BEE, ANT, FIREFLY], tick:tickShrike, desc:'a hunter whose taste is a colour: it takes the bug nearest its own tint, and its brood inherits the preference'},
 };
 
 const MATS = Object.keys(MAT).map(Number);
@@ -1331,6 +1333,51 @@ function tickBubble(x,y,i){
   if (tryMove(x,y,x,y-1,BUBBLE)) return true;
   if (Math.abs(wind) > 0.05 && tryMove(x,y,x+Math.sign(wind),y,BUBBLE)) return true;
   return false;
+}
+
+// a shrike: its own tint is its taste; the brood inherits a slightly different one
+function shrikeHue(g){ return (g >> 2) & 15; }
+function tickShrike(x,y,i){
+  if (moved[i]) return false;
+  const age = life[i] = Math.min(65535, life[i] + 1);
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny)) continue;
+    const t = grid[idx(nx,ny)];
+    if (t === FIRE || t === LAVA){ set(x,y, FIRE); return true; }
+  }
+  if (age > 2400 && Math.random() < 0.005){ set(x,y, EMPTY); return true; }
+  const menu = DIET[SHRIKE];
+  let target = -1, best = 99;
+  for (const [dx,dy] of NB4){
+    const nx = x+dx, ny = y+dy;
+    if (!inB(nx,ny)) continue;
+    const j = idx(nx,ny), t = grid[j];
+    if (menu.indexOf(t) < 0) continue;
+    const raw = Math.abs(shrikeHue(gene[i]) - shrikeHue(gene[j]));
+    const d = Math.min(raw, 16 - raw);
+    if (d < best){ best = d; target = j; }
+  }
+  if (target >= 0){
+    set(target % W, (target / W) | 0, BONE);
+    hunger[i] = 0; tally.eaten++;
+    if (Math.random() < 0.2){
+      for (const [dx,dy] of NB4){
+        const nx = x+dx, ny = y+dy;
+        if (inB(nx,ny) && grid[idx(nx,ny)] === EMPTY){
+          set(nx,ny, SHRIKE); gene[idx(nx,ny)] = mutateGene(gene[i]); tally.born++; break;
+        }
+      }
+    }
+    return true;
+  }
+  if (hop(x,y,x,y+1)) return true;
+  let d = facing[i];
+  if (!d || Math.random() < 0.08) d = facing[i] = Math.random() < 0.5 ? 1 : -1;
+  if (hop(x,y,x+d,y)) return true;
+  if (hop(x,y,x+d,y-1)) return true;
+  facing[i] = -d;
+  return true;
 }
 
 // ice melts back into water next to anything hot
@@ -4089,6 +4136,10 @@ const SCENES = {
       const t = topsHint[x] || H-4;
       if (t > 3) set(x, t-1, BEAVER);
     }
+    for (let k=0;k<2;k++){                                        // shrikes over the meadow
+      const x = (Math.random()*W)|0, t = topsHint[x] || H-4;
+      if (t > 3) set(x, t-1, SHRIKE);
+    }
     const bot = Math.min(H-2, (topsHint[cx] || H-5) + 8);          // the pond keeps its own level, at the bottom
     if (cx > 1 && cx < W-2 && H > 3){
       set(cx, bot, SPRING);
@@ -4976,6 +5027,7 @@ function radioCall(sp){
     [CRAB]: 'the tide is late',
     [OCTOPUS]: 'no comment',
     [TERMITE]: 'the timber is fine',
+    [SHRIKE]: 'the meadow is a menu',
   };
   return lines[sp] || 'no comment';
 }
@@ -7561,6 +7613,26 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   ok('a startled herd is refractory', alarmT[idx(21,21)] === alarmWas2 && refractory[idx(21,21)] === refractoryWas2);
   chamber(20,20); form.fill(0); camp.fill(0);
   ok('the startle tool ignores empty cells', startleAt(20,21) === false);
+
+  // the hue hunter: the shrike takes the prey nearest its own tint; the brood inherits
+  chamber(20,20); form.fill(0); moved.fill(0);
+  set(19,21,LIFE); gene[idx(19,21)] = 0;
+  set(21,21,LIFE); gene[idx(21,21)] = 32;
+  set(20,21,SHRIKE); gene[idx(20,21)] = 0;
+  tickShrike(20,21,idx(20,21));
+  ok('the shrike picks the hue it prefers', grid[idx(19,21)] !== LIFE && grid[idx(21,21)] === LIFE);
+
+  let shrikeChild = -1;
+  for (let k=0;k<300 && shrikeChild < 0;k++){
+    grid.fill(0); gene.fill(0); moved.fill(0);
+    set(20,21,SHRIKE); gene[idx(20,21)] = 0;
+    set(21,21,LIFE); gene[idx(21,21)] = 0;
+    tickShrike(20,21,idx(20,21));
+    for (let j=0;j<grid.length;j++) if (grid[j] === SHRIKE && j !== idx(20,21)){ shrikeChild = gene[j]; break; }
+  }
+  ok('a shrike brood inherits its taste',
+    shrikeChild >= 0 && (shrikeChild >> 6) === 0 && ((shrikeChild >> 2) & 15) <= 1);
+  ok('the shrike closes the food web', DIET[SHRIKE].indexOf(LIFE) >= 0 && FEARED[LIFE].indexOf(SHRIKE) >= 0);
 
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
