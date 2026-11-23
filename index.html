@@ -295,6 +295,7 @@
       <option value="bow">Bow</option>
       <option value="bubble">Bubble</option>
       <option value="harp">Harp</option>
+      <option value="startle">Startle</option>
     </select>
     <button class="btn" id="shutter" aria-pressed="false" title="long exposure for the PNG">Shutter</button>
   </div>
@@ -449,11 +450,11 @@ const MAT = {
   [FIRE]: {name:'Fire', color:[255,140,40], glow:'#ff8c28', density:-1, life:60, hot:1, cat:'energy', tick:tickFire, desc:'spreads through oil, wood, plants and bugs'},
   [STEAM]: {name:'Steam', color:[176,196,216], glow:'#b0c4d8', density:-2, life:220, cat:'energy', tick:tickSteam, desc:'rises, condenses at the sky and falls as rain'},
   [ACID]: {name:'Acid', color:[140,255,70], glow:'#8cff46', density:1.1, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickAcid(x,y,dir,i), desc:'eats everything except stone'},
-  [PLANT]: {name:'Plant', color:[60,170,90], glow:'#3caa5a', density:9, cat:'solid', tick:tickPlant, desc:'grows into water by day, sleeps at night'},
+  [PLANT]: {name:'Plant', color:[60,170,90], glow:'#3caa5a', density:9, flammable:1, cat:'solid', tick:tickPlant, desc:'grows into water by day, sleeps at night'},
   [LAVA]: {name:'Lava', color:[255,70,0], glow:'#ff4600', density:2, liquid:true, hot:1, cat:'liquid', tick:(x,y,i,dir)=>tickLava(x,y,dir,i), desc:'melts ice, makes glass from sand, cools to stone in water'},
   [STONE]: {name:'Stone', color:[110,112,124], glow:'#6e707c', density:9, cat:'solid', desc:'immovable ground'},
   [LIFE]: {name:'Bugs', color:[255,46,136], glow:'#ff2e88', density:2, migrant:1, cat:'life', diet:[PLANT, FLOWER, SEED, FRUIT, HONEY, REED], tick:tickLife, desc:'bugs walk, climb, eat plants and lay eggs'},
-  [WOOD]: {name:'Wood', color:[124,86,44], glow:'#7c562c', density:9, cat:'solid', tick:tickWood, desc:'solid, and it burns'},
+  [WOOD]: {name:'Wood', color:[124,86,44], glow:'#7c562c', density:9, flammable:1, cat:'solid', tick:tickWood, desc:'solid, and it burns'},
   [ICE]: {name:'Ice', color:[170,225,255], glow:'#aae1ff', density:9, cat:'solid', tick:tickIce, desc:'melts beside fire, lava or salt; steam condenses on it'},
   [GLASS]: {name:'Glass', color:[150,184,196], glow:'#96b8c4', density:9, cat:'solid', desc:'inert; made where lava meets sand'},
   [FISH]: {name:'Fish', color:[80,220,190], glow:'#50dcbe', density:1.2, migrant:1, cat:'life', diet:[PLANT, CORAL], tick:tickFish, desc:'swim in schools, graze plants, and die on dry land'},
@@ -463,7 +464,7 @@ const MAT = {
   [MERCURY]: {name:'Mercury', color:[200,208,218], glow:'#c8d0da', density:4, liquid:true, cat:'liquid', desc:'heavier than sand; gives off fumes near fire'},
   [WORM]: {name:'Worms', color:[196,120,84], glow:'#c47854', density:5, migrant:1, cat:'life', diet:[PLANT, SEED, AMOEBA], tick:tickWorm, desc:'tunnels through sand and mud, eats roots'},
   [SALT]: {name:'Salt', color:[236,232,220], glow:'#ece8dc', density:3, cat:'powder', tick:(x,y,i,dir)=>tickSalt(x,y,dir,i), desc:'melts ice and dissolves in water'},
-  [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9, cat:'solid', tick:tickFungus, desc:'eats wood, spreads into plants, burns'},
+  [FUNGUS]: {name:'Fungus', color:[152,120,182], glow:'#9878b6', density:9, flammable:1, cat:'solid', tick:tickFungus, desc:'eats wood, spreads into plants, burns'},
   [SNOW]: {name:'Snow', color:[238,246,255], glow:'#eef6ff', density:1, cat:'powder', tick:(x,y,i,dir)=>tickSnow(x,y,dir,i), desc:'falls like sand and melts near heat'},
   [SLIME]: {name:'Slime', color:[120,200,90], glow:'#78c85a', density:1.2, liquid:true, cat:'liquid', tick:(x,y,i,dir)=>tickSlime(x,y,dir,i), desc:'thick goo that spreads slowly and swallows plants'},
   [MUD]: {name:'Mud', color:[126,96,66], glow:'#7e6042', density:3.5, cat:'powder', tick:(x,y,i,dir)=>tickMud(x,y,dir,i), desc:'wet sand that dries back to sand near heat'},
@@ -486,16 +487,16 @@ const MAT = {
   [ANT]: {name:'Ants', color:[180,96,60], glow:'#b4603c', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, HONEY, REED, GARDEN], tick:tickAnt, desc:'marches in a column, forages seeds, and builds a mound underfoot'},
   [ANTHILL]: {name:'Anthills', color:[128,96,70], glow:'#806046', density:9, cat:'powder', desc:'packed sand; ants raise it under themselves'},
   [CRAB]: {name:'Crabs', color:[214,84,72], glow:'#d65448', density:2, migrant:1, cat:'life', diet:[PLANT, SEED, FLOWER, FRUIT, WORM, SNAIL, CORAL, HONEY, REED, BONE], tick:tickCrab, desc:'sidles sideways along the sand and scavenges scraps'},
-  [TREE]: {name:'Saplings', color:[96,148,80], glow:'#609450', density:9, cat:'life', tick:tickTree, desc:'a sapling: grows a trunk and a crown from a seed in soil'},
+  [TREE]: {name:'Saplings', color:[96,148,80], glow:'#609450', density:9, flammable:1, cat:'life', tick:tickTree, desc:'a sapling: grows a trunk and a crown from a seed in soil'},
   [FRUIT]: {name:'Fruit', color:[214,72,96], glow:'#d64860', density:2, cat:'life', tick:(x,y,i,dir)=>tickFruit(x,y,dir,i), desc:'bears in the crown; falls, feeds, and sometimes takes root'},
-  [MOSS]: {name:'Moss', color:[78,138,74], glow:'#4e8a4a', density:9, cat:'solid', tick:tickMoss, desc:'creeps over wet stone; snails graze it'},
+  [MOSS]: {name:'Moss', color:[78,138,74], glow:'#4e8a4a', density:9, flammable:1, cat:'solid', tick:tickMoss, desc:'creeps over wet stone; snails graze it'},
   [CORAL]: {name:'Coral', color:[240,120,138], glow:'#f0788a', density:9, cat:'solid', tick:tickCoral, desc:'builds on rock below water; fish and crabs graze it'},
   [COMPOST]: {name:'Compost', color:[96,80,54], glow:'#605036', density:3, cat:'solid', tick:(x,y,i,dir)=>tickCompost(x,y,dir,i), desc:'carrion: it feeds the plants beside it, then turns back to soil'},
   [HIVE]: {name:'Hives', color:[176,132,54], glow:'#b08436', density:9, cat:'solid', tick:tickHive, desc:'bees that settle on wood raise one; it fills with honey'},
   [HONEY]: {name:'Honey', color:[236,168,42], glow:'#eca82a', density:1.5, liquid:true, cat:'liquid', desc:'drips from a busy hive; everything with a sweet tooth wants it'},
   [BONE]: {name:'Bones', color:[228,224,208], glow:'#e4e0d0', density:9, cat:'solid', tick:tickBone, desc:'a kill leaves it behind; it weathers into compost'},
   [ASH]: {name:'Ash', color:[150,144,136], glow:'#969088', density:1.4, cat:'powder', tick:(x,y,i,dir)=>tickAsh(x,y,dir,i), desc:'what a fire leaves behind; water washes it into mud, and old ash feeds the soil'},
-  [REED]: {name:'Reeds', color:[126,168,88], glow:'#7ea858', density:9, cat:'solid', tick:tickReed, desc:'the grass of the shallows: grows up through water, burns like straw'},
+  [REED]: {name:'Reeds', color:[126,168,88], glow:'#7ea858', density:9, flammable:1, cat:'solid', tick:tickReed, desc:'the grass of the shallows: grows up through water, burns like straw'},
   [HERON]: {name:'Herons', color:[188,196,206], glow:'#bcc4ce', density:2, migrant:1, cat:'life', tick:tickHeron, desc:'wades the shallows and spears any fish it can see under two cells of water'},
   [GULL]: {name:'Gulls', color:[236,240,246], glow:'#ecf0f6', density:-3, migrant:1, cat:'life', diet:[LIFE, ANT, BEE, FISH, OCTOPUS, BONE, COMPOST], tick:tickGull, desc:'shadows a heron and robs its patch rather than fishing for itself'},
   [HUMAN]: {name:'Humans', color:[232,196,160], glow:'#e8c4a0', density:2, migrant:1, cat:'life', diet:[LIFE, DEER, FISH, SNAIL, CRAB, OCTOPUS, FRUIT, BONE, BEAVER], tick:tickHuman, desc:'hunts, sows seed, raises planks, and keeps a fire going at night'},
@@ -519,6 +520,8 @@ const MATS = Object.keys(MAT).map(Number);
 const MAT_SLOTS = 256;   // census capacity: room for material growth
 const HOT = {};
 for (const k of MATS) if (MAT[k].hot) HOT[k] = 1;
+const FLAM = {};
+for (const k of MATS) if (MAT[k].flammable) FLAM[k] = 1;
 const LIQUID = {};
 for (const k of MATS) if (MAT[k].liquid) LIQUID[k] = 1;
 // who eats whom: one table drives predation, fear and breeding
@@ -534,8 +537,9 @@ for (const p in DIET) for (const q of DIET[p]) (FEARED[q] = FEARED[q] || []).pus
 /* ---------- state ---------- */
 const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d', {alpha:false});
-let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, scent=null, home=null, gene=null, camp=null, form=null;
+let W=0, H=0, grid=null, life=null, hunger=null, moved=null, facing=null, rowLive=null, heat=null, stars=null, img=null, alarmT=null, alarmDir=null, refractory=null, scent=null, home=null, gene=null, camp=null, form=null, fuel=null;
 let marked = null, markIx = -1, lastMarkDay = 0;   // the daily marked creature
+let emberCount = 0;
 const cell = 4;              // CSS px per simulated cell, scaled to fit
 
 let current = SAND;
@@ -566,7 +570,7 @@ function resize(){
   const hadWorld = !!grid;                       // a resize keeps the world; only the first call seeds it
   const oW = W, oH = H;
   const oldGrid = grid, oldLife = life, oldFacing = facing, oldHunger = hunger, oldHeat = heat;
-  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form;
+  const oldHome = home, oldScent = scent, oldAlarmT = alarmT, oldAlarmDir = alarmDir, oldRefractory = refractory, oldStars = stars, oldGene = gene, oldCamp = camp, oldForm = form, oldFuel = fuel;
   W = nW; H = nH;
   cvs.width = W; cvs.height = H;
   cvs.style.width = cw+'px'; cvs.style.height = ch+'px';
@@ -578,6 +582,7 @@ function resize(){
   hunger = new Uint16Array(W*H);  // ticks since a creature last ate
   alarmT = new Uint32Array(W*H);  // panic spreads: when this cell's kin last raised the alarm
   alarmDir = new Int8Array(W*H);  // which way the warning is running
+  refractory = new Uint32Array(W*H);  // a startled herd does not panic twice
   scent = new Uint32Array(W*H);   // when an ant last walked here
   home = new Int16Array(W*H);     // where a heron was hatched
   stars = new Uint8Array(W*H);                   // a resize keeps the sky; only the first call rolls it
@@ -586,6 +591,7 @@ function resize(){
   gene = new Uint8Array(W*H);    // lineage: low 6 bits hue, high 2 bits metabolism
   camp = new Uint8Array(W*H);    // amoeba signal: hungry cells call their kin together
   form = new Uint8Array(W*H);    // locust phase: 0 ground, 1 winged
+  fuel = new Uint8Array(W*H);    // how long a flammable cell has gone unburned
   img = ctx.createImageData(W, H);
   if (hadWorld){
     const dy = H - oH, cw2 = Math.min(oW, W);    // anchor the world to the floor, keep the left edge
@@ -599,12 +605,14 @@ function resize(){
       if (oldGene) gene.set(oldGene.subarray(src, src + cw2), dst);
       if (oldCamp) camp.set(oldCamp.subarray(src, src + cw2), dst);
       if (oldForm) form.set(oldForm.subarray(src, src + cw2), dst);
+      if (oldFuel) fuel.set(oldFuel.subarray(src, src + cw2), dst);
       hunger.set(oldHunger.subarray(src, src + cw2), dst);
       heat.set(oldHeat.subarray(src, src + cw2), dst);
       home.set(oldHome.subarray(src, src + cw2), dst);
       scent.set(oldScent.subarray(src, src + cw2), dst);
       alarmT.set(oldAlarmT.subarray(src, src + cw2), dst);
       alarmDir.set(oldAlarmDir.subarray(src, src + cw2), dst);
+      if (oldRefractory) refractory.set(oldRefractory.subarray(src, src + cw2), dst);
       stars.set(oldStars.subarray(src, src + cw2), dst);
     }
     reindexRows();
@@ -671,10 +679,12 @@ function set(x,y,v){
   if (was !== now) rowLive[y] += now ? 1 : -1;
   hunger[i] = 200;   // a cell born now starts hungry
   if (home) home[i] = 0;
+  refractory[i] = 0;
   grid[i] = v;
   life[i] = MAT[v].life || 0;
   gene[i] = (IS_CREATURE.has(v) || v === EGG) ? randomGene() : 0;   // a new creature is a founder
   form[i] = 0;
+  fuel[i] = 0;
 }
 function swap(a,b){
   const ah = hunger[a]; hunger[a] = hunger[b]; hunger[b] = ah;
@@ -683,9 +693,9 @@ function swap(a,b){
     rowLive[ra] += grid[a] === EMPTY ? 1 : -1;
     rowLive[rb] += grid[b] === EMPTY ? 1 : -1;
   }
-  const av = grid[a], al = life[a], af = facing[a], ah2 = home[a], ag = gene[a], afm = form[a];
-  grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b]; gene[a] = gene[b]; form[a] = form[b];
-  grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;       gene[b] = ag;       form[b] = afm;
+  const av = grid[a], al = life[a], af = facing[a], ah2 = home[a], ag = gene[a], afm = form[a], afu = fuel[a], arf = refractory[a];
+  grid[a] = grid[b]; life[a] = life[b]; facing[a] = facing[b]; home[a] = home[b]; gene[a] = gene[b]; form[a] = form[b]; fuel[a] = fuel[b]; refractory[a] = refractory[b];
+  grid[b] = av;      life[b] = al;      facing[b] = af;        home[b] = ah2;       gene[b] = ag;       form[b] = afm;       fuel[b] = afu;       refractory[b] = arf;
   if (markIx === a) markIx = b; else if (markIx === b) markIx = a;
   moved[b] = 1;
 }
@@ -695,6 +705,7 @@ function swap(a,b){
 function update(){
   let count = 0;
   moved.fill(0);
+  emberCount = 0;
   if (raining && !weatherOff) for (let k=0;k<3;k++){
     const rx = (Math.random()*W)|0;
     const sour = acidRain > 0 ? 0.6 : 0.04;
@@ -817,6 +828,7 @@ function spreadHeat(){
 
     heat[i] = h;
     if (camp[i]) camp[i] = camp[i] > 6 ? camp[i] - 6 : 0;       // the amoeba signal fades
+    if (FLAM[v] && (update.t & 7) === 1) fuel[i] = Math.min(255, fuel[i] + 1);   // unburned fuel piles up
   }
   for (let y=1;y<H-1;y++){
     const row = y*W;
@@ -965,6 +977,25 @@ function settleBeside(x,y,mat){
   return false;
 }
 
+function fireLifeFor(f){ return 40 + (f >> 2); }
+function igniteCell(nx,ny,j){
+  const fl = fuel[j];
+  set(nx,ny, FIRE);
+  if (fl) life[j] = fireLifeFor(fl);
+  if (fl > 180 && emberCount < 2 && Math.random() < 0.04){     // old fuel throws embers
+    emberCount++;
+    const ed = 8 + ((Math.random()*22)|0);
+    const ex = nx + (Math.random() < 0.5 ? -ed : ed), ey = ny - ((Math.random()*8)|0);
+    if (inB(ex,ey)){
+      const ei = idx(ex,ey), et = grid[ei];
+      if (et === EMPTY || FLAM[et]){
+        const ef = fuel[ei];
+        set(ex,ey, FIRE);
+        if (ef) life[ei] = fireLifeFor(ef);
+      }
+    }
+  }
+}
 function tickFire(x,y,i){
   if (Math.sin(season) > 0.45 && Math.random() < 0.03){    // the wet season drowns fires as they burn
     set(x,y, SMOKE); return true;
@@ -982,14 +1013,18 @@ function tickFire(x,y,i){
     const j = idx(nx,ny), t = grid[j];
     if (t === WATER){ set(nx,ny, STEAM); if (Math.random()<0.5) set(x,y, STEAM); return true; }
     if (t === MERCURY){ set(nx,ny, SMOKE); }
-    if (t === FUNGUS) set(nx,ny, FIRE);
+    if (t === FUNGUS) igniteCell(nx,ny,j);
     if (t === OIL || t === PLANT || t === LIFE || t === WOOD || t === WEB || t === NEST || t === TREE){
-      set(nx,ny, FIRE);
+      igniteCell(nx,ny,j);
     }
     if (t === REED && (Math.sin(season) < -0.45 || Math.random() < 0.05)){   // dry straw catches, damp straw resists
-      set(nx,ny, FIRE); life[j] = REED_BURN;
+      const rfl = fuel[j];
+      igniteCell(nx,ny,j); life[j] = Math.max(REED_BURN, rfl ? fireLifeFor(rfl) : 0);
     }
-    if (t === COAL){ set(nx,ny, FIRE); life[j] = COAL_BURN; }      // coal smoulders four times as long
+    if (t === COAL){
+      const cfl = fuel[j];
+      igniteCell(nx,ny,j); life[j] = Math.max(COAL_BURN, cfl ? fireLifeFor(cfl) : 0);
+    }      // coal smoulders four times as long
     // (fire does not ignite empty air — otherwise a single spark breeds faster than it burns out)
   }
   // flicker upward
@@ -1223,7 +1258,7 @@ function tickPod(x,y,i){
 // a fungus garden: pale food the ants raise; it creeps onto litter and rots back
 function tickGarden(x,y,i){
   life[i] = Math.min(65535, life[i] + 1);
-  if (Math.random() < 0.02){
+  if (Math.random() < 0.04){
     for (const [dx,dy] of NB4){
       const nx = x+dx, ny = y+dy;
       if (inB(nx,ny) && grid[idx(nx,ny)] === COMPOST){ set(nx,ny, GARDEN); break; }
@@ -1837,10 +1872,12 @@ function raiseAlarm(x,y,who,esc){
       const j = yy*W + xx;
       if (grid[j] !== who) continue;
       if (alarmT[j] > update.t) continue;     // a live alarm is not extended
+      if (refractory[j] > update.t) continue; // and a herd that has already bolted stays immune
       facing[j] = d;                           // the crowd turns with the first one to bolt
       alarmDir[j] = d;
       const far = Math.max(Math.abs(dx), Math.abs(dy));     // and fades with distance
       alarmT[j] = update.t + Math.max(2, 10 - far*2);
+      refractory[j] = update.t + 900;
     }
   }
 }
@@ -2723,6 +2760,7 @@ function draw(){
         const tint = GENE_TINTS[(gene[i] >> 2) & 15];
         const dark = v === LOCUST && (form[i] & 1) ? 0.55 : 1;
         r = Math.min(255, r*f*shade*tint[0]*dark); g = Math.min(255, g*f*shade*tint[1]*dark); b = Math.min(255, b*f*shade*tint[2]*dark);
+        if (alarmT[i] > update.t){ r = Math.min(255, r + 90); g = Math.max(0, g - 45); b = Math.max(0, b - 35); }
       }
       if (heatView){                                 // thermal camera: cold blue, hot white
         const q = Math.min(63, Math.max(0, Math.round(((heat[i] + 1) / 2.4) * 63)));
@@ -2905,6 +2943,16 @@ function harpTick(t){
   }
 }
 
+function startleAt(x,y){
+  const cx = Math.floor(x), cy = Math.floor(y);
+  if (!inB(cx,cy)) return false;
+  const v = grid[idx(cx,cy)];
+  if (!IS_CREATURE.has(v)) return false;
+  raiseAlarm(cx, cy, v, Math.random() < 0.5 ? -1 : 1);
+  if (soundOn) blip(240, 0.18, 'square', 0.045);
+  return true;
+}
+
 function floodFill(x0, y0, v){
   if (!inB(x0, y0)) return;
   const target = grid[idx(x0, y0)];
@@ -2945,6 +2993,7 @@ cvs.addEventListener('pointerdown', e => {
     return;
   }
   if (tool !== 'paint'){
+    if (tool === 'startle' && e.button === 0){ startleAt(cx,cy); return; }
     if (tool === 'harp' && e.button === 0){
       harpStart = [cx, cy]; harpPreview = { x1:cx, y1:cy, x2:cx, y2:cy };
       pointers.set(e.pointerId, { harp:true });
@@ -3942,7 +3991,7 @@ document.getElementById('shot').addEventListener('click', () => {
 function clearAll(){
   if (!dailyBuilding) endDaily();
   grid.fill(0); life.fill(0); rowLive.fill(0); heat.fill(0);
-  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0);   // no stale state
+  facing.fill(0); hunger.fill(0); alarmT.fill(0); alarmDir.fill(0); refractory.fill(0); scent.fill(0); home.fill(0); gene.fill(0); camp.fill(0); form.fill(0); fuel.fill(0);   // no stale state
   marked = null; markIx = -1; lastMarkDay = 0;
   threads.length = 0; harpPreview = null;
   activeExp = null; expBase = null; expDone = false;   // a rebuilt world cannot finish the old experiment
@@ -5510,12 +5559,12 @@ function mulberry32(a){
 }
 function selfTest(){
   const saveW=W, saveH=H, saveG=grid, saveL=life, saveSun=sun, saveWind=wind, saveSeason=season;
-  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form;
+  const saveM=moved, saveF=facing, saveHu=hunger, saveA=alarmT, saveAd=alarmDir, saveRe=refractory, saveR=rowLive, saveSc=scent, saveHm=home, saveGe=gene, saveCa=camp, saveFo=form, saveFu=fuel;
   const saveHeat=heat.slice(), saveStars=stars, saveTally={...tally}, saveTick=update.t|0;   // the suite mutates all of these
   const saveWO=weatherOff; weatherOff=false;   // the suite needs rain; do not call setWeather (it would save the pref)
   moved=new Uint8Array(1600); facing=new Int8Array(1600); hunger=new Uint16Array(1600);
-  alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); rowLive=new Uint16Array(64);
-  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600);
+  alarmT=new Uint32Array(1600); alarmDir=new Int8Array(1600); refractory=new Uint32Array(1600); rowLive=new Uint16Array(64);
+  scent=new Uint32Array(1600); home=new Int16Array(1600); gene=new Uint8Array(1600); camp=new Uint8Array(1600); form=new Uint8Array(1600); fuel=new Uint8Array(1600);
   sun = 0.5; wind = 0; season = 0; testing = true; // tests run in fixed daylight
   const realRandom = Math.random; Math.random = mulberry32(0x5EED);   // deterministic suite
   const errs = [];
@@ -5611,6 +5660,18 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   let grew = false;
   for (let i=0;i<300 && !grew;i++){ run(1); grew = count(PLANT) > 1; }
   ok('plant grows into water', grew);
+
+  // fire debt: fuel accumulates, old fuel burns longer, and burning spends it
+  chamber(20,20); moved.fill(0);
+  set(20,21,WOOD); fuel[idx(20,21)] = 0;
+  run(40);
+  ok('unburned wood builds fuel', fuel[idx(20,21)] > 0);
+
+  chamber(20,20); moved.fill(0);
+  set(21,21,WOOD); fuel[idx(21,21)] = 255; set(20,21,FIRE);
+  tickFire(20,21,idx(20,21));
+  ok('old fuel burns longer', grid[idx(21,21)] === FIRE && life[idx(21,21)] === fireLifeFor(255) && fireLifeFor(255) > fireLifeFor(0));
+  ok('burning spends the fuel', fuel[idx(21,21)] === 0);
 
 // § TEST: ECOLOGY — creatures, food, fear
   // a bug falls to the floor of a chamber
@@ -6129,7 +6190,11 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   chamber(20,20); form.fill(0); camp.fill(0);
   set(20,21,GARDEN); set(21,21,COMPOST);
   let spread = false;
-  for (let i=0;i<200 && !spread;i++){ update(); if (grid[idx(21,21)] === GARDEN) spread = true; }
+  for (let i=0;i<300 && !spread;i++){
+    moved.fill(0);
+    tickGarden(20,21,idx(20,21));
+    if (grid[idx(21,21)] === GARDEN) spread = true;
+  }
   ok('a fungus garden spreads over litter', spread);
 
   // beavers: dam a narrow channel, weather back to mud, leave open water alone
@@ -6590,15 +6655,20 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
   grid.fill(0); facing.fill(0); alarmT.fill(0); heat.fill(0);
   for (let x=5;x<35;x++) set(x,30,STONE);
   set(20,28,WOOD); set(20,29,HUMAN); heat[idx(20,29)] = 0.5; sun = 4.7;
+  facing[idx(20,29)] = 1;
   moved.fill(0);
+  const humanRand = Math.random;
+  Math.random = () => 0.5;
   tickHuman(20,29,idx(20,29));
   const worked = grid[idx(19,29)] === HUMAN || grid[idx(21,29)] === HUMAN;
   grid.fill(0); facing.fill(0); alarmT.fill(0); heat.fill(0);
   for (let x=5;x<35;x++) set(x,30,STONE);
   set(20,28,WOOD); set(20,29,HUMAN); sun = 4.7;
+  facing[idx(20,29)] = 1;
   moved.fill(0);
   tickHuman(20,29,idx(20,29));
   const stayed = grid[idx(20,29)] === HUMAN;
+  Math.random = humanRand;
   sun = 0.5;
   ok('a warm person works through the night', worked && stayed);
 
@@ -7479,6 +7549,19 @@ ok('every migrant is a material', MIGRANTS.every(id => MAT[id]) && IS_CREATURE.s
     threads.length === 1 && threads[0].last === 1000 && threads[0].pitch > 0 && threads[0].flash > 1000);
   threads.length = 0;
 
+  // the startle: a visible alarm wave with a refractory tail
+  chamber(20,20); form.fill(0); camp.fill(0); refractory.fill(0); moved.fill(0);
+  for (let k=0;k<3;k++){ set(19+k,21,LIFE); gene[idx(19+k,21)] = 0; }
+  const started = startleAt(20,21);
+  ok('a startle runs through kin',
+    started && alarmT[idx(21,21)] > update.t && refractory[idx(21,21)] > update.t);
+
+  const alarmWas2 = alarmT[idx(21,21)], refractoryWas2 = refractory[idx(21,21)];
+  raiseAlarm(20,21,LIFE,1);
+  ok('a startled herd is refractory', alarmT[idx(21,21)] === alarmWas2 && refractory[idx(21,21)] === refractoryWas2);
+  chamber(20,20); form.fill(0); camp.fill(0);
+  ok('the startle tool ignores empty cells', startleAt(20,21) === false);
+
 // § TEST: RESET & VALIDATION — clear path, unknown ids, load errors, input
 grid.fill(0); life.fill(0); rowLive.fill(0);
 set(20,20,LIFE); hunger[idx(20,20)] = 899; heat[idx(20,20)] = 1;
@@ -7559,7 +7642,7 @@ cvsEl3.blur(); cursor.on = false; chamber(20,20);
     Math.random = realRandom;
     testing = false;
     W=saveW; H=saveH; grid=saveG; life=saveL; sun=saveSun; wind=saveWind; season=saveSeason;
-    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo;
+    moved=saveM; facing=saveF; hunger=saveHu; alarmT=saveA; alarmDir=saveAd; refractory=saveRe; rowLive=saveR; scent=saveSc; home=saveHm; gene=saveGe; camp=saveCa; form=saveFo; fuel=saveFu;
     heat=saveHeat; stars=saveStars; Object.assign(tally, saveTally); update.t=saveTick;
     weatherOff=saveWO;
   }

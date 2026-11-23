@@ -37,6 +37,8 @@ Test groups inside `SELFTEST`: `TEST: MATERIAL REGISTRY` `TEST: PHYSICS` `TEST: 
 | Powder Radio | `radioText`, `radioSpeak`, `setRadio` | `#radiobtn`, `#radio` |
 | The Marked One | `maybeMark`, `checkMark`, `markIx` | `#mark`, `form` bit 2 |
 | Tools: bow, shutter, bubble, harp | `bowNote`, `setShutter`, `bubbleAt`, `addThread`, `harpTick` | `#tool`, `#shutter`, `BUBBLE` |
+| The Startle / alarm immunity | `raiseAlarm`, `startleAt`, `refractory` | `#tool`, `refractory` |
+| Fire debt | `fuel`, `fireLifeFor`, `igniteCell` | `FLAM`, `fuel` |
 | Lineages (genes) | `gene`, `mutateGene`, `lineageCounts` | `gene`, `.hlineages` |
 | Daily world, daily goal | `dailyPlan`, `startDaily`, `DAILY_GOALS` | `?daily`, `#daily` |
 | Social amoebae / slime stalks | `tickAmoeba`, `tickStalk`, `camp` | `AMOEBA`, `STALK` |
